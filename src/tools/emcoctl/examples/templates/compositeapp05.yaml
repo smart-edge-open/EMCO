@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+#creating collection composite app entry
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps
+metadata :
+  name: {{.CompositeApp}}
+  description: test
+spec:
+  version: v1
+
+---
+#adding  app to the composite app
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/apps
+metadata :
+  name: {{.App}}
+  description: "description for app"
+file:
+  {{.HelmApp}}
+
+
+---
+#creating collection composite profile entry
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/composite-profiles
+metadata :
+  name: {{.CompositeProfile}}
+  description: test
+
+---
+#adding  app profiles to the composite profile
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/composite-profiles/{{.CompositeProfile}}/profiles
+metadata :
+  name: profile
+  description: test
+spec:
+  app-name: {{.App}}
+file:
+  {{.ProfileApp}}

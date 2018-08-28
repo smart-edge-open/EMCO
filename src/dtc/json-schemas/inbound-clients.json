@@ -1,0 +1,80 @@
+{ 
+  "schema": "http://json-schema.org/schema#",
+  "type": "object",
+  "properties": {
+    "spec": {
+      "required": [
+        "application",
+        "servicename",
+        "namespaces",
+        "cidrs"
+      ],
+      "type": "object",
+      "description": "Traffic inbound server Intent",
+      "properties": {
+        "application": {
+          "description": "Application Name",
+          "type": "string",
+          "example": "smartapp",
+          "maxLength": 128,
+          "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+        },
+        "servicename": {
+          "description": "Servicename Name",
+          "type": "string",
+          "example": "echo",
+          "maxLength": 128,
+          "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+        },
+        "namespaces": {
+          "description": "Namespaces",
+          "type": "array",
+          "example": ["np1", "np2"],
+          "items": {
+            "type": "string"
+          }
+        },
+        "cidrs": {
+          "description": "Networks",
+          "type": "array",
+          "example": ["172.168.21.0/24", "10.20.20.0/16"],
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "metadata": {
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "userData2": {
+          "description": "User relevant data for the resource",
+          "type": "string",
+          "example": "Some more data",
+          "maxLength": 512
+        },
+        "userData1": {
+          "description": "User relevant data for the resource",
+          "type": "string",
+          "example": "Some data",
+          "maxLength": 512
+        },
+        "name": {
+          "description": "Name of the resource",
+          "type": "string",
+          "example": "ResName",
+          "maxLength": 128,
+          "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+        },
+        "description": {
+          "description": "Description for the resource",
+          "type": "string",
+          "example": "Resource description",
+          "maxLength": 1024
+        }
+      }
+    }
+  }
+}

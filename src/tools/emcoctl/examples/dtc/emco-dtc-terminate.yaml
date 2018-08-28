@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+---
+#Terminate the app installed on the clusters.
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/terminate
+
+---
+#Terminate the logical clouds installed
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/logical-clouds/default/terminate

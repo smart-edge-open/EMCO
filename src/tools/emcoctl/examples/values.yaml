@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+ProjectName: proj1
+ClusterProvider: provider1
+Cluster1: cluster1
+AdminCloud: default
+ComposteApp: collection-composite-app
+App1: prometheus-operator
+App2: collectd
+KubeConfig: /home/vagrant/.kube/config
+HelmApp1: /opt/csar/prometheus-operator.tar.gz
+HelmApp2: /opt/csar/collectd.tar.gz
+ProfileApp1: /opt/csar/prometheus-operator_profile.tar.gz
+ProfileApp2:  /opt/csar/collectd_profile.tar.gz
+DeploymentIntent: collection-deployment-intent-group
+RsyncPort: 32705

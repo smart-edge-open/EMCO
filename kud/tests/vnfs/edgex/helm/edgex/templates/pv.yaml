@@ -1,0 +1,88 @@
+{{
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+}}
+
+{{- if .Values.persistence.enabled -}}
+
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: {{ printf "%s-%s" .Release.Name .Chart.Name }}-data
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+    name: {{ printf "%s-%s" .Release.Name .Chart.Name }}-data
+spec:
+  accessModes:
+    - {{ .Values.persistence.accessMode }}
+  capacity:
+    storage: {{ .Values.persistence.size }}
+  persistentVolumeReclaimPolicy: {{ .Values.persistence.volumeReclaimPolicy }}
+  hostPath:
+    path: {{ .Values.global.persistence.mountPath | default .Values.persistence.mountPath }}/{{ .Release.Name }}/{{ .Values.persistence.mountSubPathData }}
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: {{ printf "%s-%s" .Release.Name .Chart.Name }}-logs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+    name: {{ printf "%s-%s" .Release.Name .Chart.Name }}-logs
+spec:
+  accessModes:
+    - {{ .Values.persistence.accessMode }}
+  capacity:
+    storage: {{ .Values.persistence.size }}
+  persistentVolumeReclaimPolicy: {{ .Values.persistence.volumeReclaimPolicy }}
+  hostPath:
+    path: {{ .Values.global.persistence.mountPath | default .Values.persistence.mountPath }}/{{ .Release.Name }}/{{ .Values.persistence.mountSubPathLogs }}
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: {{ printf "%s-%s" .Release.Name .Chart.Name }}-consul-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+    name: {{ printf "%s-%s" .Release.Name .Chart.Name }}-consul-config
+spec:
+  accessModes:
+    - {{ .Values.persistence.accessMode }}
+  capacity:
+    storage: {{ .Values.persistence.size }}
+  persistentVolumeReclaimPolicy: {{ .Values.persistence.volumeReclaimPolicy }}
+  hostPath:
+    path: {{ .Values.global.persistence.mountPath | default .Values.persistence.mountPath }}/{{ .Release.Name }}/{{ .Values.persistence.mountSubPathConsulConf }}
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: {{ printf "%s-%s" .Release.Name .Chart.Name }}-consul-data
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+    name: {{ printf "%s-%s" .Release.Name .Chart.Name }}-consul-data
+spec:
+  accessModes:
+    - {{ .Values.persistence.accessMode }}
+  capacity:
+    storage: {{ .Values.persistence.size }}
+  persistentVolumeReclaimPolicy: {{ .Values.persistence.volumeReclaimPolicy }}
+  hostPath:
+    path: {{ .Values.global.persistence.mountPath | default .Values.persistence.mountPath }}/{{ .Release.Name }}/{{ .Values.persistence.mountSubPathConsulData }}
+
+{{- end -}}

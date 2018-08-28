@@ -1,0 +1,5669 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+openapi: 3.0.2
+info:
+  version: '2.0.0'
+
+  title: EMCO
+
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+  x-logo:
+    url: 'https://redocly.github.io/openapi-template/logo.png'
+
+  description: |
+    EMCO - Edge Multi Cluster Orchestrator
+    # Introduction
+    Application Orchestration - For applications and services delivered across multiple administrative infrastructures
+
+externalDocs:
+  description: Wiki for the API's.
+  url: 'https://wiki.onap.org/display/DW/V2+API+Specification'
+
+tags:
+  - name: v2
+    description: |
+     V2 API's
+
+paths:
+  ############################ Project API'S #################################################
+  /projects:
+    post:
+      tags:
+        - Projects
+      summary: Project
+      description: Add a new `project`
+      operationId: addProject
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+                $ref: '#/components/schemas/Metadata'
+        description: Project data
+        required: true
+
+    get: # documentation for GET operation for this path
+      tags:
+        - Projects
+      summary: Get all projects
+
+      description: |
+        Get all `projects`
+
+      operationId: getAllProjects
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/MetadataArray'
+        '404':
+          description: No Found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+  /projects/{project-name}:
+    # parameters list that are used with each operation for this path
+    parameters:
+    - $ref: '#/components/parameters/projectName'
+    get: # documentation for GET operation for this path
+      tags:
+        - Projects
+      summary: Get project by project name
+
+      description: |
+        Get `project`
+
+      operationId: getProjectByName
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        '404':
+          description: Not Found
+          content: {}
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Projects
+      summary: Update project
+      description: Update `project`
+      operationId: updateProject
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Metadata'
+        description: Update project object
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Projects
+      summary: Delete project by project name
+
+      description: |
+        Delete `project`
+
+      operationId: deleteProjectByName
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+  ############################ Application API'S #################################################
+  /projects/{project-name}/composite-apps:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+    post:
+      tags:
+        - Composite Application
+      summary: Add Composite Application
+      description: Add a new `composite application`
+      operationId: addCompositeApplication
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompositeAppVersion'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompositeAppVersion'
+        description: Composite application definition
+        required: true
+
+    get: # documentation for GET operation for this path
+      tags:
+        - Composite Application
+      summary: Get all Composite Applications
+
+      description: |
+        Get all `composite applications`
+
+      operationId: getAllCompositeApplications
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/CompositeAppVersionArray'
+        '404':
+          description: No Composite App found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+    get: # documentation for GET operation for this path
+      tags:
+        - Composite Application
+      summary: Get Composite Application
+
+      description: |
+        Get `composite application`
+
+      operationId: getCompositeApplicationByName
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/CompositeAppVersion'
+        '404':
+          description: Composite Application not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Composite Application
+      summary: Update a Composite Application
+      description: Update a `Composite Application`
+      operationId: updateCompositeApplication
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/CompositeAppVersion'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompositeAppVersion'
+        description: Composite application definition
+        required: true
+
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Composite Application
+      summary: Delete Composite Application
+
+      description: |
+        Delete `Composite Application`
+
+      operationId: deleteCompositeAppByName
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/apps:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+    post:
+      tags:
+        - Composite Application
+      summary: Add app to Composite Application
+      description: Add a new  `app to composite application`
+      operationId: addAppToCompositeApplication
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+          multipart/form-data: # Media type
+            schema:            # Request payload
+              $ref: '#/components/schemas/AppData'
+        required: true
+
+    get: # documentation for GET operation for this path
+      tags:
+        - Composite Application
+      summary: Get all apps in Composite Application
+
+      description: |
+        Get all `apps in composite application`
+
+      operationId: getAllAppsInCompositeApplication
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/MetadataArray'
+        '404':
+          description: No Apps found in Composite Application
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/apps/{app-name}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/appName'
+    get: # documentation for GET operation for this path
+      tags:
+        - Composite Application
+      summary: Get Application
+
+      description: |
+        Get `application`
+
+      operationId: getAppCompositeApplication
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+            application/octet-stream: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/File'
+            multipart/form-data: # Media type
+              schema:            # Request payload
+                $ref: '#/components/schemas/AppData'
+
+        '404':
+          description: Application not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Composite Application
+      summary: Update app in Composite Application
+      description: Update app in `Composite Application`
+      operationId: updateAppToCompositeApplication
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+          multipart/form-data: # Media type
+            schema:            # Request payload
+              $ref: '#/components/schemas/AppData'
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Composite Application
+      summary: Delete Application
+
+      description: |
+        Delete `application`
+
+      operationId: deleteAppToCompositeApplication
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+############################ PROFILE API'S #################################################
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/composite-profiles:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+    post:
+      tags:
+        - Composite Profile
+      summary: Add Composite Profile
+      description: Add a new `composite profile`
+      operationId: addCompositeProfile
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Metadata'
+        description: Composite Profile definition
+        required: true
+
+    get: # documentation for GET operation for this path
+      tags:
+        - Composite Profile
+      summary: Get all Composite Profiles
+
+      description: |
+        Get all `profiles in a composite application`
+
+      operationId: getAllProfilesInCompositeApplication
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/MetadataArray'
+        '404':
+          description: No composite profile found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/composite-profiles/{composite-profile-name}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/compositeProfileName'
+    get: # documentation for GET operation for this path
+      tags:
+        - Composite Profile
+      summary: Get Composite Profile
+
+      description: |
+        Get `composite profile`
+
+      operationId: getCompositeProfileByName
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        '404':
+          description: Composite Profile not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Composite Profile
+      summary: Update Composite Profile
+      description: Update `Composite Profile`
+      operationId: updateCompositeProfile
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+          description: Success
+        '400':
+          description: Invalid data
+        '404':
+          description: Composite Profile not found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Metadata'
+        description: Composite Profile definition
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Composite Profile
+      summary: Delete Composite Profile
+
+      description: |
+        Delete `Composite Profile`
+
+      operationId: deleteCompositeProfileByName
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/composite-profiles/{composite-profile-name}/profiles:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/compositeProfileName'
+    post:
+      tags:
+        - Composite Profile
+      summary: Add app profile to Composite Profile
+      description: Add a `profile for application`
+      operationId: addProfileToCompositeProfile
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/ProfileAppSpec'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          multipart/form-data: # Media type
+            schema:            # Request payload
+              $ref: '#/components/schemas/ProfileAppData'
+    get: # documentation for GET operation for this path
+      tags:
+        - Composite Profile
+      summary: Get all app profiles in Composite Profiles
+
+      description: |
+        Get all `app profiles in a composite Profile`
+
+      operationId: getAllProfilesInCompositeProfile
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/ProfileAppSpecArray'
+        '404':
+          description: No profile found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/composite-profiles/{composite-profile-name}/profiles/{profile-name}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/compositeProfileName'
+      - $ref: '#/components/parameters/profileName'
+    get: # documentation for GET operation for this path
+      tags:
+        - Composite Profile
+      summary: Get profile from Composite Profile
+
+      description: |
+        Get `profile from composite profile`
+
+      operationId: getProfile
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/ProfileAppSpec'
+            application/octet-stream: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/File'
+            multipart/form-data: # Media type
+              schema:            # Request payload
+                $ref: '#/components/schemas/ProfileAppData'
+
+        '404':
+          description: Profile not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Composite Profile
+      summary: Update Composite Profile for an app
+      description: Update `Profile`
+      operationId: updateProfile
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/ProfileAppSpec'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+          multipart/form-data: # Media type
+            schema:            # Request payload
+              $ref: '#/components/schemas/ProfileAppData'
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Composite Profile
+      summary: Delete Profile
+
+      description: |
+        Delete `profile in Composite Profile`
+
+      operationId: deleteProfile
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+  # Qurey for Profile - Get profile for app-name
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/composite-profiles/{composite-profile-name}/profiles/:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/compositeProfileName'
+      - in: query
+        name: app-name
+        schema:
+          type: string
+          maxLength: 128
+        required: true
+
+    get: # documentation for GET operation for this path
+      tags:
+        - Composite Profile
+      summary: Query profile for an application
+
+      description: |
+        Query `profile for an application`
+
+      operationId: queryProfileForApp
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/ProfileAppSpec'
+            application/octet-stream: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/File'
+            multipart/form-data: # Media type
+              schema:            # Request payload
+                $ref: '#/components/schemas/ProfileAppData'
+        '404':
+          description: Profile for application not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+
+
+############################ Deployment Intent Group API'S #################################################
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+    post:
+      tags:
+        - Deployment Intent Group
+      summary: Add Deployment Intent Group
+      description: Add a new `deployment intent group`
+      operationId: addDeploymentIntentGroup
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeploymentGroupIntent'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeploymentGroupIntent'
+        description: Deployment Intent Group definition
+        required: true
+    get: # documentation for GET operation for this path
+      tags:
+        - Deployment Intent Group
+      summary: Get all Deployment Intent Group
+
+      description: |
+        Get all `Deployment Intent Group`
+
+      operationId: getAllDeploymentIntentGroup
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/DeploymentGroupIntentArray'
+        '404':
+          description: No Deployment Intent Group found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+    get: # documentation for GET operation for this path
+      tags:
+        - Deployment Intent Group
+      summary: Get Deployment Intent Group
+
+      description: |
+        Get `Deployment Intent Group`
+
+      operationId: getDeploymentIntentGroupByName
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/DeploymentGroupIntent'
+        '404':
+          description: Deployment Intent Group not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Deployment Intent Group
+      summary: Update Deployment Intent Group
+      description: Update `Deployment Intent Group`
+      operationId: updateDeploymentIntentGroup
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/DeploymentGroupIntent'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeploymentGroupIntent'
+        description: Deployment Intent Group definition
+        required: true
+
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Deployment Intent Group
+      summary: Delete Deployment Intent Group
+
+      description: |
+        Delete `Deployment Intent Group`
+
+      operationId: deleteDeploymentIntentGroupByName
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/intents/:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+    post:
+      tags:
+        - Deployment Intent Group
+      summary: Add Intent
+      description: Add `deployment Intent`
+      operationId: addIntentToDeploymentIntentGroup
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/DeploymentIntent'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json: # Media type
+            schema:            # Request payload
+              $ref: '#/components/schemas/DeploymentIntent'
+    get: # documentation for GET operation for this path
+      tags:
+        - Deployment Intent Group
+      summary: Get all intents in Deployment Intent Group
+
+      description: |
+        Get all `intents in deployment intent group`
+
+      operationId: getAllIntentsInDeploymentIntentGroup
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/DeploymentIntentArray'
+        '404':
+          description: No Deployment Intent Group found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/intents/{intent-name}:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/intentName'
+
+    get: # documentation for GET operation for this path
+      tags:
+        - Deployment Intent Group
+      summary: Get intent for an application
+
+      description: |
+        Get `Deployment Intent`
+
+      operationId: getIntentForDeploymentIntentGroup
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/DeploymentIntent'
+        '404':
+          description: Deployment Intent not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Deployment Intent Group
+      summary: Update intent
+      description: Update `deployment intent`
+      operationId: updateIntentToDeploymentIntentGroup
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/DeploymentIntent'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+         application/json: # Media type
+            schema:            # Request payload
+              $ref: '#/components/schemas/DeploymentIntent'
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Deployment Intent Group
+      summary: Delete intent
+
+      description: |
+        Delete `intent`
+
+      operationId: deleteIntentFromDeploymentIntentGroup
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+   #Query
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/intents:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - in: query
+        name: intent
+        schema:
+          type: string
+          maxLength: 128
+        required: true
+
+    get: # documentation for GET operation for this path
+      tags:
+        - Deployment Intent Group
+      summary: Query intent
+
+      description: |
+        Query `Deployment Intent`
+
+      operationId: queryIntentForDeploymentIntentGroup
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/DeploymentIntent'
+        '404':
+          description: Deployment Intent not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+############################ GENERIC PLACEMENT INTENT API'S #################################################
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/generic-placement-intents:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+    post:
+      tags:
+        - Generic Placement Intent
+      summary: Add Generic Placement Intent
+      description: Add a new `generic placement intent`
+      operationId: addGenericPlacementIntent
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Metadata'
+        description: Generic Placement Intent definition
+        required: true
+
+    get: # documentation for GET operation for this path
+      tags:
+        - Generic Placement Intent
+      summary: Get all Generic Placement Intents
+
+      description: |
+        Get all `Generic Placement Intents`
+
+      operationId: getAllGenericPlacementIntents
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/MetadataArray'
+        '404':
+          description: No Generic Placement Intent found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/generic-placement-intents/{generic-placement-intent-name}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/genericPlacementIntentName'
+    get: # documentation for GET operation for this path
+      tags:
+        - Generic Placement Intent
+      summary: Get Generic Placement Intent
+
+      description: |
+        Get `generic placement intent`
+
+      operationId: getGenericPlacementIntentByName
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        '404':
+          description: Generic Placement Intent not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Generic Placement Intent
+      summary: Update Generic Placement Intent
+      description: Update `Generic Placement Intent`
+      operationId: updateGenericPlacementIntent
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Metadata'
+        description: Generic Placement Intent definition
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Generic Placement Intent
+      summary: Delete Generic Placement Intent
+
+      description: |
+        Delete `Generic Placement Intent`
+
+      operationId: deleteGenericPlacementIntentByName
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/generic-placement-intents/{generic-placement-intent-name}/app-intents:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/genericPlacementIntentName'
+    post:
+      tags:
+        - Generic Placement Intent
+      summary: Add intent for an application
+      description: Add a `intent for application`
+      operationId: addIntentToGenericPlacementIntent
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/GenericPlacementAppIntent'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json: # Media type
+            schema:            # Request payload
+              $ref: '#/components/schemas/GenericPlacementAppIntent'
+    get: # documentation for GET operation for this path
+      tags:
+        - Generic Placement Intent
+      summary: Get all Intents in Generic Placement
+
+      description: |
+        Get all ` Intents in Generic Placement Intent`
+
+      operationId: getAllIntentsInGenericPlacementIntents
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/GenericPlacementAppIntentArray'
+        '404':
+          description: No Generic Placement Intent found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/generic-placement-intents/{generic-placement-intent-name}/app-intents/{intent-name}:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/genericPlacementIntentName'
+      - $ref: '#/components/parameters/intentName'
+
+    get: # documentation for GET operation for this path
+      tags:
+        - Generic Placement Intent
+      summary: Get intent
+
+      description: |
+        Get `generic placement intent`
+
+      operationId: getIntentfromGenericPlacementIntent
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/GenericPlacementAppIntent'
+
+        '404':
+          description: Intent  not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Generic Placement Intent
+      summary: Update intent for an application
+      description: Update `generic placement intent for application`
+      operationId: updateIntentToGenericPlacementIntent
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/GenericPlacementAppIntent'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+         application/json: # Media type
+            schema:            # Request payload
+              $ref: '#/components/schemas/GenericPlacementAppIntent'
+        required: true
+
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Generic Placement Intent
+      summary: Delete intent
+
+      description: |
+        Delete `generic placement intent`
+
+      operationId: deleteIntentFromGenericPlacementIntent
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+  # Qurey for Intent - Get intent for app-name
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/generic-placement-intents/{generic-placement-intent-name}/app-intents/:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/genericPlacementIntentName'
+      - in: query
+        name: app-name
+        schema:
+          type: string
+          maxLength: 128
+        required: true
+
+    get: # documentation for GET operation for this path
+      tags:
+        - Generic Placement Intent
+      summary: Query intent for an application
+
+      description: |
+        Query `generic placement intent for application`
+
+      operationId: queryIntentfromGenericPlacementIntent
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/GenericPlacementAppIntent'
+        '404':
+          description: Generic Placement Intent for application not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+####################Lifecycle Management#######################################
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/approve:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+    post:
+      tags:
+        - Deployment Lifecycle
+      summary: Approve a Deployment
+      description: Approve a  Deployment
+      operationId: approveDeploymentIntentGroup
+      responses:
+        '201':
+          description: Success
+        '202':
+          description: Accepted
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content: {}
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/instantiate:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+    post:
+      tags:
+        - Deployment Lifecycle
+      summary: Instantiate a Deployment
+      description: Instantiate a  Deployment
+      operationId: instantiateDeploymentIntentGroup
+      responses:
+        '201':
+          description: Success
+        '202':
+          description: Accepted
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content: {}
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/terminate:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+    post:
+      tags:
+        - Deployment Lifecycle
+      summary: Terminate a Deployment
+      description: Terminate a  Deployment
+      operationId: terminateDeploymentIntentGroup
+      responses:
+        '200':
+          description: Success
+        '202':
+          description: Accepted
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content: {}
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/status:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - in: query
+        name: type
+        description: source of status information
+        schema:
+          type: string
+          enum: [rsync, cluster]
+          default: rsync
+      - in: query
+        name: output
+        description: output format
+        schema:
+          type: string
+          enum: [summary, all, detail]
+          default: all
+      - in: query
+        name: instance
+        description: instance identifier
+        schema:
+          type: string
+          maxLength: 32
+      - in: query
+        name: app
+        description: app name
+        schema:
+          type: string
+          maxLength: 64
+      - in: query
+        name: cluster
+        description: cluster-provider+cluster
+        schema:
+          type: string
+          maxLength: 128
+      - in: query
+        name: resource
+        description: resource name
+        schema:
+          type: string
+          maxLength: 64
+    get:
+      tags:
+        - Deployment Lifecycle
+      summary: Status of Deployment
+      description: Status of  Deployment
+      operationId: statusDeploymentIntentGroup
+      responses:
+        '200':
+          description: Success
+          content: {}
+        '404':
+          description: No Status found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/stop:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+    post:
+      tags:
+        - Deployment Lifecycle
+      summary: Stop a Deployment
+      description: Stop a Deployment that is being instantiated/Terminated
+      operationId: stopDeploymentIntentGroup
+      responses:
+        '200':
+          description: Success
+        '202':
+          description: Accepted
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content: {}
+############################ Controller Registration API'S #################################################
+  /controllers:
+    post:
+      tags:
+        - Controller Registration
+      summary: Controller Registration
+      description: Add a new `controller`
+      operationId: addController
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Controller'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json:
+            schema:
+                $ref: '#/components/schemas/Controller'
+        description: Controller Info
+        required: true
+    get: # documentation for GET operation for this path
+          tags:
+            - Controller Registration
+          summary: Get all controllers
+
+          description: |
+            Get all `controllers`
+
+          operationId: getControllers
+          responses: # list of responses
+            '200':
+              description: Success
+              content:
+                application/json: # operation response mime type
+                  schema:
+                    $ref: '#/components/schemas/ControllerArray'
+            '404':
+              description: No controllers found
+            '400':
+              description: Bad Request
+            '500':
+              description: Internal Server Error
+
+  /controllers/{controller-name}:
+    # parameters list that are used with each operation for this path
+    parameters:
+    - $ref: '#/components/parameters/controllerName'
+    get: # documentation for GET operation for this path
+      tags:
+        - Controller Registration
+      summary: Get controller by name
+
+      description: |
+        Get `controller`
+
+      operationId: getController
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Controller'
+        '404':
+          description: Controller not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Controller Registration
+      summary: Update controller
+      description: Update `controller`
+      operationId: updateController
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Controller'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Controller'
+        description: Update controllers object
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Controller Registration
+      summary: Delete controller
+
+      description: |
+        Delete `controller`
+
+      operationId: deleteController
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+############################ Cluster Provider API'S #################################################
+  /cluster-providers:
+    post:
+      tags:
+        - Cluster Providers
+      summary: Cluster Providers
+      description: Add a new `cluster provider`
+      operationId: addClusterProvider
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json:
+            schema:
+                $ref: '#/components/schemas/Metadata'
+        description: Cluster Providers Info
+        required: true
+    get: # documentation for GET operation for this path
+          tags:
+            - Cluster Providers
+          summary: Get all cluster providers
+
+          description: |
+            Get all `cluster providers`
+
+          operationId: getAllClusterProviders
+          responses: # list of responses
+            '200':
+              description: Success
+              content:
+                application/json: # operation response mime type
+                  schema:
+                    $ref: '#/components/schemas/Metadata'
+            '404':
+              description: No cluster provider found
+            '400':
+              description: Bad Request
+            '500':
+              description: Internal Server Error
+
+  /cluster-providers/{cluster-providers-name}:
+    # parameters list that are used with each operation for this path
+    parameters:
+    - $ref: '#/components/parameters/clusterProviderName'
+    get: # documentation for GET operation for this path
+      tags:
+        - Cluster Providers
+      summary: Get cluster provider by name
+
+      description: |
+        Get `cluster provider`
+
+      operationId: getClusterProviderByName
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        '404':
+          description: Cluster Provider not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Cluster Providers
+      summary: Update cluster provider
+      description: Update `cluster providers`
+      operationId: updateClusterProviders
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Metadata'
+        description: Update cluster provider object
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Cluster Providers
+      summary: Delete cluster provider by name
+
+      description: |
+        Delete `cluster provider`
+
+      operationId: deleteClusterProviderByName
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+  /cluster-providers/{cluster-providers-name}/clusters:
+    parameters:
+      - $ref: '#/components/parameters/clusterProviderName'
+    post:
+      tags:
+        - Clusters
+      summary: Add Cluster
+      description: Add a new `cluster`
+      operationId: addClusterToClusterProvider
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          multipart/form-data: # Media type
+            schema:            # Request payload
+              $ref: '#/components/schemas/AppData'
+    get: # documentation for GET operation for this path
+      tags:
+        - Clusters
+      summary: Get all clusters for cluster provider
+
+      description: |
+        Get all `clusters for cluster provider`
+
+      operationId: getAllClusterForClusterProvider
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/MetadataArray'
+        '404':
+          description: No clusters found in cluster provider
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+  /cluster-providers/{cluster-providers-name}/clusters/{cluster-name}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/clusterProviderName'
+      - $ref: '#/components/parameters/clusterName'
+    get: # documentation for GET operation for this path
+      tags:
+        - Clusters
+      summary: Get Cluster
+
+      description: |
+        Get `cluster`
+
+      operationId: getClusterForClusterProvider
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+            application/octet-stream: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/File'
+            multipart/form-data: # Media type
+              schema:            # Request payload
+                $ref: '#/components/schemas/AppData'
+
+        '404':
+          description: Cluster not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Clusters
+      summary: Update Cluster
+      description: Update `cluster`
+      operationId: updateClusterToClusterProvider
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+          multipart/form-data: # Media type
+            schema:            # Request payload
+              $ref: '#/components/schemas/AppData'
+        required: true
+
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Clusters
+      summary: Delete cluster
+
+      description: |
+        Delete `cluster`
+
+      operationId: deleteClusterFromClusterProvider
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+############################ Cluster Labels API'S #################################################
+  /cluster-providers/{cluster-providers-name}/clusters/{cluster-name}/labels:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/clusterProviderName'
+      - $ref: '#/components/parameters/clusterName'
+    post:
+      tags:
+        - Clusters
+      summary: Add label to Cluster
+      description: Add a new label to `cluster`
+      operationId: addLabelToCluster
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/ClusterLabel'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json:
+            schema:
+                $ref: '#/components/schemas/ClusterLabel'
+        description: Cluster Label
+        required: true
+    get: # documentation for GET operation for this path
+          tags:
+            - Clusters
+          summary: Get all Labels
+
+          description: |
+            Get all `labels`
+
+          operationId: getAllLabelsForCluster
+          responses: # list of responses
+            '200':
+              description: Success
+              content:
+                application/json: # operation response mime type
+                  schema:
+                    $ref: '#/components/schemas/ClusterLabel'
+            '404':
+              description: No labels found
+            '400':
+              description: Bad Request
+            '500':
+              description: Internal Server Error
+
+  /cluster-providers/{cluster-providers-name}/clusters/{cluster-name}/labels/{cluster-label-name}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/clusterProviderName'
+      - $ref: '#/components/parameters/clusterName'
+      - $ref: '#/components/parameters/clusterLabelName'
+    get: # documentation for GET operation for this path
+      tags:
+        - Clusters
+      summary: Get label
+
+      description: |
+        Get `cluster label`
+
+      operationId: getLabelForCluster
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/ClusterLabel'
+        '404':
+          description: label not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Clusters
+      summary: Update label
+      description: Update label for `cluster`
+      operationId: updateLabelForCluster
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/ClusterLabel'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json:
+            schema:
+                $ref: '#/components/schemas/ClusterLabel'
+        description: Cluster Label
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Clusters
+      summary: Delete cluster label
+
+      description: |
+        Delete `label`
+
+      operationId: deleteLabelForCluster
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+# Qurey for label - Get clusters for label
+  /cluster-providers/{cluster-providers-name}/clusters/:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/clusterProviderName'
+      - in: query
+        name: label
+        schema:
+          type: string
+          maxLength: 128
+        required: true
+    get: # documentation for GET operation for this path
+      tags:
+        - Clusters
+      summary: Get clusters for label
+
+      description: |
+        Get `clusters for label`
+      operationId: getClustersForLabel
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/MetadataArray'
+        '404':
+          description: label not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+############################ Cluster Key Value API'S #################################################
+  /cluster-providers/{cluster-providers-name}/clusters/{cluster-name}/kv-pairs:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/clusterProviderName'
+      - $ref: '#/components/parameters/clusterName'
+    post:
+      tags:
+        - Clusters
+      summary: Add kv pair to Cluster
+      description: Add kv pair to `cluster`
+      operationId: addKvpairToCluster
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/ClusterKv'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json:
+            schema:
+                $ref: '#/components/schemas/ClusterKv'
+        description: Cluster KV Pair
+        required: true
+    get: # documentation for GET operation for this path
+          tags:
+            - Clusters
+          summary: Get all KV Pairs
+
+          description: |
+            Get all `KV Pairs`
+
+          operationId: getAllKvpairForCluster
+          responses: # list of responses
+            '200':
+              description: Success
+              content:
+                application/json: # operation response mime type
+                  schema:
+                    $ref: '#/components/schemas/ClusterKv'
+            '404':
+              description: No labels found
+            '400':
+              description: Bad Request
+            '500':
+              description: Internal Server Error
+
+  /cluster-providers/{cluster-providers-name}/clusters/{cluster-name}/kv-pairs/{kv-pair-name}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/clusterProviderName'
+      - $ref: '#/components/parameters/clusterName'
+      - $ref: '#/components/parameters/clusterKvpairName'
+    get: # documentation for GET operation for this path
+      tags:
+        - Clusters
+      summary: Get KV Pair
+
+      description: |
+        Get `KV pair` for cluster
+
+      operationId: getKvpairForCluster
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/ClusterKv'
+        '404':
+          description: KV pair not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Clusters
+      summary: Update KV Pair
+      description: Update KV Pair for `cluster`
+      operationId: updateKvPairForCluster
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/ClusterKv'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json:
+            schema:
+                $ref: '#/components/schemas/ClusterKv'
+        description: Cluster Label
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Clusters
+      summary: Delete cluster KV pair
+
+      description: |
+        Delete `KV pair`
+
+      operationId: deleteKvpairForCluster
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+  #Query Key Value
+  /cluster-providers/{cluster-providers-name}/clusters/{cluster-name}/kv-pairs/{kv-pair-name}/:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/clusterProviderName'
+      - $ref: '#/components/parameters/clusterName'
+      - $ref: '#/components/parameters/clusterKvpairName'
+      - in: query
+        name: key
+        schema:
+          type: string
+          maxLength: 128
+        required: true
+    get: # documentation for GET operation for this path
+      tags:
+        - Clusters
+      summary: Query KV Pair
+
+      description: |
+        Query `KV pair` for cluster
+
+      operationId: queryKvpairForCluster
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Kv'
+        '404':
+          description: KV pair not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+############################ Cluster Virtual Networks API'S #################################################
+  /cluster-providers/{cluster-providers-name}/clusters/{cluster-name}/networks:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/clusterProviderName'
+      - $ref: '#/components/parameters/clusterName'
+    post:
+      tags:
+        - Networks
+      summary: Add virtual network in cluster
+      description: Add a `virtual network in cluster`
+      operationId: addVirtualNetworkToCluster
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/VirtualNetwork'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json:
+            schema:
+                $ref: '#/components/schemas/VirtualNetwork'
+        description: Add virtual network
+        required: true
+    get: # documentation for GET operation for this path
+          tags:
+            - Networks
+          summary: Get all cluster virtual networks
+
+          description: |
+            Get all `virtual networks for a cluster`
+
+          operationId: getAllVirtualNetworksForCluster
+          responses: # list of responses
+            '200':
+              description: Success
+              content:
+                application/json: # operation response mime type
+                  schema:
+                    $ref: '#/components/schemas/VirtualNetwork'
+            '404':
+              description: No virtual networks found
+            '400':
+              description: Bad Request
+            '500':
+              description: Internal Server Error
+
+  /cluster-providers/{cluster-providers-name}/clusters/{cluster-name}/networks/{network-name}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/clusterProviderName'
+      - $ref: '#/components/parameters/clusterName'
+      - $ref: '#/components/parameters/clusterNetworkName'
+    get: # documentation for GET operation for this path
+      tags:
+        - Networks
+      summary: Get virtual network
+
+      description: |
+        Get `virtual network`
+
+      operationId: getVirtualNetworkForCluster
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/VirtualNetwork'
+        '404':
+          description: Network not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Networks
+      summary: Delete virtual network
+
+      description: |
+        Delete `virtual network`
+
+      operationId: deleteVirtualNetworkForCluster
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+############################ Cluster Provider  Networks API'S #################################################
+  /cluster-providers/{cluster-providers-name}/clusters/{cluster-name}/provider-networks:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/clusterProviderName'
+      - $ref: '#/components/parameters/clusterName'
+    post:
+      tags:
+        - Networks
+      summary: Add provider network in cluster
+      description: Add a `provider network in cluster`
+      operationId: addProviderNetworkToCluster
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/ProviderNetwork'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json:
+            schema:
+                $ref: '#/components/schemas/ProviderNetwork'
+        description: Add provider network
+        required: true
+    get: # documentation for GET operation for this path
+          tags:
+            - Networks
+          summary: Get all cluster provider networks
+
+          description: |
+            Get all `provider networks for a cluster`
+
+          operationId: getAllProviderNetworksForCluster
+          responses: # list of responses
+            '200':
+              description: Success
+              content:
+                application/json: # operation response mime type
+                  schema:
+                    $ref: '#/components/schemas/ProviderNetwork'
+            '404':
+              description: No provider networks found
+            '400':
+              description: Bad Request
+            '500':
+              description: Internal Server Error
+
+  /cluster-providers/{cluster-providers-name}/clusters/{cluster-name}/provider-networks/{network-name}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/clusterProviderName'
+      - $ref: '#/components/parameters/clusterName'
+      - $ref: '#/components/parameters/clusterNetworkName'
+    get: # documentation for GET operation for this path
+      tags:
+        - Networks
+      summary: Get Provider Network
+
+      description: |
+        Get `provider network`
+
+      operationId: getProviderNetworkForCluster
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/ProviderNetwork'
+        '404':
+          description: Provider network not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Networks
+      summary: Delete Provider Network
+
+      description: |
+        Delete `Provider Network`
+
+      operationId: deleteProviderNetworkForCluster
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+  /cluster-providers/{cluster-providers-name}/clusters/{cluster-name}/apply:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/clusterProviderName'
+      - $ref: '#/components/parameters/clusterName'
+    post:
+      tags:
+        - Networks
+      summary: Apply configuration for the cluster
+      description: Apply configuration for the cluster to create networks
+      operationId: applyNetworksForCluster
+      responses:
+        '201':
+          description: Success
+          content: {}
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content: {}
+
+  /cluster-providers/{cluster-providers-name}/clusters/{cluster-name}/terminate:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/clusterProviderName'
+      - $ref: '#/components/parameters/clusterName'
+    post:
+      tags:
+        - Networks
+      summary: Apply configuration for the cluster
+      description: Apply configuration for the cluster to create networks
+      operationId: terminateNetworksForCluster
+      responses:
+        '201':
+          description: Success
+          content: {}
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content: {}
+
+  /cluster-providers/{cluster-providers-name}/clusters/{cluster-name}/status:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/clusterProviderName'
+      - $ref: '#/components/parameters/clusterName'
+      - in: query
+        name: type
+        description: source of status information
+        schema:
+          type: string
+          enum: [rsync, cluster]
+          default: rsync
+      - in: query
+        name: output
+        description: output format
+        schema:
+          type: string
+          enum: [summary, all, detail]
+          default: all
+      - in: query
+        name: instance
+        description: instance identifier
+        schema:
+          type: string
+          maxLength: 32
+      - in: query
+        name: app
+        description: app name
+        schema:
+          type: string
+          maxLength: 64
+      - in: query
+        name: cluster
+        description: cluster-provider+cluster
+        schema:
+          type: string
+          maxLength: 128
+      - in: query
+        name: resource
+        description: resource name
+        schema:
+          type: string
+          maxLength: 64
+    get:
+      tags:
+        - Networks
+      summary: Query status of cluster network intents
+      description: Query status of cluster network intents
+      operationId: statusNetworksForCluster
+      responses:
+        '200':
+          description: Success
+          content: {}
+        '404':
+          description: No Status found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+  /cluster-providers/{cluster-providers-name}/clusters/{cluster-name}/stop:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/clusterProviderName'
+      - $ref: '#/components/parameters/clusterName'
+    post:
+      tags:
+        - Networks
+      summary: Stop apply/terminate
+      description: Stop apply/terminate
+      operationId: stopNetworksForCluster
+      responses:
+        '201':
+          description: Success
+          content: {}
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content: {}
+
+######################## Network Controller Intent API's##########################################
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/network-controller-intent:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+    post:
+      tags:
+        - Network Controller Intent
+      summary: Network Controller Intent API's
+      description: Add a new `network controller intent`
+      operationId: addNetworkControllerIntent
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+    get: # documentation for GET operation for this path
+      tags:
+        - Network Controller Intent
+      summary: Get all Network Controller Intent
+
+      description: |
+        Get all `network controller intent`
+
+      operationId: getAllNetworkControllerIntent
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/MetadataArray'
+        '404':
+          description: No Network Controller Intent found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/network-controller-intent/{net-control-intent}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/netControlIntent'
+    get: # documentation for GET operation for this path
+      tags:
+        - Network Controller Intent
+      summary: Get Network Controller Intent
+
+      description: |
+        Get `network controller intent`
+
+      operationId: getNetworkControllerIntent
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        '404':
+          description: Network Controller Intent not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Network Controller Intent
+      summary: Update Network Controller Intent
+      description: Update `Network Controller Intent`
+      operationId: updateNetworkControllerIntent
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+          application/json: # operation response mime type
+            schema:
+              $ref: '#/components/schemas/Metadata'
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Network Controller Intent
+      summary: Delete Network Controller Intent
+
+      description: |
+        Delete `Network Controller Intent`
+
+      operationId: deleteNetworkControllerIntent
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+################## Workload Intents##################################
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/network-controller-intent/{net-control-intent}/workload-intents:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/netControlIntent'
+    post:
+      tags:
+        - Network Controller Intent
+      summary: Network Controller Workload Intent API's
+      description: Add a new `network controller workload intent`
+      operationId: addNetworkControllerWorkloadIntent
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/NetworkWorkloadSpec'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/NetworkWorkloadSpec'
+    get: # documentation for GET operation for this path
+      tags:
+        - Network Controller Intent
+      summary: Get Network Controller Workload Intent
+
+      description: |
+        Get all `network controller workload intent`
+
+      operationId: getAllNetworkControllerWorkloadIntent
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/NetworkWorkloadSpecArray'
+        '404':
+          description: No Network Controller Workload Intent found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/network-controller-intent/{net-control-intent}/workload-intents/{workload-intent-name}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/netControlIntent'
+      - $ref: '#/components/parameters/netControlWorkloadIntent'
+    get: # documentation for GET operation for this path
+      tags:
+        - Network Controller Intent
+      summary: Get Network Controller Workload Intent
+
+      description: |
+        Get `network controller workload intent`
+
+      operationId: getNetworkControllerWorkloadIntent
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/NetworkWorkloadSpec'
+        '404':
+          description: Network Controller Workload Intent not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Network Controller Intent
+      summary: Update Network Controller Workload Intent
+      description: Update `Network Controller Workload Intent`
+      operationId: updateNetworkControllerWorkloadIntent
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/NetworkWorkloadSpec'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+          application/json: # operation response mime type
+            schema:
+              $ref: '#/components/schemas/NetworkWorkloadSpec'
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Network Controller Intent
+      summary: Delete Network Controller Workload Intent
+
+      description: |
+        Delete `Network Controller Workload Intent`
+
+      operationId: deleteNetworkControllerWorkloadIntent
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+################## Workload Intents Interfaces ##################################
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/network-controller-intent/{net-control-intent}/workload-intents/{workload-intent-name}/interfaces:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/netControlIntent'
+      - $ref: '#/components/parameters/netControlWorkloadIntent'
+    post:
+      tags:
+        - Network Controller Intent
+      summary: Network Controller Workload Interface API's
+      description: Add a new `network controller workload interface`
+      operationId: addNetworkControllerWorkloadInterface
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/NetworkWorkloadInterface'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/NetworkWorkloadInterface'
+    get: # documentation for GET operation for this path
+      tags:
+        - Network Controller Intent
+      summary: Get all Network Controller Workload Interface
+
+      description: |
+        Get all `network controller workload interface`
+
+      operationId: getAllNetworkControllerWorkloadInterface
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/NetworkWorkloadInterfaceArray'
+        '404':
+          description: No Network Controller Workload Interface found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/network-controller-intent/{net-control-intent}/workload-intents/{workload-intent-name}/interfaces/{interface-name}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/netControlIntent'
+      - $ref: '#/components/parameters/netControlWorkloadIntent'
+      - $ref: '#/components/parameters/netControlWorkloadInterface'
+    get: # documentation for GET operation for this path
+      tags:
+        - Network Controller Intent
+      summary: Get Network Controller Workload Interface
+
+      description: |
+        Get `network controller workload interface`
+
+      operationId: getNetworkControllerWorkloadInterface
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/NetworkWorkloadInterface'
+        '404':
+          description: Network Controller Workload Interface not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Network Controller Intent
+      summary: Update Network Controller Workload Interface
+      description: Update `Network Controller Workload Interface`
+      operationId: updateNetworkControllerWorkloadInterface
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/NetworkWorkloadInterface'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+          application/json: # operation response mime type
+            schema:
+              $ref: '#/components/schemas/NetworkWorkloadInterface'
+        required: true
+
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Network Controller Intent
+      summary: Delete Network Controller Workload Interface
+
+      description: |
+        Delete `Network Controller Workload Interface`
+
+      operationId: deleteNetworkControllerWorkloadInterface
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+############################ Logical Cloud API's #################################################
+  /projects/{project-name}/logical-clouds:
+    parameters:
+    - $ref: '#/components/parameters/projectName'
+    post:
+      tags:
+        - Logical Clouds
+      summary: Add a new Logical Cloud
+      description: Add a new Logical Cloud
+      operationId: addLogicalCloud
+      responses:
+        '201':
+          description: Logical Clouds successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogicalCloud'
+        '400':
+          description: Empty body or missing name
+          content: {}
+        '404':
+          description: The specified project doesn't exist
+          content: {}
+        '409':
+          description: The Logical Cloud already exists
+          content: {}
+        '422':
+          description: Invalid input
+          content: {}
+        '500':
+          description: Internal error creating or returning Logical Cloud
+          content: {}
+      requestBody:
+        content:
+          application/json:
+            schema:
+                $ref: '#/components/schemas/LogicalCloud'
+        description: Logical Cloud info
+        required: true
+    get:
+      tags:
+        - Logical Clouds
+      summary: Get all Logical Clouds
+      description: Get all Logical Clouds
+      operationId: getAllLogicalCloud
+      responses:
+        '200':
+          description: List of Logical Clouds successfully returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogicalCloudArray'
+        '500':
+          description: Internal error while looking up Logical Clouds or encoding response
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+
+  /projects/{project-name}/logical-clouds/{logical-cloud-name}:
+    parameters:
+    - $ref: '#/components/parameters/projectName'
+    - $ref: '#/components/parameters/logicalCloudName'
+    get:
+      tags:
+        - Logical Clouds
+      summary: Get Logical Cloud
+      description: Get Logical Cloud
+      operationId: getLogicalCloudByName
+      responses:
+        '200':
+          description: Logical Cloud successfully returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogicalCloud'
+        '404':
+          description: Logical Cloud not found
+          content: {}
+        '500':
+          description: Internal error while looking up Logical Cloud or encoding response
+          content: {}
+        '400':
+          description: Bad Request
+    delete:
+      tags:
+        - Logical Clouds
+      summary: Delete Logical Cloud
+      description: Delete `Logical Cloud`
+      operationId: deleteLogicalCloudByName
+      responses:
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+  /projects/{project-name}/logical-clouds/{logical-cloud-name}/instantiate:
+    parameters:
+    - $ref: '#/components/parameters/projectName'
+    - $ref: '#/components/parameters/logicalCloudName'
+    post:
+      tags:
+        - Logical Clouds
+      summary: Instantiate Logical Cloud configuration
+      description: Instantiate Logical Cloud configuration
+      operationId: instantiateLogicalCloud
+      responses:
+        '200':
+          description: Logical Cloud instantiated over clusters
+          content: {}
+        '400':
+          description: Logical Cloud lacks the necessary resources or namespaces of clusters have different namespaces
+          content: {}
+        '404':
+          description: Logical Cloud or Cluster Reference does not exist
+          content: {}
+        '409':
+          description: Logical Cloud isn't in the correct state
+          content: {}
+        '500':
+          description: Internal error
+          content: {}
+      requestBody:
+        content: {}
+  /projects/{project-name}/logical-clouds/{logical-cloud-name}/terminate:
+    parameters:
+    - $ref: '#/components/parameters/projectName'
+    - $ref: '#/components/parameters/logicalCloudName'
+    post:
+      tags:
+        - Logical Clouds
+      summary: Terminate Logical Cloud deployment
+      description: Terminate Logical Cloud deployment
+      operationId: terminateLogicalCloud
+      responses:
+        '200':
+          description: Logical Cloud removed from clusters
+          content: {}
+        '400':
+          description: Logical Cloud lacks the necessary resources
+          content: {}
+        '404':
+          description: Logical Cloud does not exist
+          content: {}
+        '409':
+          description: Logical Cloud has not been applied or is already terminating
+          content: {}
+        '500':
+          description: Internal error
+          content: {}
+      requestBody:
+        content: {}
+
+############################ Logical Cloud Cluster Reference API's ###############################
+  /projects/{project-name}/logical-clouds/{logical-cloud-name}/cluster-references:
+    parameters:
+    - $ref: '#/components/parameters/projectName'
+    - $ref: '#/components/parameters/logicalCloudName'
+    post:
+      tags:
+        - Logical Cloud Cluster References
+      summary: Add Cluster Reference to Logical Cloud
+      description: Add Cluster Reference to Logical Cloud
+      operationId: addClusterReference
+      responses:
+        '201':
+          description: Cluster Reference successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterReference'
+        '400':
+          description: Empty body or missing name or Logical Cloud is applied
+          content: {}
+        '404':
+          description: Project or Logical Cloud doesn't exist
+          content: {}
+        '409':
+          description: Cluster Reference already exists
+          content: {}
+        '422':
+          description: Invalid input
+          content: {}
+        '500':
+          description: Internal error
+          content: {}
+      requestBody:
+        content:
+          application/json:
+            schema:
+                $ref: '#/components/schemas/ClusterReference'
+    get:
+      tags:
+        - Logical Cloud Cluster References
+      summary: Get all Cluster References for Logical Cloud
+      description: Get all Cluster References for Logical Cloud
+      operationId: getAllClusters
+      responses:
+        '200':
+          description: Cluster References successfully returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterReferenceArray'
+        '400':
+          description: No Cluster References are associated
+          content: {}
+        '500':
+          description: Internal error
+          content: {}
+        '404':
+          description: Not Found
+
+  /projects/{project-name}/logical-clouds/{logical-cloud-name}/cluster-references/{cluster-reference}:
+    parameters:
+    - $ref: '#/components/parameters/projectName'
+    - $ref: '#/components/parameters/logicalCloudName'
+    - $ref: '#/components/parameters/clusterReference'
+    get:
+      tags:
+        - Logical Cloud Cluster References
+      summary: Get Cluster Reference
+      description: Get Cluster Reference
+      operationId: getClusterReference
+      responses:
+        '200':
+          description: Cluster Reference successfully returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterReference'
+        '404':
+          description: Cluster Reference not found
+          content: {}
+        '500':
+          description: Internal error
+          content: {}
+        '400':
+          description: Bad Request
+    delete:
+      tags:
+        - Logical Cloud Cluster References
+      summary: Delete Cluster Reference
+      description: Delete Cluster Reference
+      operationId: deleteClusterReference
+      responses:
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+############################ Logical Cloud User Permission API's #################################
+  /projects/{project-name}/logical-clouds/{logical-cloud-name}/user-permissions:
+    parameters:
+    - $ref: '#/components/parameters/projectName'
+    - $ref: '#/components/parameters/logicalCloudName'
+    post:
+      tags:
+        - Logical Cloud User Permissions
+      summary: Add User Permission to Logical Cloud
+      description: Add User Permission to Logical Cloud
+      operationId: addUserPermission
+      responses:
+        '201':
+          description: User Permission successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPermission'
+        '400':
+          description: Empty body or missing name
+          content: {}
+        '422':
+          description: Invalid input
+          content: {}
+        '500':
+          description: Internal error
+          content: {}
+      requestBody:
+        content:
+          application/json:
+            schema:
+                $ref: '#/components/schemas/UserPermission'
+    get:
+      tags:
+        - Logical Cloud User Permissions
+      summary: Get all User Permissions for Logical Cloud
+      description: Get all User Permissions for Logical Cloud
+      operationId: getAllUserPermissions
+      responses:
+        '200':
+          description: User Permissions successfully returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPermissionArray'
+        '404':
+          description: Not Found
+          content: {}
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+  /projects/{project-name}/logical-clouds/{logical-cloud-name}/user-permissions/{user-permission}:
+    parameters:
+    - $ref: '#/components/parameters/projectName'
+    - $ref: '#/components/parameters/logicalCloudName'
+    - $ref: '#/components/parameters/userPermission'
+    get:
+      tags:
+        - Logical Cloud User Permissions
+      summary: Get User Permission
+      description: Get User Permission
+      operationId: getUserPermission
+      responses:
+        '200':
+          description: User Permission successfully returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPermission'
+
+        '404':
+          description: User Permission not found
+          content: {}
+        '500':
+          description: Internal error
+          content: {}
+        '400':
+          description: Bad Request
+    delete:
+      tags:
+        - Logical Cloud User Permissions
+      summary: Delete User Permission
+      description: Delete User Permission
+      operationId: deleteUserPermission
+      responses:
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+############################ Logical Cloud Cluster Quota API's ###################################
+  /projects/{project-name}/logical-clouds/{logical-cloud-name}/cluster-quotas:
+    parameters:
+    - $ref: '#/components/parameters/projectName'
+    - $ref: '#/components/parameters/logicalCloudName'
+    post:
+      tags:
+        - Logical Cloud Cluster Quotas
+      summary: Add Cluster Quota to Logical Cloud
+      description: Add Cluster Quota to Logical Cloud
+      operationId: addClusterQuota
+      responses:
+        '201':
+          description: Cluster Quota successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterQuota'
+        '400':
+          description: Empty body or missing name
+          content: {}
+        '422':
+          description: Invalid input
+          content: {}
+        '500':
+          description: Internal error
+          content: {}
+      requestBody:
+        content:
+          application/json:
+            schema:
+                $ref: '#/components/schemas/ClusterQuota'
+    get:
+      tags:
+        - Logical Cloud Cluster Quotas
+      summary: Get allCluster Quotas for Logical Cloud
+      description: Get all Cluster Quotas for Logical Cloud
+      operationId: getAllClusterQuotas
+      responses:
+        '200':
+          description: Cluster Quotas successfully returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterQuotaArray'
+        '500':
+          description: Internal error
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+  /projects/{project-name}/logical-clouds/{logical-cloud-name}/cluster-quotas/{cluster-quota}:
+    parameters:
+    - $ref: '#/components/parameters/projectName'
+    - $ref: '#/components/parameters/logicalCloudName'
+    - $ref: '#/components/parameters/clusterQuota'
+    get:
+      tags:
+        - Logical Cloud Cluster Quotas
+      summary: Get Cluster Quota
+      description: Get Cluster Quota
+      operationId: getClusterQuota
+      responses:
+        '200':
+          description: Cluster Quota successfully returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterQuota'
+
+        '404':
+          description: Cluster Quota not found
+          content: {}
+        '500':
+          description: Internal error
+          content: {}
+        '400':
+          description: Bad Request
+    delete:
+      tags:
+        - Logical Cloud Cluster Quotas
+      summary: Delete Cluster Quota
+      description: Delete Cluster Quota
+      operationId: deleteClusterQuota
+      responses:
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+############################ Logical Cloud KV Pair API's #########################################
+  /projects/{project-name}/logical-clouds/{logical-cloud-name}/kv-pairs:
+    parameters:
+    - $ref: '#/components/parameters/projectName'
+    - $ref: '#/components/parameters/logicalCloudName'
+    post:
+      tags:
+        - Logical Cloud KV Pairs
+      summary: Add KV Pair to Logical Cloud
+      description: Add KV Pair to Logical Cloud
+      operationId: addKVPair
+      responses:
+        '201':
+          description: KV Pair successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        '400':
+          description: Empty body or missing name
+          content: {}
+        '422':
+          description: Invalid input
+          content: {}
+        '500':
+          description: Internal error
+          content: {}
+      requestBody:
+        content:
+          application/json:
+            schema:
+                $ref: '#/components/schemas/KVPair'
+    get:
+      tags:
+        - Logical Cloud KV Pairs
+      summary: Get all KV Pairs for Logical Cloud
+      description: Get all KV Pairs for Logical Cloud
+      operationId: getAllKVPairs
+      responses:
+        '200':
+          description: KV Pairs successfully returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KVPairArray'
+        '500':
+          description: Internal error
+          content: {}
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+  /projects/{project-name}/logical-clouds/{logical-cloud-name}/kv-pairs/{kv-pair}:
+    parameters:
+    - $ref: '#/components/parameters/projectName'
+    - $ref: '#/components/parameters/logicalCloudName'
+    - $ref: '#/components/parameters/kvPair'
+    get:
+      tags:
+        - Logical Cloud KV Pairs
+      summary: Get KV Pair
+      description: Get KV Pair
+      operationId: getKVPair
+      responses:
+        '200':
+          description: KV Pair successfully returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Metadata'
+
+        '404':
+          description: KV Pair not found
+          content: {}
+        '500':
+          description: Internal error
+          content: {}
+        '400':
+          description: Bad Request
+
+    delete:
+      tags:
+        - Logical Cloud KV Pairs
+      summary: Delete KV Pair
+      description: Delete KV Pair
+      operationId: deleteKVPair
+      responses:
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+
+  ######################## Generic Controller Intent API's##########################################
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/generic-k8s-intents:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+    post:
+      tags:
+        - Generic Controller Intent
+      summary: Generic Controller Intent API's
+      description: Add a new `generic controller intent`
+      operationId: addGenericControllerIntent
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+    get: # documentation for GET operation for this path
+      tags:
+        - Generic Controller Intent
+      summary: Get all Generic Controller Intent
+
+      description: |
+        Get all `generic controller intent`
+      operationId: getAllGenericControllerIntent
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/MetadataArray'
+        '404':
+          description: No Generic Controller Intent found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/generic-k8s-intents/{gen-k8s-intent}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/genControlIntent'
+    get: # documentation for GET operation for this path
+      tags:
+        - Generic Controller Intent
+      summary: Get Generic Controller Intent
+
+      description: |
+        Get `generic controller intent`
+      operationId: getGenericControllerIntent
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        '404':
+          description: Generic Controller Intent not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Generic Controller Intent
+      summary: Update Generic Controller Intent
+      description: Update `Generic Controller Intent`
+      operationId: updateGenericControllerIntent
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+          application/json: # operation response mime type
+            schema:
+              $ref: '#/components/schemas/Metadata'
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Generic Controller Intent
+      summary: Delete Generic Controller Intent
+
+      description: |
+        Delete `Generic Controller Intent`
+      operationId: deleteGenericControllerIntent
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+################## Resource Intents##################################
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/generic-k8s-intents/{gen-k8s-intent}/resources:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/genControlIntent'
+    post:
+      tags:
+        - Generic Controller Intent
+      summary: Generic Controller Resource Intent API's
+      description: Add a new `generic controller resource intent`
+      operationId: addGenericControllerResourceIntent
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/GenericResourceMetaSpec'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          multipart/form-data: # Media type
+            schema:            # Request payload
+              $ref: '#/components/schemas/GenericResource'
+
+    get: # documentation for GET operation for this path
+      tags:
+        - Generic Controller Intent
+      summary: Get Generic Controller Resource Intent
+
+      description: |
+        Get all `generic controller resource intent`
+      operationId: getAllGenericControllerResourceIntent
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/GenericResourceArray'
+        '404':
+          description: No Generic Controller Resource Intent found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/generic-k8s-intents/{gen-k8s-intent}/resources/{resource-intent-name}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/genControlIntent'
+      - $ref: '#/components/parameters/genControlResourceIntent'
+    get: # documentation for GET operation for this path
+      tags:
+        - Generic Controller Intent
+      summary: Get Generic Controller Resource Intent
+
+      description: |
+        Get `generic controller resource intent`
+      operationId: getGenericControllerResourceIntent
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/GenericResourceMetaSpec'
+        '404':
+          description: Generic Controller Resource Intent not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Generic Controller Intent
+      summary: Update Generic Controller Resource Intent
+      description: Update `Generic Controller Resource Intent`
+      operationId: updateGenericControllerResourceIntent
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/GenericResourceMetaSpec'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+          multipart/form-data: # Media type
+            schema:            # Request payload
+              $ref: '#/components/schemas/GenericResource'
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Generic Controller Intent
+      summary: Delete Generic Controller Resource Intent
+
+      description: |
+        Delete `Generic Controller Resource Intent`
+      operationId: deleteGenericControllerResourceIntent
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+################## Resource Intents Customizations ##################################
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/generic-k8s-intents/{gen-k8s-intent}/resources/{resource-intent-name}/customizations:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/genControlIntent'
+      - $ref: '#/components/parameters/genControlResourceIntent'
+    post:
+      tags:
+        - Generic Controller Intent
+      summary: Generic Controller Resource Customization API's
+      description: Add a new `generic controller resource customization`
+      operationId: addGenericControllerResourceCustomization
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/GenericResourceCustomizationMetaSpec'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          multipart/form-data: # Media type
+            schema:            # Request payload
+              $ref: '#/components/schemas/GenericResourceCustomization'
+    get: # documentation for GET operation for this path
+      tags:
+        - Generic Controller Intent
+      summary: Get all Generic Controller Resource Customization
+
+      description: |
+        Get all `generic controller resource customization`
+      operationId: getAllGenericControllerResourceCustomization
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/GenericResourceCustomizationArray'
+        '404':
+          description: No Generic Controller Resource Customization found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/generic-k8s-intents/{gen-k8s-intent}/resources/{resource-intent-name}/customizations/{customization-name}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/genControlIntent'
+      - $ref: '#/components/parameters/genControlResourceIntent'
+      - $ref: '#/components/parameters/genControlResourceCustomization'
+    get: # documentation for GET operation for this path
+      tags:
+        - Generic Controller Intent
+      summary: Get Generic Controller Resource Customization
+
+      description: |
+        Get `generic controller resource customization`
+      operationId: getGenericControllerResourceCustomization
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/GenericResourceCustomizationMetaSpec'
+        '404':
+          description: Generic Controller Resource Customization not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Generic Controller Intent
+      summary: Update Generic Controller Resource Customization
+      description: Update `Generic Controller Resource Customization`
+      operationId: updateGenericControllerResourceCustomization
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/GenericResourceCustomizationMetaSpec'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+          multipart/form-data: # Media type
+            schema:            # Request payload
+              $ref: '#/components/schemas/GenericResourceCustomization'
+        required: true
+
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Generic Controller Intent
+      summary: Delete Generic Controller Resource Customization
+
+      description: |
+        Delete `Generic Controller Resource Customization`
+      operationId: deleteGenericControllerResourceCustomization
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+  ######################## Traffic Controller Intent API's##########################################
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/traffic-group-intents:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+    post:
+      tags:
+        - Traffic Controller Intent
+      summary: Traffic Controller Intent API's
+      description: Add a new `traffic controller intent`
+      operationId: addTrafficControllerIntent
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+    get: # documentation for GET operation for this path
+      tags:
+        - Traffic Controller Intent
+      summary: Get all Traffic Controller Intent
+
+      description: |
+        Get all `traffic controller intent`
+      operationId: getAllTrafficControllerIntent
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/MetadataArray'
+        '404':
+          description: No Traffic Controller Intent found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/traffic-group-intents/{traffic-cont-intent}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/trafficControlIntent'
+    get: # documentation for GET operation for this path
+      tags:
+        - Traffic Controller Intent
+      summary: Get Traffic Controller Intent
+
+      description: |
+        Get `traffic controller intent`
+      operationId: getTrafficControllerIntent
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        '404':
+          description: Traffic Controller Intent not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Traffic Controller Intent
+      summary: Update Traffic Controller Intent
+      description: Update `Traffic Controller Intent`
+      operationId: updateTrafficControllerIntent
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/Metadata'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+          application/json: # operation response mime type
+            schema:
+              $ref: '#/components/schemas/Metadata'
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Traffic Controller Intent
+      summary: Delete Traffic Controller Intent
+
+      description: |
+        Delete `Traffic Controller Intent`
+      operationId: deleteTrafficControllerIntent
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+################## Inbound Server Intents ##################################
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/traffic-group-intents/{traffic-cont-intent}/inbound-intents:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/trafficControlIntent'
+    post:
+      tags:
+        - Traffic Controller Intent
+      summary: Traffic Controller Inbound Server Intent API's
+      description: Add a new `traffic controller inbound intent`
+      operationId: addTrafficControllerInboundIntent
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/InboundServerIntent'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/InboundServerIntent'
+
+    get: # documentation for GET operation for this path
+      tags:
+        - Traffic Controller Intent
+      summary: Get Traffic Controller Server Inbound Intent
+      description: |
+        Get all `traffic controller server inbound intent`
+      operationId: getAllTrafficControllerInboundIntent
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/InboundServerIntentArray'
+        '404':
+          description: No Traffic Controller Inbound Intent found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/traffic-group-intents/{traffic-cont-intent}/inbound-intents/{inbound-server-intent}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/trafficControlIntent'
+      - $ref: '#/components/parameters/trafficInboundIntent'
+    get: # documentation for GET operation for this path
+      tags:
+        - Traffic Controller Intent
+      summary: Get Traffic Controller Server Inbound Intent
+
+      description: |
+        Get `traffic controller server inbound intent`
+      operationId: getTrafficControllerInboundIntent
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/InboundServerIntent'
+        '404':
+          description: Traffic Controller Inbound Intent not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Traffic Controller Intent
+      summary: Update Traffic Controller Server Inbound Intent
+      description: Update `Traffic Controller Server Inbound Intent`
+      operationId: updateTrafficControllerInboundIntent
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/InboundServerIntent'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/InboundServerIntent'
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Traffic Controller Intent
+      summary: Delete Traffic Controller Server Inbound Intent
+
+      description: |
+        Delete `Traffic Controller Server Inbound Intent`
+      operationId: deleteTrafficControllerInboundIntent
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+################## Inbound Client Intents ##################################
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/traffic-group-intents/{traffic-cont-intent}/inbound-intents/{inbound-server-intent}/clients:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/trafficControlIntent'
+      - $ref: '#/components/parameters/trafficInboundIntent'
+    post:
+      tags:
+        - Traffic Controller Intent
+      summary: Traffic Controller Client Inbound Intent API's
+      description: Add a new `traffic controller client inbound intent`
+      operationId: addTrafficControllerInboundClientIntent
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/InboundClientIntent'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/InboundClientIntent'
+    get: # documentation for GET operation for this path
+      tags:
+        - Traffic Controller Intent
+      summary: Get all Traffic Controller Client Inbound Intent
+
+      description: |
+        Get all `traffic controller client inbound intent`
+      operationId: getAllTrafficControllerInboundClientIntent
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/InboundClientIntentArray'
+        '404':
+          description: No Traffic Controller Client Inbound Intent found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/traffic-group-intents/{traffic-cont-intent}/inbound-intents/{inbound-server-intent}/clients/{inbound-client-intent}:
+    # parameters list that are used with each operation for this path
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/trafficControlIntent'
+      - $ref: '#/components/parameters/trafficInboundIntent'
+      - $ref: '#/components/parameters/trafficInboundClientIntent'
+    get: # documentation for GET operation for this path
+      tags:
+        - Traffic Controller Intent
+      summary: Get Traffic Controller Client Inbound Intent
+
+      description: |
+        Get `traffic controller client inbound intent`
+      operationId: getTrafficControllerInboundClientIntent
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/InboundClientIntent'
+        '404':
+          description: Traffic Controller Client Inbound Intent not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Traffic Controller Intent
+      summary: Update Traffic Controller Client Inbound Intent
+      description: Update `Traffic Controller Client Inbound Intent`
+      operationId: updateTrafficControllerInboundClientIntent
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/InboundClientIntent'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/InboundClientIntent'
+        required: true
+
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Traffic Controller Intent
+      summary: Delete Traffic Controller Client Inbound Intent
+
+      description: |
+        Delete `Traffic Controller Client Inbound Intent`
+      operationId: deleteTrafficControllerInboundClientIntent
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+#########################SCHEMAS####################################################
+# An object to hold reusable parts that can be used across the definition
+components:
+  schemas:
+    MetadataBase:
+      type: object
+      properties:
+        name:
+          description: Name of the resource
+          type: string
+          maxLength: 128
+          example: "ResName"
+        description:
+          description: Description for the resource
+          type: string
+          maxLength: 1024
+          example: "Resource description"
+        userData1:
+          description: User relevant data for the resource
+          type: string
+          maxLength: 512
+          example: "Some data"
+        userData2:
+          description: User relevant data for the resource
+          type: string
+          maxLength: 512
+          example: "Some more data"
+    Metadata:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+    MetadataArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/Metadata'
+    VersionSpec:
+      type: object
+      properties:
+        version:
+          description: Composite Application Version
+          type: string
+          maxLength: 128
+          example: "v1"
+    CompositeAppVersion:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          $ref: '#/components/schemas/VersionSpec'
+    CompositeAppVersionArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/CompositeAppVersion'
+    File:
+      type: string
+      format: binary
+      maxLength: 1073741824
+    Files:
+      type: object
+      properties:
+        filename:
+          type: array
+          items:
+            type: string
+            format: binary
+            maxLength: 1073741824
+    AppData:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        file: # Part 2 (Helm chart in tar.gz format)
+          $ref: '#/components/schemas/File'
+    ProfileAppSpec:
+      type: object
+      properties:
+        spec:
+          type: object
+          description: AppProfileSpec contains the Spec for AppProfiles
+          properties:
+            metadata:
+              $ref: '#/components/schemas/MetadataBase'
+            app-name:
+              type: string
+              description: Application Name
+              maxLength: 128
+              example: "Application1"
+              required:
+              - app-name
+    ProfileAppSpecArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/ProfileAppSpec'
+    ProfileAppData:
+      type: object
+      properties:
+        file: # Part 2 (Helm chart in tar.gz format)
+          $ref: '#/components/schemas/File'
+        metadata:
+            $ref: '#/components/schemas/ProfileAppSpec'
+    GenericPlacementIntent:
+      type: object
+      properties:
+        spec:
+          type: object
+          description: Spec
+          properties:
+            logical-cloud:
+              type: string
+              description: Logical Cloud to use for this intent
+              maxLength: 128
+              example: "cloud1"
+              required:
+              - logical-cloud
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+    GenericPlacementIntentArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/GenericPlacementIntent'
+    GenericPlacementAppIntentSpec:
+      type: object
+      description: ''
+      properties:
+        app-name:
+          type: string
+          maxLength: 128
+          example: "appl"
+        allOf:
+          items:
+            description: AllOf ProviderName, ClusterName, ClusterLabelName and AnyOfArray
+            properties:
+              anyOf:
+                items:
+                  description: AnyOf consists of Array of ProviderName & ClusterLabelNames
+                  properties:
+                    cluster-label-name:
+                      type: string
+                      maxLength: 128
+                      example: "east"
+                    cluster-name:
+                      type: string
+                      maxLength: 128
+                      example: "cluster1"
+                    provider-name:
+                      type: string
+                      maxLength: 128
+                      example: "provider1"
+                  type: object
+                type: array
+              cluster-label-name:
+                type: string
+                maxLength: 128
+                example: "west"
+              cluster-name:
+                type: string
+                maxLength: 128
+                example: "cluster2"
+              provider-name:
+                type: string
+                maxLength: 128
+                example: "provider2"
+            type: object
+          type: array
+        anyOf:
+          items:
+            description: AnyOf consists of Array of ProviderName & ClusterLabelNames
+            properties:
+              cluster-label-name:
+                type: string
+                maxLength: 128
+                example: "east"
+              cluster-name:
+                type: string
+                maxLength: 128
+                example: "cluster1"
+              provider-name:
+                type: string
+                maxLength: 128
+                example: "provider1"
+            type: object
+          type: array
+    GenericPlacementAppIntent:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          $ref: '#/components/schemas/GenericPlacementAppIntentSpec'
+    GenericPlacementAppIntentArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/GenericPlacementAppIntent'
+    DeploymentIntentSpec:
+      type: object
+      description: DepSpecData has profile, version, OverrideValuesObj
+      properties:
+        override-values:
+          items:
+            description: OverrideValues has appName and ValuesObj
+            properties:
+              app-name:
+                type: string
+              values:
+                additionalProperties:
+                  type: string
+                  maxLength: 128
+                type: object
+            required:
+            - app-name
+            - values
+            type: object
+          type: array
+        profile:
+          type: string
+          maxLength: 128
+        version:
+          type: string
+          maxLength: 128
+        logical-cloud:
+          type: string
+          description: Logical Cloud to use for this intent
+          maxLength: 128
+          example: "cloud1"
+      required:
+      - profile
+      - version
+      - logical-cloud
+    DeploymentGroupIntent:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          $ref: '#/components/schemas/DeploymentIntentSpec'
+    DeploymentGroupIntentArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/DeploymentGroupIntent'
+    DeploymentIntent:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          type: object
+          description: IntentSpecData has Intent
+          properties:
+            intent:
+              additionalProperties:
+                type: string
+                maxLength: 128
+              example:
+                generic-placement-intent: gpi-name
+              type: object
+          required:
+          - intent
+    DeploymentIntentArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/DeploymentIntent'
+    Controller:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          type: object
+          properties:
+            host:
+              type: string
+              description: Controller reachibility information
+              maxLength: 128
+              example: "10.7.100.4"
+            port:
+              type: string
+              description: Port for controller
+              maxLength: 128
+              example: "9029"
+            type:
+              type: string
+              description: Type of controller (placement, action are 2 types supported)
+              maxLength: 48
+              example: "placement"
+            priority:
+              type: string
+              description: Priority of controller to be called
+              maxLength: 128
+              example: "4"
+          required:
+            - host
+            - port
+            - type
+            - priority
+    ControllerArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/Controller'
+    ClusterLabel:
+      type: object
+      properties:
+        label-name:
+          type: string
+          description: Logical Cloud to use for this intent
+          maxLength: 128
+          example: "cluster-label-1"
+    ClusterKv:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          properties:
+            kv:
+              items:
+                additionalProperties:
+                  type: string
+                  maxLength: 128
+                type: object
+              type: array
+          required:
+          - kv
+          type: object
+      required:
+      - metadata
+      - spec
+    Kv:
+      type: object
+      properties:
+        value:
+          type: string
+          maxLength: 128
+
+    VirtualNetwork:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          properties:
+            cniType:
+              type: string
+              maxLength: 128
+            ipv4Subnets:
+              items:
+                properties:
+                  excludeIps:
+                    type: string
+                    maxLength: 1024
+                  gateway:
+                    type: string
+                    maxLength: 128
+                  name:
+                    type: string
+                    maxLength: 128
+                  subnet:
+                    type: string
+                    maxLength: 128
+                required:
+                - excludeIps
+                - gateway
+                - name
+                - subnet
+                type: object
+              type: array
+    VirtualNetworkArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/VirtualNetwork'
+    ProviderNetwork:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          properties:
+            cniType:
+              type: string
+              maxLength: 128
+            ipv4Subnets:
+              items:
+                properties:
+                  excludeIps:
+                    type: string
+                    maxLength: 128
+                  gateway:
+                    type: string
+                    maxLength: 128
+                  name:
+                    type: string
+                    maxLength: 128
+                  subnet:
+                    type: string
+                    maxLength: 128
+                required:
+                - excludeIps
+                - gateway
+                - name
+                - subnet
+                type: object
+              type: array
+            providerNetType:
+              type: string
+              maxLength: 128
+            vlan:
+              properties:
+                logicalInterfaceName:
+                  type: string
+                  maxLength: 128
+                nodeLabelList:
+                  items:
+                    type: string
+                    maxLength: 128
+                  type: array
+                providerInterfaceName:
+                  type: string
+                  maxLength: 128
+                vlanID:
+                  type: string
+                  maxLength: 128
+                vlanNodeSelector:
+                  type: string
+                  maxLength: 128
+              required:
+              - logicalInterfaceName
+              - nodeLabelList
+              - providerInterfaceName
+              - vlanID
+              - vlanNodeSelector
+              type: object
+          required:
+          - cniType
+          - ipv4Subnets
+          - providerNetType
+          - vlan
+          type: object
+    ProviderNetworkArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/ProviderNetwork'
+    RouteBasedChain:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          properties:
+            chainType:
+              type: string
+              maxLength: 128
+            routingSpec:
+              properties:
+                leftNetwork:
+                  items:
+                    properties:
+                      gatewayIp:
+                        type: string
+                        maxLength: 128
+                      networkName:
+                        type: string
+                        maxLength: 128
+                      subnet:
+                        type: string
+                        maxLength: 128
+                    required:
+                    - gatewayIp
+                    - networkName
+                    - subnet
+                    type: object
+                  type: array
+                namespace:
+                  type: string
+                  maxLength: 128
+                networkChain:
+                  type: string
+                  maxLength: 128
+                rightNetwork:
+                  items:
+                    properties:
+                      gatewayIp:
+                        type: string
+                        maxLength: 128
+                      networkName:
+                        type: string
+                        maxLength: 128
+                      subnet:
+                        type: string
+                        maxLength: 128
+                    required:
+                    - gatewayIp
+                    - networkName
+                    - subnet
+                    type: object
+                  type: array
+              required:
+              - leftNetwork
+              - namespace
+              - networkChain
+              - rightNetwork
+              type: object
+          required:
+          - chainType
+          - routingSpec
+          type: object
+    NetworkWorkloadSpec:
+      type: object
+      properties:
+        spec:
+          type: object
+          description: Newtwork Workload Intent
+          properties:
+            metadata:
+              $ref: '#/components/schemas/MetadataBase'
+            spec:
+              type: object
+              properties:
+                application-name:
+                  type: string
+                  description: Application Name
+                  maxLength: 128
+                  example: "Application1"
+                workload-resource:
+                  type: string
+                  description: Name of the workload
+                  maxLength: 254
+                  example: "firewall"
+                type:
+                  type: string
+                  description: Type of the workload
+                  maxLength: 128
+                  example: "deployment"
+    NetworkWorkloadSpecArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/NetworkWorkloadSpec'
+    NetworkWorkloadInterface:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          type: object
+          properties:
+            interface:
+              type: string
+              description: interface Name
+              maxLength: 128
+              example: "eth0"
+            name:
+              type: string
+              description: Name of the network
+              maxLength: 128
+              example: "provider-1"
+            defaultGateway:
+              type: "string"
+              description: Is this interface default gateway
+              maxLength: 128
+              example: "false"
+            ipAddress:
+              type: string
+              description: Name of the network
+              maxLength: 128
+              example: "0.0.0.0"
+            macAddress:
+              type: string
+              description: Name of the network
+              maxLength: 128
+              example: "x.x.x.x"
+          required:
+            - interface
+            - name
+    NetworkWorkloadInterfaceArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/NetworkWorkloadInterface'
+    LogicalCloud:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          type: object
+          properties:
+            level:
+              type: string
+              description: level (admin or custom)
+              maxLength: 2
+              example: "1"
+            namespace:
+              type: string
+              description: namespace name
+              maxLength: 128
+              example: "ns1"
+            user:
+              properties:
+                user-name:
+                  type: string
+                  description: user name for auth
+                  maxLength: 20
+                type:
+                  type: string
+                  description: authentication type
+                  maxLength: 128
+                  example: "certificate"
+                user-permissions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      permission-name:
+                        type: string
+                        description: name of permission
+                        maxLength: 128
+                      apiGroups:
+                        type: array
+                        items:
+                          type: string
+                          description: API group expression
+                      resources:
+                        type: array
+                        description: K8s resource list
+                        items:
+                          type: string
+                          description: K8s resource
+                      verbs:
+                        type: array
+                        description: K8s verb list
+                        items:
+                          type: string
+                          description: K8s verb
+    ClusterReference:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          type: object
+          properties:
+            cluster-provider:
+              type: string
+              description: cluster provider name
+              maxLength: 128
+              example: "cp-1"
+            cluster-name:
+              type: string
+              description: cluster name
+              maxLength: 128
+              example: "c1"
+            loadbalancer-ip:
+              type: string
+              description: IP address of load balancer
+              maxLength: 16
+              example: "0.0.0.0"
+    UserPermission:
+      type: object
+      properties:
+        permission-name:
+          type: string
+          description: name of permission
+          maxLength: 128
+        apiGroups:
+          type: array
+          items:
+            type: string
+            description: API group expression
+        resources:
+          type: array
+          description: K8s resource list
+          items:
+            type: string
+            description: K8s resource
+        verbs:
+          type: array
+          description: K8s verb list
+          items:
+            type: string
+            description: K8s verb
+    ClusterQuota:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          type: object
+          properties:
+            limits.cpu:
+              type: string
+            limits.memory:
+              type: string
+            requests.cpu:
+              type: string
+            requests.memory:
+              type: string
+            requests.storage:
+              type: string
+            requests.ephemeral-storage:
+              type: string
+            limits.ephemeral-storage:
+              type: string
+            persistentvolumeclaims:
+              type: string
+            pods:
+              type: string
+            configmaps:
+              type: string
+            replicationcontrollers:
+              type: string
+            resourcequotas:
+              type: string
+            services:
+              type: string
+            services.loadbalancers:
+              type: string
+            services.nodeports:
+              type: string
+            secrets:
+              type: string
+            count/replicationcontrollers:
+              type: string
+            count/deployments.apps:
+              type: string
+            count/replicasets.apps:
+              type: string
+            count/statefulsets.apps:
+              type: string
+            count/jobs.batch:
+              type: string
+            count/cronjobs.batch:
+              type: string
+            count/deployments.extensions:
+              type: string
+    KVPair:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          type: object
+          properties:
+            kv:
+              type: array
+              description: list of key-value pairs
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  value:
+                    type: string
+    LogicalCloudArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/LogicalCloud'
+    ClusterReferenceArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/ClusterReference'
+    UserPermissionArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/UserPermission'
+    ClusterQuotaArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/ClusterQuota'
+    KVPairArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/KVPair'
+
+    GenericResourceSpec:
+      type: object
+      properties:
+        appName:
+          description: Application name
+          type: string
+          maxLength: 128
+          example: "vfw"
+        newObject:
+          description: New resource to be created. If true then template file is valid
+          type: boolean
+        resourceGVK:
+            type: object
+            properties:
+              apiVersion:
+                description: API Version
+                type: string
+                maxLength: 128
+                example: "v1"
+              kind:
+                description: Kubernetes kind
+                type: string
+                maxLength: 128
+                example: "configMap"
+              name:
+                description: Name of the resource
+                type: string
+                maxLength: 128
+                example: "map1"
+    GenericResourceMetaSpec:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          $ref: '#/components/schemas/GenericResourceSpec'
+    GenericResource:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          $ref: '#/components/schemas/GenericResourceSpec'
+        file: # Base File
+          $ref: '#/components/schemas/File'
+    GenericResourceArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/GenericResourceMetaSpec'
+    GenericResourceCustomizationSpec:
+      type: object
+      properties:
+        clusterSpecific:
+          description: apply customization to a specific cluster
+          type: boolean
+        clusterInfo: # Only required if clusterSpecific is true
+            type: object
+            properties:
+              scope:
+                description: Scope of the cluster (label/name)
+                type: string
+                maxLength: 128
+                example: "label"
+              clusterProvider:
+                description: cluster Provider Name
+                type: string
+                maxLength: 128
+                example: "provider1"
+              clusterName:
+                description: cluster Name
+                type: string
+                maxLength: 128
+                example: "cluster1"
+              clusterLabel:
+                description: cluster Label
+                type: string
+                maxLength: 128
+                example: "edge01"
+              mode:
+                description: Allow if allowing the cluster, deny if others than specified
+                type: string
+                maxLength: 128
+                example: "allow"
+        patchType:
+          description: Patching type used. "json" is the only supported patch type
+          type: string
+          maxLength: 128
+          example: "json"
+        patchJson:
+          items:
+            description: descibe the json patching
+            properties:
+              op:
+                description: operation - add, remove, replace, move, copy
+                type: string
+                maxLength: 128
+                example: "replace"
+              path:
+                description: path for the operation
+                type: string
+                maxLength: 128
+                example: "/name"
+              value:
+                type: string
+                maxLength: 128
+                example: "test"
+            type: object
+          type: array
+    GenericResourceCustomization:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          $ref: '#/components/schemas/GenericResourceCustomizationSpec'
+        files: # Array of files
+          $ref: '#/components/schemas/Files'
+    GenericResourceCustomizationMetaSpec:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          $ref: '#/components/schemas/GenericResourceCustomizationSpec'
+    GenericResourceCustomizationArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/GenericResourceCustomizationMetaSpec'
+
+    InbondServerIntentSpec:
+      type: object
+      properties:
+        appName:
+          description: Application name
+          type: string
+          maxLength: 128
+          example: "vfw"
+        serviceName:
+          description: Service name
+          type: string
+          maxLength: 128
+          example: "sink"
+        externalName:
+          description: External name
+          type: string
+          maxLength: 128
+          example: "sink.global"
+        port:
+          description: Port
+          type: integer
+          example: 8008
+        protocol:
+          description: Protocol (tcp/udp)
+          type: string
+          maxLength: 5
+          example: "tcp"
+        externalSupport:
+          description: External Support
+          type: boolean
+    InboundServerIntent:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          $ref: '#/components/schemas/InbondServerIntentSpec'
+    InboundServerIntentArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/InboundServerIntent'
+
+    InbondClientIntentSpec:
+      type: object
+      properties:
+        appName:
+          description: Application name
+          type: string
+          maxLength: 128
+          example: "vfw"
+        serviceName:
+          description: Service name
+          type: string
+          maxLength: 128
+          example: "sink"
+        namespaces:
+          description: namespaces for the
+          type: array
+          items:
+            type: string
+            maxLength: 128
+        ipRange:
+          description: Ip Range list
+          type: array
+          items:
+            type: string
+            maxLength: 128
+    InboundClientIntent:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          $ref: '#/components/schemas/InbondClientIntentSpec'
+    InboundClientIntentArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/InboundClientIntent'
+
+  parameters:
+    projectName:
+      name: project-name
+      in: path
+      description: Name of the project
+      required: true
+      schema:
+        type: string
+    compositeAppName:
+      name: composite-app-name
+      in: path
+      description: Name of the Composite Application
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    compositeAppVersion:
+      name: composite-app-version
+      in: path
+      description: Version of the Composite Application
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    appName:
+      name: app-name
+      in: path
+      description: Name of the Application
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    compositeProfileName:
+      name: composite-profile-name
+      in: path
+      description: Name of the Composite Profile
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    profileName:
+      name: profile-name
+      in: path
+      description: Name of the Profile
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    genericPlacementIntentName:
+      name: generic-placement-intent-name
+      in: path
+      description: Name of Generic Placement Intent
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    intentName:
+      name: intent-name
+      in: path
+      description: Name of Generic Placement Intent for application
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    deploymentIntentGroupName:
+      name: deployment-intent-group-name
+      in: path
+      description: Name of Deployment Intent Group
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    clusterProviderName:
+      name: cluster-providers-name
+      in: path
+      description: Name of the cluster provider
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    clusterName:
+      name: cluster-name
+      in: path
+      description: Name of the cluster
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    clusterLabelName:
+      name: cluster-label-name
+      in: path
+      description: Name of the cluster
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    clusterKvpairName:
+      name: kv-pair-name
+      in: path
+      description: Name of the cluster
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    clusterNetworkName:
+      name: network-name
+      in: path
+      description: Name of the network
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    netControlIntent:
+      name: net-control-intent
+      in: path
+      description: Name of the network
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    netControlWorkloadIntent:
+      name: workload-intent-name
+      in: path
+      description: Name of the network
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    netControlWorkloadInterface:
+      name: interface-name
+      in: path
+      description: Name of the network
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    controllerName:
+      name: controller-name
+      in: path
+      description: Controller name
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    logicalCloudName:
+      name: logical-cloud-name
+      in: path
+      description: Logical Cloud name
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    clusterReference:
+      name: cluster-reference
+      in: path
+      description: Cluster Reference name
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    userPermission:
+      name: user-permission
+      in: path
+      description: User Permission name
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    clusterQuota:
+      name: cluster-quota
+      in: path
+      description: Cluster Quota name
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    kvPair:
+      name: kv-pair
+      in: path
+      description: KV Pair name
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    genControlIntent:
+      name: gen-k8s-intent
+      in: path
+      description: Generic Controller Intent
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    genControlResourceIntent:
+      name: resource-intent-name
+      in: path
+      description: Generic Controller Resource Intent
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    genControlResourceCustomization:
+      name: customization-name
+      in: path
+      description: Generic Controller Customization Intent
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    trafficControlIntent:
+      name: traffic-cont-intent
+      in: path
+      description: Traffic Controller Intent
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    trafficInboundIntent:
+      name: inbound-server-intent
+      in: path
+      description: Traffic Controller Server Inbound Intent
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    trafficInboundClientIntent:
+      name: inbound-client-intent
+      in: path
+      description: Traffic Controller Client Inbound Intent
+      required: true
+      schema:
+        type: string
+        maxLength: 128

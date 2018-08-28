@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+ARG EMCODOCKERREPO
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+FROM ${EMCODOCKERREPO}golang:1.14.1-alpine
+
+ENV HTTP_PROXY=${HTTP_PROXY}
+ENV HTTPS_PROXY=${HTTPS_PROXY}
+
+# Install some run-time build tools in the container.
+RUN apk update \
+    &&  apk add --no-cache make

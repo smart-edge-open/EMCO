@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+dependencies:
+  - name: emco-db
+    version: ~0.x-0
+    repository: 'file://../emco-db'
+  - name: emco-tools
+    version: ~0.x-0
+    repository: 'file://../emco-tools'
+  - name: emco-services
+    version: ~0.x-0
+    repository: 'file://../emco-services'
+

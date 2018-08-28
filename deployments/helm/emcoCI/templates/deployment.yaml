@@ -1,0 +1,704 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+# Resources to create ONAP4K8s v2 Microservices
+---
+#Etcd Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: etcd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: etcd
+  template:
+    metadata:
+      labels:
+        app: etcd
+    spec:
+      containers:
+      - image: {{ .Values.registryPrefix }}etcd:3
+        imagePullPolicy: IfNotPresent
+        name: etcd
+        ports:
+        - containerPort: 2379
+        - containerPort: 2380
+        env:
+          - name: "ALLOW_NONE_AUTHENTICATION"
+            value: "yes"
+      {{- if eq .Values.enableDbAuth true }}
+          - name: CONTEXTDB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: username
+          - name: CONTEXTDB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: password
+          - name: CONTEXTDB_ROOT_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: etcd-root-secret
+                key: username
+          - name: CONTEXTDB_ROOT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: etcd-root-secret
+                key: password
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - /tmp/etcd-setup.sh
+        volumeMounts:
+        - mountPath: /tmp
+          name: etcd-init
+      volumes:
+      - configMap:
+          defaultMode: 511
+          name: etcd-init
+        name: etcd-init
+      {{- end }}
+
+---
+#Mongo Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: mongo
+  name: mongo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      containers:
+      - image: {{ .Values.registryPrefix }}mongo:4.4.1
+        imagePullPolicy: IfNotPresent
+        name: mongo
+        ports:
+        - containerPort: 27017
+      {{- if .Values.enableDbAuth }}
+        command:
+        - docker-entrypoint.sh
+        args:
+        - --auth
+        env:
+          - name: MONGO_INITDB_ROOT_USERNAME
+            value: "{{ .Values.db.rootUser }}"
+          - name: MONGO_INITDB_ROOT_PASSWORD
+            value: "{{ .Values.db.rootPassword }}"
+          - name: MONGO_INITDB_DATABASE
+            value: "mco"
+          - name: DB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: username
+          - name: DB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: password
+        volumeMounts:
+        - name: mongo-init
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: mongo-init
+        configMap:
+          name: mongo-init
+      {{- end }}
+---
+
+# Orchestrator Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orchestrator
+  template:
+    metadata:
+      labels:
+        app: orchestrator
+    spec:
+      containers:
+        - name: orchestrator
+          image: {{ .Values.registryPrefix }}emco-orch:{{ .Values.tag }}
+          imagePullPolicy: Always
+          env:
+          - name: NO_PROXY
+            value: rsync,{{ .Values.noProxyHosts }}
+          - name: no_proxy
+            value: rsync,{{ .Values.noProxyHosts }}
+          - name: HTTP_PROXY
+            value: {{ .Values.httpProxy }}
+          - name: http_proxy
+            value: {{ .Values.httpProxy }}
+          - name: HTTPS_PROXY
+            value: {{ .Values.httpsProxy }}
+          - name: https_proxy
+            value: {{ .Values.httpsProxy }}
+          {{- if eq .Values.enableDbAuth true }}
+          - name: DB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: username
+          - name: DB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: password
+          - name: CONTEXTDB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: username
+          - name: CONTEXTDB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: password
+          {{- end }}
+          command: ["./orchestrator"]
+          workingDir: /opt/emco/orchestrator
+          ports:
+          - containerPort: 9015
+          volumeMounts:
+          - name: config
+            mountPath: /opt/emco/orchestrator/config.json
+            subPath: config.json
+          - name: tmpdir
+            mountPath: /tmp
+      volumes:
+        - name: tmpdir
+          emptyDir:
+            medium: Memory
+        - name: config
+          configMap:
+            name: orchestrator
+            items:
+            - key: config.json
+              path: config.json
+---
+
+# NCM Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ncm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ncm
+  template:
+    metadata:
+      labels:
+        app: ncm
+    spec:
+      containers:
+        - name: ncm
+          image: {{ .Values.registryPrefix }}emco-ncm:{{ .Values.tag }}
+          imagePullPolicy: Always
+          env:
+          - name: NO_PROXY
+            value: {{ .Values.noProxyHosts }}
+          - name: no_proxy
+            value: {{ .Values.noProxyHosts }}
+          - name: HTTP_PROXY
+            value: {{ .Values.httpProxy }}
+          - name: http_proxy
+            value: {{ .Values.httpProxy }}
+          - name: HTTPS_PROXY
+            value: {{ .Values.httpsProxy }}
+          - name: https_proxy
+            value: {{ .Values.httpsProxy }}
+          {{- if eq .Values.enableDbAuth true }}
+          - name: DB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: username
+          - name: DB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: password
+          - name: CONTEXTDB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: username
+          - name: CONTEXTDB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: password
+          {{- end }}
+          command: ["./ncm"]
+          workingDir: /opt/emco/ncm
+          ports:
+          - containerPort: 9081
+          volumeMounts:
+          - name: config
+            mountPath: /opt/emco/ncm/config.json
+            subPath: config.json
+      volumes:
+        - name: config
+          configMap:
+            name: ncm
+            items:
+            - key: config.json
+              path: config.json
+
+---
+
+# RSYNC Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rsync
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rsync
+  template:
+    metadata:
+      labels:
+        app: rsync
+    spec:
+      containers:
+        - name: rsync
+          image: {{ .Values.registryPrefix }}emco-rsync:{{ .Values.tag }}
+          imagePullPolicy: Always
+          env:
+          - name: NO_PROXY
+            value: {{ .Values.noProxyHosts }}
+          - name: no_proxy
+            value: {{ .Values.noProxyHosts }}
+          - name: HTTP_PROXY
+            value: {{ .Values.httpProxy }}
+          - name: http_proxy
+            value: {{ .Values.httpProxy }}
+          - name: HTTPS_PROXY
+            value: {{ .Values.httpsProxy }}
+          - name: https_proxy
+            value: {{ .Values.httpsProxy }}
+          {{- if eq .Values.enableDbAuth true }}
+          - name: DB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: username
+          - name: DB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: password
+          - name: CONTEXTDB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: username
+          - name: CONTEXTDB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: password
+          {{- end }}
+          command: ["./rsync"]
+          workingDir: /opt/emco/rsync
+          ports:
+          - containerPort: 9031
+          volumeMounts:
+          - name: config
+            mountPath: /opt/emco/rsync/config.json
+            subPath: config.json
+          - name: tmpdir
+            mountPath: /tmp
+      volumes:
+        - name: tmpdir
+          emptyDir:
+            medium: Memory
+        - name: config
+          configMap:
+            name: rsync
+            items:
+            - key: config.json
+              path: config.json
+
+---
+# Ovnaction Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ovnaction
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ovnaction
+  template:
+    metadata:
+      labels:
+        app: ovnaction
+    spec:
+      containers:
+        - name: ovnaction
+          image: {{ .Values.registryPrefix }}emco-ovn:{{ .Values.tag }}
+          imagePullPolicy: Always
+          env:
+          - name: NO_PROXY
+            value: {{ .Values.noProxyHosts }}
+          - name: no_proxy
+            value: {{ .Values.noProxyHosts }}
+          - name: HTTP_PROXY
+            value: {{ .Values.httpProxy }}
+          - name: http_proxy
+            value: {{ .Values.httpProxy }}
+          - name: HTTPS_PROXY
+            value: {{ .Values.httpsProxy }}
+          - name: https_proxy
+            value: {{ .Values.httpsProxy }}
+          {{- if eq .Values.enableDbAuth true }}
+          - name: DB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: username
+          - name: DB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: password
+          - name: CONTEXTDB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: username
+          - name: CONTEXTDB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: password
+          {{- end }}
+          command: ["./ovnaction"]
+          workingDir: /opt/emco/ovnaction
+          ports:
+          - containerPort: 9032
+          - containerPort: 9051
+          volumeMounts:
+          - name: config
+            mountPath: /opt/emco/ovnaction/config.json
+            subPath: config.json
+      volumes:
+        - name: config
+          configMap:
+            name: ovnaction
+            items:
+            - key: config.json
+              path: config.json
+
+---
+# DTC Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dtc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dtc
+  template:
+    metadata:
+      labels:
+        app: dtc
+    spec:
+      containers:
+        - name: dtc
+          image: {{ .Values.registryPrefix }}emco-dtc:{{ .Values.tag }}
+          imagePullPolicy: Always
+          env:
+          - name: NO_PROXY
+            value: {{ .Values.noProxyHosts }}
+          - name: no_proxy
+            value: {{ .Values.noProxyHosts }}
+          - name: HTTP_PROXY
+            value: {{ .Values.httpProxy }}
+          - name: http_proxy
+            value: {{ .Values.httpProxy }}
+          - name: HTTPS_PROXY
+            value: {{ .Values.httpsProxy }}
+          - name: https_proxy
+            value: {{ .Values.httpsProxy }}
+          {{- if eq .Values.enableDbAuth true }}
+          - name: DB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: username
+          - name: DB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: password
+          - name: CONTEXTDB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: username
+          - name: CONTEXTDB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: password
+          {{- end }}
+          command: ["./dtc"]
+          workingDir: /opt/emco/dtc
+          ports:
+          - containerPort: 9048
+          - containerPort: 9018
+          volumeMounts:
+          - name: config
+            mountPath: /opt/emco/dtc/config.json
+            subPath: config.json
+      volumes:
+        - name: config
+          configMap:
+            name: dtc
+            items:
+            - key: config.json
+              path: config.json
+---
+
+# Clm Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clm
+  template:
+    metadata:
+      labels:
+        app: clm
+    spec:
+      containers:
+        - name: clm
+          image: {{ .Values.registryPrefix }}emco-clm:{{ .Values.tag }}
+          imagePullPolicy: Always
+          env:
+          - name: NO_PROXY
+            value: {{ .Values.noProxyHosts }}
+          - name: no_proxy
+            value: {{ .Values.noProxyHosts }}
+          - name: HTTP_PROXY
+            value: {{ .Values.httpProxy }}
+          - name: http_proxy
+            value: {{ .Values.httpProxy }}
+          - name: HTTPS_PROXY
+            value: {{ .Values.httpsProxy }}
+          - name: https_proxy
+            value: {{ .Values.httpsProxy }}
+          {{- if eq .Values.enableDbAuth true }}
+          - name: DB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: username
+          - name: DB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: password
+          - name: CONTEXTDB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: username
+          - name: CONTEXTDB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: password
+          {{- end }}
+          command: ["./clm"]
+          workingDir: /opt/emco/clm
+          ports:
+          - containerPort: 9061
+          volumeMounts:
+          - name: config
+            mountPath: /opt/emco/clm/config.json
+            subPath: config.json
+      volumes:
+        - name: config
+          configMap:
+            name: clm
+            items:
+            - key: config.json
+              path: config.json
+
+---
+# DCM Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dcm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dcm
+  template:
+    metadata:
+      labels:
+        app: dcm
+    spec:
+      containers:
+        - name: dcm
+          image: {{ .Values.registryPrefix }}emco-dcm:{{ .Values.tag }}
+          imagePullPolicy: Always
+          env:
+          - name: NO_PROXY
+            value: {{ .Values.noProxyHosts }}
+          - name: no_proxy
+            value: {{ .Values.noProxyHosts }}
+          - name: HTTP_PROXY
+            value: {{ .Values.httpProxy }}
+          - name: http_proxy
+            value: {{ .Values.httpProxy }}
+          - name: HTTPS_PROXY
+            value: {{ .Values.httpsProxy }}
+          - name: https_proxy
+            value: {{ .Values.httpsProxy }}
+          {{- if eq .Values.enableDbAuth true }}
+          - name: DB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: username
+          - name: DB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: password
+          - name: CONTEXTDB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: username
+          - name: CONTEXTDB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: password
+          {{- end }}
+          command: ["./dcm"]
+          workingDir: /opt/emco/dcm
+          ports:
+          - containerPort: 9077
+          volumeMounts:
+          - name: config
+            mountPath: /opt/emco/dcm/config.json
+            subPath: config.json
+      volumes:
+        - name: config
+          configMap:
+            name: dcm
+            items:
+            - key: config.json
+              path: config.json
+
+---
+# GAC Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gac
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gac
+  template:
+    metadata:
+      labels:
+        app: gac
+    spec:
+      containers:
+        - name: gac
+          image: {{ .Values.registryPrefix }}emco-gac:{{ .Values.tag }}
+          imagePullPolicy: Always
+          env:
+          - name: NO_PROXY
+            value: {{ .Values.noProxyHosts }}
+          - name: no_proxy
+            value: {{ .Values.noProxyHosts }}
+          - name: HTTP_PROXY
+            value: {{ .Values.httpProxy }}
+          - name: http_proxy
+            value: {{ .Values.httpProxy }}
+          - name: HTTPS_PROXY
+            value: {{ .Values.httpsProxy }}
+          - name: https_proxy
+            value: {{ .Values.httpsProxy }}
+          {{- if eq .Values.enableDbAuth true }}
+          - name: DB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: username
+          - name: DB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: password
+          - name: CONTEXTDB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: username
+          - name: CONTEXTDB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: password
+          {{- end }}
+          command: ["./genericactioncontroller"]
+          workingDir: /opt/emco/gac
+          ports:
+          - containerPort: 9020
+          - containerPort: 9033
+          volumeMounts:
+          - name: config
+            mountPath: /opt/emco/gac/config.json
+            subPath: config.json
+      volumes:
+        - name: config
+          configMap:
+            name: gac
+            items:
+            - key: config.json
+              path: config.json
+

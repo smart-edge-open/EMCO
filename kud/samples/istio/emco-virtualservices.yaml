@@ -1,0 +1,236 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: vs-emco-orchestrator
+  namespace: emco
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - emco-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /v2/controllers
+    - uri:
+        exact: /v2/projects
+    - uri:
+        regex: /v2/projects/[^\/]*
+    - uri:
+        regex: /v2/projects/.+/composite-apps
+    - uri:
+        regex: /v2/projects/.+/composite-apps/[^\/]*
+    - uri:
+        regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*
+    - uri:
+        regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*/apps
+    - uri:
+        regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*/apps/[^\/]*
+    - uri:
+        regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*/composite-profiles
+    - uri:
+        regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*/composite-profiles/[^\/]*
+    - uri:
+        regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*/composite-profiles/[^\/]*/profiles
+    - uri:
+        regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*/composite-profiles/[^\/]*/profiles/[^\/]*
+    - uri:
+        regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*/deployment-intent-groups
+    - uri:
+        regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*/deployment-intent-groups/[^\/]*
+    - uri:
+        regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*/deployment-intent-groups/[^\/]*/approve
+    - uri:
+        regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*/deployment-intent-groups/[^\/]*/instantiate
+    - uri:
+        regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*/deployment-intent-groups/[^\/]*/terminate
+    - uri:
+        regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*/deployment-intent-groups/[^\/]*/intents
+    - uri:
+        regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*/deployment-intent-groups/[^\/]*/intents/[^\/]*
+    - uri:
+        regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*/deployment-intent-groups/[^\/]*/generic-placement-intents
+    - uri:
+        regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*/deployment-intent-groups/[^\/]*/generic-placement-intents/[^\/]*
+    - uri:
+        regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*/deployment-intent-groups/[^\/]*/generic-placement-intents/[^\/]*/app-intents
+    - uri:
+        regex: /v2/projects/.+/composite-apps/[^\/]*\/[^\/]*/deployment-intent-groups/[^\/]*/generic-placement-intents/[^\/]*/app-intents/[^\/]*
+          
+    route:
+    - destination:
+        port:
+          number: 9015
+        host: orchestrator
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: vs-emco-clm
+  namespace: emco
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - emco-gateway
+  http:
+  - match:
+    - uri:
+        exact: /v2/cluster-providers
+    - uri:
+        regex: /v2/cluster-providers/[^\/]*
+    - uri:
+        regex: /v2/cluster-providers/.+/clusters
+    - uri:
+        regex: /v2/cluster-providers/.+/clusters/[^\/]*
+    - uri:
+        regex: /v2/cluster-providers/.+/clusters/[^\/]*/labels
+    - uri:
+        regex: /v2/cluster-providers/.+/clusters/[^\/]*/labels/[^\/]*
+    - uri:
+        regex: /v2/cluster-providers/.+/clusters/[^\/]*/kv-pairs
+    - uri:
+        regex: /v2/cluster-providers/.+/clusters/[^\/]*/kv-pairs/[^\/]*
+    route:
+    - destination:
+        port:
+          number: 9061
+        host: clm
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: vs-emco-ncm
+  namespace: emco
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - emco-gateway
+  http:
+  - match:
+    - uri:
+        regex: /v2/cluster-providers/.+/.+/.+/networks/*
+    - uri:
+        regex: /v2/cluster-providers/.+/.+/.+/provider-networks/*
+    - uri:
+        regex: /v2/cluster-providers/.+/.+/.+/networks/[^\/]*
+    - uri:
+        regex: /v2/cluster-providers/.+/.+/.+/provider-networks/[^\/]*
+    - uri:
+        regex: /v2/cluster-providers/.+/.+/.+/apply
+    - uri:
+        regex: /v2/cluster-providers/.+/.+/.+/terminate
+    route:
+    - destination:
+        port:
+          number: 9031
+        host: ncm
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: vs-emco-ovnaction
+  namespace: emco
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - emco-gateway
+  http:
+  - match:
+    - uri:
+        regex: /v2/projects/.+/composite-apps/.+/.+/deployment-intent-groups/.+/network-controller-intent
+    - uri:
+        regex: /v2/projects/.+/composite-apps/.+/.+/deployment-intent-groups/.+/network-controller-intent/.*
+    route:
+    - destination:
+        port:
+          number: 9051
+        host: ovnaction
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: vs-emco-dcm
+  namespace: emco
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - emco-gateway
+  http:
+  - match:
+    - uri:
+        regex: /v2/projects/.+/logical-clouds
+    - uri:
+        regex: /v2/projects/.+/logical-clouds/.*
+    route:
+    - destination:
+        port:
+          number: 9077
+        host: dcm
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: vs-emco-gac
+  namespace: emco
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - emco-gateway
+  http:
+  - match:
+    - uri:
+        regex: /v2/projects/.+/composite-apps/.+/.+/deployment-intent-groups/.+/generic-k8s-intents
+    - uri:
+        regex: /v2/projects/.+/composite-apps/.+/.+/deployment-intent-groups/.+/generic-k8s-intents/.*
+    route:
+    - destination:
+        port:
+          number: 9051
+        host: gac
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: vs-emco-dtc
+  namespace: emco
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - emco-gateway
+  http:
+  - match:
+    - uri:
+        regex: /v2/projects/.+/composite-apps/.+/.+/deployment-intent-groups/.+/traffic-group-intents
+    - uri:
+        regex: /v2/projects/.+/composite-apps/.+/.+/deployment-intent-groups/.+/traffic-group-intents/.*
+    route:
+    - destination:
+        port:
+          number: 9051
+        host: dtc
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: vs-emco-callback
+  namespace: emco
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - emco-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /mesh/auth_callback        
+    route:
+    - destination:
+        host: orchestrator

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.service.name }}
+  labels:
+    {{- include "helm-chart-server.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  - port: {{ .Values.service.tcpPort }}
+    nodePort: {{ .Values.service.tcpPort }}
+    targetPort: 3333
+    protocol: TCP
+    name: {{ .Values.service.name }}-tcp
+  selector:
+    {{- include "helm-chart-server.selectorLabels" . | nindent 4 }}

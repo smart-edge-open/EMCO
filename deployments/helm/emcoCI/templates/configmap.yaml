@@ -1,0 +1,193 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+# Orchestrator Config Map
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: orchestrator
+  labels:
+    app: orchestrator
+data:
+  config.json: |
+          {
+          "database-type": "mongo",
+          "database-ip": "mongo",
+          "etcd-ip": "etcd",
+          "service-port": "9015"
+          }
+
+---
+
+# NCM Config Map
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: ncm
+  labels:
+    app: ncm
+data:
+  config.json: |
+          {
+          "database-type": "mongo",
+          "database-ip": "mongo",
+          "etcd-ip": "etcd",
+          "service-port": "9081"
+          }
+
+---
+
+# RSYNC ConfigMap
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: rsync
+  labels:
+    app: rsync
+data:
+  config.json: |
+          {
+          "database-type": "mongo",
+          "database-ip": "mongo",
+          "etcd-ip": "etcd"
+          }
+
+---
+
+# Ovnaction Config Map
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: ovnaction
+  labels:
+    app: ovnaction
+data:
+  config.json: |
+          {
+          "database-type": "mongo",
+          "database-ip": "mongo",
+          "etcd-ip": "etcd",
+          "service-port": "9051"
+          }
+
+---
+
+# Clm Config Map
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: clm
+  labels:
+    app: clm
+data:
+  config.json: |
+          {
+          "database-type": "mongo",
+          "database-ip": "mongo",
+          "etcd-ip": "etcd",
+          "service-port": "9061"
+          }
+
+---
+
+# DCM Config Map
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: dcm
+  labels:
+    app: dcm
+data:
+  config.json: |
+          {
+          "database-type": "mongo",
+          "database-ip": "mongo",
+          "etcd-ip": "etcd",
+          "service-port": "9077"
+          }
+
+---
+
+# DTC Config Map
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: dtc
+  labels:
+    app: dtc
+data:
+  config.json: |
+          {
+          "database-type": "mongo",
+          "database-ip": "mongo",
+          "etcd-ip": "etcd",
+          "service-port": "9018"
+          }
+
+---
+
+# GenericActionController Config Map
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: gac
+  labels:
+    app: gac
+data:
+  config.json: |
+          {
+          "database-type": "mongo",
+          "database-ip": "mongo",
+          "etcd-ip": "etcd",
+          "service-port": "9020"
+          }
+
+
+{{- if eq .Values.enableDbAuth true }}
+---
+
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: mongo-init
+  labels:
+    app: mongo
+data:
+  mongo-user.sh: |
+    mongo -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" <<EOF
+    use mco
+    db.createUser(
+      {
+        user: "$DB_EMCO_USERNAME",
+        pwd: "$DB_EMCO_PASSWORD",
+        roles: [
+           { role: "dbOwner", db: "mco" },
+           { role: "clusterMonitor", db: "admin" }
+        ]
+      }
+    )
+    EOF
+
+---
+
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: etcd-init
+  labels:
+    app: etcd
+data:
+  etcd-setup.sh: |
+    until etcdctl version
+    do
+      sleep 1
+    done
+    etcdctl user add "$CONTEXTDB_ROOT_USERNAME":"$CONTEXTDB_ROOT_PASSWORD"
+    etcdctl user grant-role "$ETCD_ROOT_USER" root
+    etcdctl role add emcorole
+    etcdctl role grant-permission --prefix=true  emcorole readwrite '/context/'
+    etcdctl user add "$CONTEXTDB_EMCO_USERNAME":"$CONTEXTDB_EMCO_PASSWORD"
+    etcdctl user grant-role "$CONTEXTDB_EMCO_USERNAME" emcorole
+    etcdctl auth enable
+
+{{- end }}

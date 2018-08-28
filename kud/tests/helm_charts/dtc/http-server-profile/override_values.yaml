@@ -1,0 +1,6 @@
+service:
+    type: NodePort
+    nameOfPort: webPort
+    annotations: {}
+    labels: {}
+    clusterIP: ""

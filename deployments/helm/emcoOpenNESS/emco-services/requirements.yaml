@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+dependencies:
+  - name: common
+    version: ~0.x-0
+    repository: 'file://../common'
+  - name: orchestrator
+    version: ~0.x-0
+    repository: 'file://../orchestrator'
+  - name: ncm
+    version: ~0.x-0
+    repository: 'file://../ncm'
+  - name: rsync
+    version: ~0.x-0
+    repository: 'file://../rsync'
+  - name: clm
+    version: ~0.x-0
+    repository: 'file://../clm'
+  - name: ovnaction
+    version: ~0.x-0
+    repository: 'file://../ovnaction'
+  - name: dcm
+    version: ~0.x-0
+    repository: 'file://../dcm'
+  - name: dtc
+    version: ~0.x-0
+    repository: 'file://../dtc'
+  - name: gac
+    version: ~0.x-0
+    repository: 'file://../gac'

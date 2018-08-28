@@ -1,0 +1,24 @@
+# Default values for packetgen.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: virtlet.cloud/ubuntu/16.04
+  tag: latest
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+#serivce port value for packetgen service
+  type: NodePort
+  ports:
+    port: 2831
+    nodePort: 30831
+
+resources:
+  limits:
+    memory: 4Gi

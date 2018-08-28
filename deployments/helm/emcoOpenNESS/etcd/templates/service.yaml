@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+metadata:
+  name: {{ include "common.servicename" .  }}
+  labels:
+    heritage: "{{ .Release.Service  }}"
+    release: "{{ .Release.Name  }}"
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    app: {{ include "common.name" . }}
+spec:
+  ports:
+  - name: {{ .Values.service.peerPortName }}
+    port: {{ .Values.service.peerInternalPort }}
+  - name: {{ .Values.service.clientPortName }}
+    port: {{ .Values.service.clientInternalPort }}
+  clusterIP: None
+  selector:
+    app: {{ include "common.name" . }}
+    release: "{{ .Release.Name }}"
+

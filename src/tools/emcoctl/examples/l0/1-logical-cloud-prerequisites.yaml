@@ -1,0 +1,99 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+#creating controller entries
+version: emco/v2
+resourceContext:
+  anchor: controllers
+metadata :
+   name: rsync
+spec:
+  host: {{.RsyncHost}}
+  port: {{.RsyncPort}}
+
+---
+#creating cluster provider
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers
+metadata :
+   name: {{.ClusterProvider}}
+
+---
+#creating cluster 1
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters
+metadata :
+   name: {{.Cluster1}}
+
+file:
+  {{.KubeConfig1}}
+
+---
+#creating cluster 2
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters
+metadata :
+   name: {{.Cluster2}}
+
+file:
+  {{.KubeConfig2}}
+
+---
+#Add label to cluster 1
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster1}}/labels
+label-name: {{.Label1}}
+
+---
+#Add label to cluster 2
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster2}}/labels
+label-name: {{.Label2}}
+
+---
+#create project
+version: emco/v2
+resourceContext:
+  anchor: projects
+metadata :
+   name: {{.ProjectName}}
+
+
+---
+#create default logical cloud with admin permissions
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds
+metadata:
+  name: {{.LogicalCloud}}
+spec:
+  level: "0"
+
+---
+#add cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LogicalCloud}}/cluster-references
+metadata:
+  name: lc-cl-1
+spec:
+  cluster-provider: {{.ClusterProvider}}
+  cluster-name: {{.Cluster1}}
+  loadbalancer-ip: "0.0.0.0"
+
+---
+#add cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LogicalCloud}}/cluster-references
+metadata:
+  name: lc-cl-2
+spec:
+  cluster-provider: {{.ClusterProvider}}
+  cluster-name: {{.Cluster2}}
+  loadbalancer-ip: "0.0.0.0"

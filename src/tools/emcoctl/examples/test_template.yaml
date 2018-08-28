@@ -1,0 +1,223 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+#creating controller entries
+version: emco/v2
+resourceContext:
+  anchor: controllers
+metadata :
+   name: rsync
+spec:
+  host: rsync
+  port: {{.RsyncPort}}
+
+---
+#creating cluster provider
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers
+metadata :
+   name: {{.ClusterProvider}}
+
+---
+#creating cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters
+metadata :
+   name: {{.Cluster1}}
+
+file:
+  /home/vagrant/.kube/config
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster1}}/labels
+label-name: edge-cluster
+
+---
+#create project
+version: emco/v2
+resourceContext:
+  anchor: projects
+metadata :
+   name: {{.ProjectName}}
+
+
+---
+#create default logical cloud with admin permissions
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds
+metadata:
+  name: {{.AdminCloud}}
+spec:
+  level: "0"
+
+---
+#add cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.AdminCloud}}/cluster-references
+metadata:
+  name: lc-cl-1
+spec:
+  cluster-provider: {{.ClusterProvider}}
+  cluster-name: {{.Cluster1}}
+  loadbalancer-ip: "0.0.0.0"
+
+---
+#instantiate logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.AdminCloud}}/instantiate
+
+---
+#creating collection composite app entry
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps
+metadata :
+  name: {{.ComposteApp}}
+  description: test
+spec:
+  version: v1
+
+---
+#adding prometheus app to the composite app
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.ComposteApp}}/v1/apps
+metadata :
+  name: prometheus-operator
+  description: "description for app"
+file:
+  /opt/csar/prometheus-operator.tar.gz
+
+---
+#adding collectd app to the composite app
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.ComposteApp}}/v1/apps
+metadata :
+  name: collectd
+  description: "description for app"
+file:
+  /opt/csar/collectd.tar.gz
+
+---
+#creating collection composite profile entry
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.ComposteApp}}/v1/composite-profiles
+metadata :
+  name: collection-composite-profile
+  description: test
+
+
+---
+#adding prometheus app profiles to the composite profile
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.ComposteApp}}/v1/composite-profiles/collection-composite-profile/profiles
+metadata :
+  name: prometheus-profile
+  description: test
+spec:
+  app-name: prometheus-operator
+file:
+  /opt/csar/prometheus-operator_profile.tar.gz
+
+---
+#adding collectd app profiles to the composite profile
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.ComposteApp}}/v1/composite-profiles/collection-composite-profile/profiles
+metadata :
+  name: collectd-profile
+  description: test
+spec:
+  app-name: collectd
+file:
+  /opt/csar/collectd_profile.tar.gz
+
+---
+#create deployment intent group
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.ComposteApp}}/v1/deployment-intent-groups
+metadata :
+  name: {{.DeploymentIntent}}
+  description: "description"
+spec:
+  profile: collection-composite-profile
+  version: r1
+  logical-cloud: {{.AdminCloud}}
+  override-values: []
+
+---
+
+#create intent in deployment intent group
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.ComposteApp}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/intents
+metadata :
+  name: collection-deployment-intent
+  description: "description"
+spec:
+  intent:
+    genericPlacementIntent: collection-placement-intent
+---
+
+#create the generic placement intent (notice the reference to the "default" logical cloud)
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.ComposteApp}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-placement-intents
+metadata :
+  name: collection-placement-intent
+  description: "description for app"
+spec:
+  logical-cloud: {{.AdminCloud}}
+
+---
+#add the prometheus app placement intent to the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.ComposteApp}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-placement-intents/collection-placement-intent/app-intents
+metadata:
+  name: prometheus-placement-intent
+  description: description of placement_intent
+spec:
+  app-name: prometheus-operator
+  intent:
+    allOf:
+    - provider-name: {{.ClusterProvider}}
+      cluster-label-name: edge-cluster
+---
+#add the prometheus app placement intent to the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.ComposteApp}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-placement-intents/collection-placement-intent/app-intents
+metadata:
+  name: collectd-placement-intent
+  description: description of placement_intent
+spec:
+  app-name: collectd
+  intent:
+    allOf:
+    - provider-name: {{.ClusterProvider}}
+      cluster-label-name: edge-cluster
+
+---
+#Approve
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.ComposteApp}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/approve
+
+#---
+#Instantiate
+#version: emco/v2
+#resourceContext:
+#  anchor: projects/{{.ProjectName}}/composite-apps/{{.ComposteApp}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/instantiate

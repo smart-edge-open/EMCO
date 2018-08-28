@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+
+---
+#create intent in deployment intent group
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/intents
+metadata :
+  name: collection-deployment-intent
+  description: "description"
+spec:
+  intent:
+    genericPlacementIntent: collection-placement-intent
+    gac: {{.GacIntent}}
+
+---
+#Approve
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/approve
+
+#---
+#Instantiate
+#version: emco/v2
+#resourceContext:
+#  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/instantiate
+

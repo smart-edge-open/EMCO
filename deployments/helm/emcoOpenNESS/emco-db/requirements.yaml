@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+dependencies:
+  - name: common
+    version: ~0.x-0
+    repository: 'file://../common'
+  - name: mongo
+    version: ~4.x-0
+    repository: 'file://../mongo'
+  - name: etcd
+    version: ~3.x-0
+    repository: 'file://../etcd'

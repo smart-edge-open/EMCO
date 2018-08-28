@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+apiVersion: k8splugin.io/v1alpha1
+kind: ResourceBundleState
+metadata:
+  name: example-resourcebundlestate
+  labels:
+    "emco/deployment-id": "bionic-beaver"
+spec:
+  selector:
+    matchLabels:
+      "emco/deployment-id": "bionic-beaver"
+status:
+  ready: false

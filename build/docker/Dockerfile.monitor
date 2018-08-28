@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+ARG EMCODOCKERREPO
+ARG SERVICE_BASE_IMAGE_NAME
+ARG SERVICE_BASE_IMAGE_VERSION
+FROM ${EMCODOCKERREPO}${SERVICE_BASE_IMAGE_NAME}${SERVICE_BASE_IMAGE_VERSION}
+
+WORKDIR /opt/emco/monitor
+
+RUN addgroup -S emco && adduser -S -G emco emco
+RUN chown emco:emco . -R
+
+COPY --chown=emco ./monitor ./
+
+USER emco
+
+ENTRYPOINT ["./monitor"]

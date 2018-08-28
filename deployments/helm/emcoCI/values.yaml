@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+registryPrefix: ${EMCODOCKERREPO}
+tag: 
+noProxyHosts: ${NO_PROXY}
+httpProxy: ${HTTP_PROXY}
+httpsProxy: ${HTTPS_PROXY}
+enableDbAuth: true
+db:
+  rootUser: admin
+#  rootPassword: <provide password as an override value>
+  emcoUser: emco
+#  emcoPassword: <provide password as an override value>
+contextdb:
+  rootUser: root
+#  rootPassword: <provide password as an override value>
+  emcoUser: emco
+#  emcoPassword: <provide password as an override value>

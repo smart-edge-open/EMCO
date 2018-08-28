@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+ProjectName: testproj
+ClusterProvider: testprovider
+Cluster1: cluster1
+AdminCloud: default
+CompositeApp: collection-composite-app
+CompositeProfile: collection-composite-profile
+App: collectd
+KubeConfig: /root/config
+HelmApp: /doc/collectd.tar.gz
+ProfileApp:  /doc/collectd_profile.tar.gz
+ConfigmapFile: /doc/sensor-info.json
+DeploymentIntent: collection-deployment-intent-group
+ClusterLabel: edge-cluster
+GacIntent: collectd-gac-intent
+RsyncPort: 31444
+GacPort: 31443
+HostIP: 10.10.10.1

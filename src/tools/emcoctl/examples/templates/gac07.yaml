@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+#add the GAC intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents
+metadata:
+  name: {{.GacIntent}}
+
+---
+#add resources to GAC intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources
+metadata:
+  name: collectd-resources
+spec:
+  appName: {{.App}}
+  newObject: "true"
+  resourceGVK:
+    apiVersion: v1
+    kind: configMap
+    name: sensor-info-script
+file:
+  {{.HelmApp}} # This file is Ignored the file, this is required to make Post multiform (emcoctl bug)
+
+---
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources/collectd-resources/customizations
+metadata:
+  name: collectd-customizations
+spec:
+  clusterSpecific: "false"
+  clusterInfo:
+    scope: label
+    clusterProvider: {{.ClusterProvider}}
+    clusterName: "dummy"
+    clusterLabel: {{.ClusterLabel}}
+    mode: allow
+files:
+  - {{.ConfigmapFile}}

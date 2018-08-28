@@ -1,0 +1,167 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+# This is the docker-compose.yml file used for running all the EMCO microservices on local machine
+version: '3.7'
+networks:
+  emconet:
+    driver: bridge
+    name: emconet
+services:
+  dcm:
+    image: ${REGISTRY_PREFIX}emco-dcm${TAG}
+    networks:
+      - emconet
+    ports:
+      - 9077:9077
+    environment:
+      - no_proxy=etcd,mongo,rsync,${NO_PROXY}
+      - NO_PROXY=etcd,mongo,rsync,${NO_PROXY}
+      - HTTP_PROXY=${HTTP_PROXY}
+      - http_proxy=${HTTP_PROXY}
+      - HTTPS_PROXY=${HTTPS_PROXY}
+      - https_proxy=${HTTPS_PROXY}
+    depends_on:
+     - "etcd"
+     - "mongo"
+  etcd:
+    image: ${EMCODOCKERREPO}etcd:3
+    networks:
+      - emconet
+    ports:
+      - 2379:2379
+      - 2380:2380
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+      - HTTP_PROXY=${HTTP_PROXY}
+      - http_proxy=${HTTP_PROXY}
+      - HTTPS_PROXY=${HTTPS_PROXY}
+      - https_proxy=${HTTPS_PROXY}
+    volumes:
+     - /etcd-data:/etcd-data
+  mongo:
+    image: ${EMCODOCKERREPO}mongo:4.4.1
+    networks:
+      - emconet
+    ports:
+      - 27017:27017
+    environment:
+      - no_proxy=orchestrator,ovnaction,${NO_PROXY}
+      - NO_PROXY=orchestrator,ovnaction,${NO_PROXY}
+      - HTTP_PROXY=${HTTP_PROXY}
+      - http_proxy=${HTTP_PROXY}
+      - HTTPS_PROXY=${HTTPS_PROXY}
+      - https_proxy=${HTTPS_PROXY}
+  clm:
+    image: ${REGISTRY_PREFIX}emco-clm${TAG}
+    networks:
+      - emconet
+    ports:
+      - 9061:9061
+    environment:
+      - no_proxy=etcd,mongo,${NO_PROXY}
+      - NO_PROXY=etcd,mongo,${NO_PROXY}
+      - HTTP_PROXY=${HTTP_PROXY}
+      - http_proxy=${HTTP_PROXY}
+      - HTTPS_PROXY=${HTTPS_PROXY}
+      - https_proxy=${HTTPS_PROXY}
+    depends_on:
+     - "etcd"
+     - "mongo"
+  ncm:
+    image: ${REGISTRY_PREFIX}emco-ncm${TAG}
+    networks:
+      - emconet
+    ports:
+      - 9081:9081
+    environment:
+      - no_proxy=etcd,mongo,${NO_PROXY}
+      - NO_PROXY=etcd,mongo,${NO_PROXY}
+      - HTTP_PROXY=${HTTP_PROXY}
+      - http_proxy=${HTTP_PROXY}
+      - HTTPS_PROXY=${HTTPS_PROXY}
+      - https_proxy=${HTTPS_PROXY}
+    depends_on:
+     - "etcd"
+     - "mongo"
+  orchestrator:
+    image: ${REGISTRY_PREFIX}emco-orch${TAG}
+    networks:
+      - emconet
+    ports:
+      - 9015:9015
+    environment:
+      - no_proxy=etcd,mongo,rsync,${NO_PROXY}
+      - NO_PROXY=etcd,mongo,rsync,${NO_PROXY}
+      - HTTP_PROXY=${HTTP_PROXY}
+      - http_proxy=${HTTP_PROXY}
+      - HTTPS_PROXY=${HTTPS_PROXY}
+      - https_proxy=${HTTPS_PROXY}
+    depends_on:
+     - "etcd"
+     - "mongo"
+  ovnaction:
+    image: ${REGISTRY_PREFIX}emco-ovn${TAG}
+    networks:
+      - emconet
+    ports:
+      - 9051:9051
+    environment:
+      - no_proxy=etcd,mongo,${NO_PROXY}
+      - NO_PROXY=etcd,mongo,${NO_PROXY}
+      - HTTP_PROXY=${HTTP_PROXY}
+      - http_proxy=${HTTP_PROXY}
+      - HTTPS_PROXY=${HTTPS_PROXY}
+      - https_proxy=${HTTPS_PROXY}
+    depends_on:
+     - "etcd"
+     - "mongo"
+  dtc:
+    image: ${REGISTRY_PREFIX}emco-dtc${TAG}
+    networks:
+      - emconet
+    ports:
+      - 9018:9018
+    environment:
+      - no_proxy=etcd,mongo,${NO_PROXY}
+      - NO_PROXY=etcd,mongo,${NO_PROXY}
+      - HTTP_PROXY=${HTTP_PROXY}
+      - http_proxy=${HTTP_PROXY}
+      - HTTPS_PROXY=${HTTPS_PROXY}
+      - https_proxy=${HTTPS_PROXY}
+    depends_on:
+      - "etcd"
+      - "mongo"
+  genericactioncontroller:
+    image: ${REGISTRY_PREFIX}emco-gac${TAG}
+    networks:
+      - emconet
+    ports:
+      - 9020:9020
+    environment:
+      - no_proxy=etcd,mongo,${NO_PROXY}
+      - NO_PROXY=etcd,mongo,${NO_PROXY}
+      - HTTP_PROXY=${HTTP_PROXY}
+      - http_proxy=${HTTP_PROXY}
+      - HTTPS_PROXY=${HTTPS_PROXY}
+      - https_proxy=${HTTPS_PROXY}
+    depends_on:
+     - "etcd"
+     - "mongo"
+  rsync:
+    image: ${REGISTRY_PREFIX}emco-rsync${TAG}
+    networks:
+      - emconet
+    expose:
+      - "9031"
+    ports:
+      - 9031:9031
+    environment:
+      - no_proxy=etcd,mongo,${NO_PROXY}
+      - NO_PROXY=etcd,mongo,${NO_PROXY}
+      - HTTP_PROXY=${HTTP_PROXY}
+      - http_proxy=${HTTP_PROXY}
+      - HTTPS_PROXY=${HTTPS_PROXY}
+      - https_proxy=${HTTPS_PROXY}
+    depends_on:
+     - "etcd"
+     - "mongo"

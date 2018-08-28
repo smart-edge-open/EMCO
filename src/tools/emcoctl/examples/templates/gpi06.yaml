@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+#create deployment intent group
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups
+metadata :
+  name: {{.DeploymentIntent}}
+  description: "description"
+spec:
+  profile: {{.CompositeProfile}}
+  version: r3
+  logical-cloud: {{.AdminCloud}}
+  override-values: []
+
+---
+#create the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-placement-intents
+metadata :
+  name: collection-placement-intent
+  description: "description for app"
+
+---
+#add the app placement intent to the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-placement-intents/collection-placement-intent/app-intents
+metadata:
+  name: collectd-placement-intent
+  description: description of placement_intent
+spec:
+  app-name: {{.App}}
+  intent:
+    allOf:
+    - provider-name: {{.ClusterProvider}}
+      cluster-label-name: {{.ClusterLabel}}

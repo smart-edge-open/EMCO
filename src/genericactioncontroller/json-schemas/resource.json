@@ -1,0 +1,83 @@
+
+{
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "spec": {
+        "required": [
+          "appname",
+          "newobject"
+        ],
+        "type": "object",
+        "description": "BaseResourceSpec has appName, newObject and existingResource object(if newObject is false)",
+        "properties": {
+          "appname" : {
+              "type": "string",
+              "maxLength": 128,
+              "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+          },
+          "newobject": {
+            "type": "string",
+              "maxLength": 128,
+              "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+          },
+          "existingresource" :{
+            "required": [
+              "apiversion",
+              "kind",
+              "name"
+            ],
+            "type": "object",
+            "description": "existingresource is required only when newObject is false. It contains apiVersion, Kind and Name",
+            "properties": {
+              "apiversion": {
+                "type": "string",
+                "maxLength": 128,
+                "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+              },
+              "kind": {
+                "type": "string",
+                "maxLength": 128,
+                "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+              },
+              "name": {
+                "type": "string",
+                "maxLength": 128,
+                "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+              }
+            }
+          }
+        }
+      },
+      "metadata": {
+        "required": ["name"],
+        "properties": {
+          "userData2": {
+            "description": "User relevant data for the resource",
+            "type": "string",
+            "example": "Some more data",
+            "maxLength": 512
+          },
+          "userData1": {
+            "description": "User relevant data for the resource",
+            "type": "string",
+            "example": "Some data",
+            "maxLength": 512
+          },
+          "name": {
+            "description": "Name of the resource",
+            "type": "string",
+            "example": "ResName",
+            "maxLength": 128,
+            "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+          },
+          "description": {
+            "description": "Description for the resource",
+            "type": "string",
+            "example": "Resource description",
+            "maxLength": 1024
+          }
+        }
+      }
+    }
+  }

@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+debugEnabled: false
+
+# application configuration is via config files
+
+# default number of instances
+replicaCount: 1
+
+nodeSelector: {}
+
+affinity: {}
+
+#Mongo chart overrides for emco
+mongo:
+  nameOverride: emco-mongo
+  service:
+    name: emco-mongo
+    internalPort: 27017
+  nfsprovisionerPrefix: emco
+  sdnctlPrefix: emco
+  persistence:
+    mountSubPath: emco/mongo/data
+    enabled: true
+  disableNfsProvisioner: true
+
+#etcd chart overrides for k8splugin
+etcd:
+  nameOverride: emco-etcd
+  service:
+    name: emco-etcd
+  persistence:
+    mountSubPath: emco/etcd/data
+    enabled: true
+
+# Configure resource requests and limits
+flavor: large
+resources:
+  small:
+    limits:
+      cpu: 200m
+      memory: 500Mi
+    requests:
+      cpu: 10m
+      memory: 10Mi
+  large:
+    limits:
+      cpu: 400m
+      memory: 1Gi
+    requests:
+      cpu: 10m
+      memory: 100Mi
+  unlimited: {}

@@ -1,0 +1,212 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+#Etcd Service
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: etcd
+  name: etcd
+spec:
+  ports:
+  - name: "2379"
+    port: 2379
+    targetPort: 2379
+  - name: "2380"
+    port: 2380
+    targetPort: 2380
+  selector:
+    app: etcd
+
+---
+#Mongo Service
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: mongo
+  name: mongo
+spec:
+  ports:
+  - name: "27017"
+    port: 27017
+    targetPort: 27017
+  selector:
+    app: mongo
+
+---
+# Orchestrator Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: orchestrator
+  labels:
+    app: orchestrator
+spec:
+  selector:
+    app: orchestrator
+  type: NodePort
+  ports:
+  - name: http
+    port: 9015
+    nodePort: 31298
+    protocol: TCP
+    targetPort: 9015
+
+---
+
+# NCM Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: ncm
+  labels:
+    app: ncm
+spec:
+  selector:
+    app: ncm
+  type: NodePort
+  ports:
+  - name: http
+    port: 9081
+    nodePort: 32737
+    protocol: TCP
+    targetPort: 9081
+
+---
+# RSYNC Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: rsync
+  labels:
+    app: rsync
+spec:
+  selector:
+    app: rsync
+  type: NodePort
+  ports:
+  - name: internal
+    port: 9031
+    nodePort: 31595
+    protocol: TCP
+    targetPort: 9031
+
+---
+
+# Ovnaction Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: ovnaction
+  labels:
+    app: ovnaction
+spec:
+  selector:
+    app: ovnaction
+  type: NodePort
+  ports:
+  - name: internal
+    port: 9032
+    nodePort: 30467
+    protocol: TCP
+    targetPort: 9032
+  - name: http
+    port: 9051
+    nodePort: 31181
+    protocol: TCP
+    targetPort: 9051
+
+---
+
+# DTC Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: dtc
+  labels:
+    app: dtc
+spec:
+  selector:
+    app: dtc
+  type: NodePort
+  ports:
+  - name: internal
+    port: 9048
+    nodePort: 31708
+    protocol: TCP
+    targetPort: 9048
+  - name: http
+    port: 9018
+    nodePort: 31182
+    protocol: TCP
+    targetPort: 9018
+
+---
+
+
+# Clm Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: clm
+  labels:
+    app: clm
+spec:
+  selector:
+    app: clm
+  type: NodePort
+  ports:
+  - name: http
+    port: 9061
+    nodePort: 31856
+    protocol: TCP
+    targetPort: 9061
+
+---
+
+# DCM Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: dcm
+  labels:
+    app: dcm
+spec:
+  selector:
+    app: dcm
+  type: NodePort
+  ports:
+  - name: http
+    port: 9077
+    nodePort: 31877
+    protocol: TCP
+    targetPort: 9077
+
+---
+
+# gac Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: gac
+  labels:
+    app: gac
+spec:
+  selector:
+    app: gac
+  type: NodePort
+  ports:
+  - name: internal
+    port: 9033
+    nodePort: 31554
+    protocol: TCP
+    targetPort: 9033
+  - name: http
+    port: 9020
+    nodePort: 31280
+    protocol: TCP
+    targetPort: 9020
+
+
+

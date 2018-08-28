@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+dependencies:
+  - name: common
+    version: ~0.x-0
+    repository: 'file://../common'
+  - name: fluentd
+    version: ~1.x-0
+    repository: 'file://../fluentd'

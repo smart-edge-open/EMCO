@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+orchestrator:
+  host: <node-IP>
+  port: 31298
+clm:
+  host: <node-IP>
+  port: 31856
+ncm:
+  host: <node-IP>
+  port: 32737
+ovnaction:
+  host: <node-IP>
+  port: 31181
+dcm:
+  host: <node-IP>
+  port: 31877
+gac:
+  host: <node-IP>
+  port: 31280
+dtc:
+  host: <node-IP>
+  port: 31182

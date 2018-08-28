@@ -1,0 +1,41 @@
+#!/bin/sh -e
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+cmd=${1:-""}
+
+case ${cmd} in
+   "orchestrator")
+      ./orchestrator
+      ;;
+
+   "ncm")
+      ./ncm
+      ;;
+
+   "dcm")
+      ./dcm
+      ;;
+
+   "rsync")
+      ./rsync
+      ;;
+
+   "ovnaction")
+      ./ovnaction
+      ;;
+   
+   "dtc")
+      ./dtc
+      ;;
+
+   "clm")
+      ./clm
+      ;;
+
+    *)
+      echo "invalid command ${cmd}"
+      sleep infinity
+
+esac
+
