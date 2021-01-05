@@ -12,7 +12,8 @@ global:
 #################################################################
 # application image
 repository:
-image: emco-rsync:latest
+image: emco-rsync
+imageTag:
 pullPolicy: Always
 command: "./rsync"
 args: ""

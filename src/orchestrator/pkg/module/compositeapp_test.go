@@ -50,16 +50,18 @@ func TestCreateCompositeApp(t *testing.T) {
 			},
 			expectedError: "",
 			mockdb: &db.MockDB{
-				Items: map[string]map[string][]byte{
-					ProjectKey{ProjectName: "testProject"}.String(): {
-						"projectmetadata": []byte(
-							"{" +
-								"\"metadata\": {" +
-								"\"Name\": \"testProject\"," +
-								"\"Description\": \"Test project for unit testing\"," +
-								"\"UserData1\": \"userData1\"," +
-								"\"UserData2\": \"userData2\"}" +
-								"}"),
+				Items: []map[string]map[string][]byte{
+					{
+						ProjectKey{ProjectName: "testProject"}.String(): {
+							"projectmetadata": []byte(
+								"{" +
+									"\"metadata\": {" +
+									"\"Name\": \"testProject\"," +
+									"\"Description\": \"Test project for unit testing\"," +
+									"\"UserData1\": \"userData1\"," +
+									"\"UserData2\": \"userData2\"}" +
+									"}"),
+						},
 					},
 				},
 			},
@@ -70,7 +72,7 @@ func TestCreateCompositeApp(t *testing.T) {
 		t.Run(testCase.label, func(t *testing.T) {
 			db.DBconn = testCase.mockdb
 			impl := NewCompositeAppClient()
-			got, err := impl.CreateCompositeApp(testCase.inpCompApp, testCase.inpProject)
+			got, err := impl.CreateCompositeApp(testCase.inpCompApp, testCase.inpProject, false)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Create returned an unexpected error %s", err)
@@ -117,18 +119,20 @@ func TestGetCompositeApp(t *testing.T) {
 			},
 			expectedError: "",
 			mockdb: &db.MockDB{
-				Items: map[string]map[string][]byte{
-					CompositeAppKey{CompositeAppName: "testCompositeApp", Version: "v1", Project: "testProject"}.String(): {
-						"compositeappmetadata": []byte(
-							"{" +
-								"\"metadata\":{" +
-								"\"Name\":\"testCompositeApp\"," +
-								"\"Description\":\"Test CompositeApp for unit testing\"," +
-								"\"UserData1\":\"userData1\"," +
-								"\"UserData2\":\"userData2\"}," +
-								"\"spec\":{" +
-								"\"Version\":\"v1\"}" +
-								"}"),
+				Items: []map[string]map[string][]byte{
+					{
+						CompositeAppKey{CompositeAppName: "testCompositeApp", Version: "v1", Project: "testProject"}.String(): {
+							"compositeappmetadata": []byte(
+								"{" +
+									"\"metadata\":{" +
+									"\"Name\":\"testCompositeApp\"," +
+									"\"Description\":\"Test CompositeApp for unit testing\"," +
+									"\"UserData1\":\"userData1\"," +
+									"\"UserData2\":\"userData2\"}," +
+									"\"spec\":{" +
+									"\"Version\":\"v1\"}" +
+									"}"),
+						},
 					},
 				},
 			},
@@ -180,18 +184,20 @@ func TestDeleteCompositeApp(t *testing.T) {
 			inpVersion: "v1",
 			inpProject: "testProject",
 			mockdb: &db.MockDB{
-				Items: map[string]map[string][]byte{
-					CompositeAppKey{CompositeAppName: "testCompositeApp", Version: "v1", Project: "testProject"}.String(): {
-						"compositeappmetadata": []byte(
-							"{" +
-								"\"metadata\":{" +
-								"\"Name\":\"testCompositeApp\"," +
-								"\"Description\":\"Test CompositeApp for unit testing\"," +
-								"\"UserData1\":\"userData1\"," +
-								"\"UserData2\":\"userData2\"}," +
-								"\"spec\":{" +
-								"\"Version\":\"v1\"}" +
-								"}"),
+				Items: []map[string]map[string][]byte{
+					{
+						CompositeAppKey{CompositeAppName: "testCompositeApp", Version: "v1", Project: "testProject"}.String(): {
+							"compositeappmetadata": []byte(
+								"{" +
+									"\"metadata\":{" +
+									"\"Name\":\"testCompositeApp\"," +
+									"\"Description\":\"Test CompositeApp for unit testing\"," +
+									"\"UserData1\":\"userData1\"," +
+									"\"UserData2\":\"userData2\"}," +
+									"\"spec\":{" +
+									"\"Version\":\"v1\"}" +
+									"}"),
+						},
 					},
 				},
 			},

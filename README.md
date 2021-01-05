@@ -30,7 +30,7 @@ export HTTPS_PROXY=${https_proxy}
 ### Update the base container images, if needed
 
 The external dependencies for EMCO are captured partly in the environment
-variables above and partly in a configuration file `config/config.txt`. 
+variables above and partly in a configuration file `config/config.txt`.
 
 The configuration file specifies two important parameters:
   * `BUILD_BASE_IMAGE`: The name and version of the base image used for
@@ -79,16 +79,16 @@ use them to deploy your workload in a set of remote Kubernetes clusters).
 
 This is done in two stages:
 
- * Build the EMCO components: 
+ * Build the EMCO components:
    ```make all```
    This spawns a build container that generates the needed EMCO binaries and
    container images.
- * Deploy EMCO components locally: 
+ * Deploy EMCO components locally:
    ```docker-compose up```
    using `deployments/docker/docker-compose.yml`. This spawns a set of
    containers, each running one EMCO component.
 
-See [this tutorial](docs/user/Tutorial_Local_Install.md) for further details. 
+See [this tutorial](docs/user/Tutorial_Local_Install.md) for further details.
 
 ### Deploy EMCO in a Kubernetes cluster
 Alternatively, you can build EMCO locally and deploy EMCO components in a
@@ -101,9 +101,12 @@ Do the following steps:
    ```export BUILD_CAUSE=DEV_TEST```
    This triggers the following steps to push the locally generated EMCO images
    to the `EMCODOCKERREPO` container registry with appropriate tags.
+ * BUILD_CAUSE can be set to RELEASE during releases and that will push the EMCO service images to container registry
+   ```export BUILD_CAUSE=RELEASE```
+   ```export EMCOSRV_RELEASE_TAG=openness-<release number>tag```
  * Set up the Helm charts: Be sure to reference those image names and tags in
    your Helm charts.
- * Build and deploy EMCO: 
+ * Build and deploy EMCO:
    ```make deploy```
 
-See [this tutorial](docs/user/Tutorial_Helm.md) for further details. 
+See [this tutorial](docs/user/Tutorial_Helm.md) for further details.

@@ -164,36 +164,73 @@ func readResources() []Resources {
 	return resources
 }
 
-//RestClientPost to post to server no multipart
-func (r RestyClient) RestClientPost(anchor string, body []byte) error {
+//RestClientApply to post to server no multipart
+func (r RestyClient) RestClientApply(anchor string, body []byte, put bool) error {
+	var resp *resty.Response
+	var err error
+	var url string
 
-	url, err := GetURL(anchor)
-	if err != nil {
-		return err
+	if put {
+		if anchor, err = getUpdateUrl(anchor, body); err != nil {
+			return err
+		}
+		if url, err = GetURL(anchor); err != nil {
+			return err
+		}
+		// Put JSON string
+		resp, err = r.client.R().
+			SetHeader("Content-Type", "application/json").
+			SetBody(body).
+			Put(url)
+	} else {
+		if url, err = GetURL(anchor); err != nil {
+			return err
+		}
+		// Post JSON string
+		resp, err = r.client.R().
+			SetHeader("Content-Type", "application/json").
+			SetBody(body).
+			Post(url)
 	}
-
-	// POST JSON string
-	resp, err := r.client.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(body).
-		Post(url)
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
-	fmt.Println("URL:", anchor, "Response Code:", resp.StatusCode(), "Response:", resp)
+	if put {
+		printOutput(url, "PUT", resp)
+	} else {
+		printOutput(url, "POST", resp)
+	}
 	if resp.StatusCode() >= 200 && resp.StatusCode() <= 299 {
 		return nil
 	}
-	return pkgerrors.Errorf("Server Post Error")
+	return pkgerrors.Errorf("Server Error")
 }
 
-//RestClientMultipartPost to post to server with multipart
-func (r RestyClient) RestClientMultipartPost(anchor string, body []byte, file string) error {
-	url, err := GetURL(anchor)
-	if err != nil {
-		return err
+//RestClientPut to post to server no multipart
+func (r RestyClient) RestClientPut(anchor string, body []byte) error {
+	if anchor == "" {
+		return pkgerrors.Errorf("Anchor can't be empty")
 	}
+	s := strings.Split(anchor, "/")
+	a := s[len(s)-1]
+	if a == "instantiate" || a == "apply" || a == "approve" || a == "terminate" {
+		// No put for these
+		return nil
+	}
+	return r.RestClientApply(anchor, body, true)
+}
+
+//RestClientPost to post to server no multipart
+func (r RestyClient) RestClientPost(anchor string, body []byte) error {
+	return r.RestClientApply(anchor, body, false)
+}
+
+//RestClientMultipartApply to post to server with multipart
+func (r RestyClient) RestClientMultipartApply(anchor string, body []byte, file string, put bool) error {
+	var resp *resty.Response
+	var err error
+	var url string
 
 	// Read file for multipart
 	f, err := ioutil.ReadFile(file)
@@ -205,20 +242,49 @@ func (r RestyClient) RestClientMultipartPost(anchor string, body []byte, file st
 	// Multipart Post
 	formParams := neturl.Values{}
 	formParams.Add("metadata", string(body))
-	resp, err := r.client.R().
-		SetFileReader("file", "filename", bytes.NewReader(f)).
-		SetFormDataFromValues(formParams).
-		Post(url)
-
+	if put {
+		if anchor, err = getUpdateUrl(anchor, body); err != nil {
+			return err
+		}
+		if url, err = GetURL(anchor); err != nil {
+			return err
+		}
+		resp, err = r.client.R().
+			SetFileReader("file", "filename", bytes.NewReader(f)).
+			SetFormDataFromValues(formParams).
+			Put(url)
+	} else {
+		if url, err = GetURL(anchor); err != nil {
+			return err
+		}
+		resp, err = r.client.R().
+			SetFileReader("file", "filename", bytes.NewReader(f)).
+			SetFormDataFromValues(formParams).
+			Post(url)
+	}
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
-	fmt.Println("URL:", anchor, "Response Code:", resp.StatusCode(), "Response:", resp)
+	if put {
+		printOutput(url, "PUT", resp)
+	} else {
+		printOutput(url, "POST", resp)
+	}
 	if resp.StatusCode() >= 201 && resp.StatusCode() <= 299 {
 		return nil
 	}
-	return pkgerrors.Errorf("Server Multipart Post Error")
+	return pkgerrors.Errorf("Server Error")
+}
+
+//RestClientMultipartPut to post to server with multipart
+func (r RestyClient) RestClientMultipartPut(anchor string, body []byte, file string) error {
+	return r.RestClientMultipartApply(anchor, body, file, true)
+}
+
+//RestClientMultipartPost to post to server with multipart
+func (r RestyClient) RestClientMultipartPost(anchor string, body []byte, file string) error {
+	return r.RestClientMultipartApply(anchor, body, file, false)
 }
 
 func getFile(file string) ([]byte, string, error) {
@@ -235,18 +301,13 @@ func getFile(file string) ([]byte, string, error) {
 	return f, name, nil
 }
 
-//RestClientMultipartPostMultipleFiles to post to server with multipart
-func (r RestyClient) RestClientMultipartPostMultipleFiles(anchor string, body []byte, files []string) error {
+//RestClientMultipartApplyMultipleFiles to post to server with multipart
+func (r RestyClient) RestClientMultipartApplyMultipleFiles(anchor string, body []byte, files []string, put bool) error {
 	var f []byte
 	var name string
 	var err error
+	var url string
 	var resp *resty.Response
-
-	url, err := GetURL(anchor)
-
-	if err != nil {
-		return err
-	}
 
 	req := r.client.R()
 	// Multipart Post
@@ -261,18 +322,47 @@ func (r RestyClient) RestClientMultipartPostMultipleFiles(anchor string, body []
 		req = req.
 			SetFileReader("files", name, bytes.NewReader(f))
 	}
-	resp, err = req.
-		SetFormDataFromValues(formParams).
-		Post(url)
+	if put {
+		if anchor, err = getUpdateUrl(anchor, body); err != nil {
+			return err
+		}
+		if url, err = GetURL(anchor); err != nil {
+			return err
+		}
+		resp, err = req.
+			SetFormDataFromValues(formParams).
+			Put(url)
+	} else {
+		if url, err = GetURL(anchor); err != nil {
+			return err
+		}
+		resp, err = req.
+			SetFormDataFromValues(formParams).
+			Post(url)
+	}
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
-	fmt.Println("URL:", anchor, "Response Code:", resp.StatusCode(), "Response:", resp)
+	if put {
+		printOutput(url, "PUT", resp)
+	} else {
+		printOutput(url, "POST", resp)
+	}
 	if resp.StatusCode() >= 200 && resp.StatusCode() <= 299 {
 		return nil
 	}
-	return pkgerrors.Errorf("Server Multipart Post Error")
+	return pkgerrors.Errorf("Server Error")
+}
+
+//RestClientMultipartPutMultipleFiles to post to server with multipart
+func (r RestyClient) RestClientMultipartPutMultipleFiles(anchor string, body []byte, files []string) error {
+	return r.RestClientMultipartApplyMultipleFiles(anchor, body, files, true)
+}
+
+//RestClientMultipartPostMultipleFiles to post to server with multipart
+func (r RestyClient) RestClientMultipartPostMultipleFiles(anchor string, body []byte, files []string) error {
+	return r.RestClientMultipartApplyMultipleFiles(anchor, body, files, false)
 }
 
 // RestClientGetAnchor returns get data from anchor
@@ -294,7 +384,7 @@ func (r RestyClient) RestClientGetAnchor(anchor string) error {
 				fmt.Println(err)
 				return err
 			}
-			fmt.Println("URL:", anchor, "Response Code:", resp.StatusCode(), "Response:", resp)
+			printOutput(url, "GET", resp)
 			return nil
 		}
 	}
@@ -304,8 +394,35 @@ func (r RestyClient) RestClientGetAnchor(anchor string) error {
 		fmt.Println(err)
 		return err
 	}
-	fmt.Println("URL:", anchor, "Response Code:", resp.StatusCode(), "Response:", resp)
+	printOutput(url, "GET", resp)
 	return nil
+}
+
+func getUpdateUrl(anchor string, body []byte) (string, error) {
+	var e emcoBody
+	err := json.Unmarshal(body, &e)
+	if err != nil {
+		fmt.Println(err)
+		return "", err
+	}
+	s := strings.Split(anchor, "/")
+	a := s[len(s)-1]
+	if e.Meta.Name != "" {
+		name := e.Meta.Name
+		anchor = anchor + "/" + name
+		if a == "composite-apps" {
+			var cav emcoCompositeAppSpec
+			err := mapstructure.Decode(e.Spec, &cav)
+			if err != nil {
+				fmt.Println("Unable to decode CompositeApp Spec")
+				return "", err
+			}
+			anchor = anchor + "/" + cav.Version
+		}
+	} else if e.Label != "" {
+		anchor = anchor + "/" + e.Label
+	}
+	return anchor, nil
 }
 
 // RestClientGet gets resource
@@ -319,29 +436,11 @@ func (r RestyClient) RestClientGet(anchor string, body []byte) error {
 		// No get for these
 		return nil
 	}
-	var e emcoBody
-	err := json.Unmarshal(body, &e)
+	c, err := getUpdateUrl(anchor, body)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
-	if e.Meta.Name != "" {
-		name := e.Meta.Name
-		anchor = anchor + "/" + name
-		if a == "composite-apps" {
-			var cav emcoCompositeAppSpec
-			err := mapstructure.Decode(e.Spec, &cav)
-			if err != nil {
-				fmt.Println("Unable to decode CompositeApp Spec")
-				return err
-			}
-			anchor = anchor + "/" + cav.Version
-		}
-	} else if e.Label != "" {
-		anchor = anchor + "/" + e.Label
-	}
-
-	return r.RestClientGetAnchor(anchor)
+	return r.RestClientGetAnchor(c)
 }
 
 // RestClientDeleteAnchor returns all resource in the input file
@@ -355,7 +454,7 @@ func (r RestyClient) RestClientDeleteAnchor(anchor string) error {
 		fmt.Println(err)
 		return err
 	}
-	fmt.Println("URL:", anchor, "Response Code:", resp.StatusCode(), "Response:", resp)
+	printOutput(url, "DELETE", resp)
 	return nil
 }
 
@@ -421,6 +520,8 @@ func GetURL(anchor string) (string, error) {
 		}
 	case "controllers":
 		baseUrl = GetOrchestratorURL()
+	case "clm-controllers":
+		baseUrl = GetClmURL()
 	case "projects":
 		if len(s) >= 3 && s[2] == "logical-clouds" {
 			baseUrl = GetDcmURL()
@@ -438,11 +539,23 @@ func GetURL(anchor string) (string, error) {
 			baseUrl = GetGacURL()
 			break
 		}
+		if len(s) >= 8 && s[7] == "hpa-intents" {
+			baseUrl = GetHpaPlacementURL()
+			break
+		}
 		// All other paths go to Orchestrator
 		baseUrl = GetOrchestratorURL()
 	default:
 		return "", fmt.Errorf("Invalid baseUrl: %s", baseUrl)
 	}
-	fmt.Println(baseUrl)
 	return (baseUrl + "/" + anchor), nil
+}
+
+func printOutput(url, op string, resp *resty.Response) {
+	fmt.Println("---")
+	fmt.Println(op, " --> URL:", url)
+	fmt.Println("Response Code:", resp.StatusCode())
+	if len(resp.Body()) > 0 {
+		fmt.Println("Response:", resp)
+	}
 }

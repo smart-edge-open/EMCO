@@ -12,6 +12,10 @@ ifndef EMCODOCKERREPO
 	$(error EMCODOCKERREPO env variable needs to be set)
 endif
 
+ifndef BRANCH
+export BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
+endif
+
 docker-reg:
 	@echo "Setting up docker Registry with base image"
 export BUILD_BASE_IMAGE_NAME := $(shell cat $(CONFIG) | grep 'BUILD_BASE_IMAGE_NAME' | cut -d'=' -f2)
@@ -61,9 +65,9 @@ compile-container: pre-compile
 	$(MAKE) -C ./src/tools/emcoctl all
 	@echo "    Done."
 
-compile:
+compile: check-env docker-reg
 	@echo "Building microservices within Docker build container"
-	@docker run --rm --user `id -u`:`id -g` --env GO111MODULE --env XDG_CACHE_HOME=/tmp/.cache -v `pwd`:/repo ${EMCODOCKERREPO}${BUILD_BASE_IMAGE_NAME}${BUILD_BASE_IMAGE_VERSION} /bin/sh -c "cd /repo; make compile-container"
+	docker run --rm --user `id -u`:`id -g` --env GO111MODULE --env XDG_CACHE_HOME=/tmp/.cache --env BRANCH=${BRANCH} -v `pwd`:/repo ${EMCODOCKERREPO}${BUILD_BASE_IMAGE_NAME}${BUILD_BASE_IMAGE_VERSION} /bin/sh -c "cd /repo; make compile-container"
 	@echo "    Done."
 
 build: compile
@@ -88,9 +92,24 @@ build: compile
 	@docker build --build-arg EMCODOCKERREPO=${EMCODOCKERREPO} --build-arg SERVICE_BASE_IMAGE_NAME=${SERVICE_BASE_IMAGE_NAME} --build-arg SERVICE_BASE_IMAGE_VERSION=${SERVICE_BASE_IMAGE_VERSION} --rm -t emco-monitor -f ./build/docker/Dockerfile.monitor ./bin/monitor
 	@echo "    Done."
 
-deploy: build
+deploy: check-env docker-reg build
 	@echo "Creating helm charts. Pushing microservices to registry & copying docker-compose files if BUILD_CAUSE set to DEV_TEST"
-	./scripts/deploy_emco.sh
+	@docker run --env USER=${USER} --env EMCODOCKERREPO=${EMCODOCKERREPO} --env BUILD_CAUSE=${BUILD_CAUSE} --env BRANCH=${BRANCH} --rm --user `id -u`:`id -g` --env GO111MODULE --env XDG_CACHE_HOME=/tmp/.cache -v `pwd`:/repo ${EMCODOCKERREPO}${BUILD_BASE_IMAGE_NAME}${BUILD_BASE_IMAGE_VERSION} /bin/sh -c "cd /repo/scripts ; sh deploy_emco_openness.sh"
+	./scripts/push_to_registry.sh
+	@echo "    Done."
+
+test:
+	@echo "Running tests"
+	$(MAKE) -C ./src/clm test
+	$(MAKE) -C ./src/dcm test
+	$(MAKE) -C ./src/dtc test
+	$(MAKE) -C ./src/genericactioncontroller test
+	$(MAKE) -C ./src/monitor test
+	$(MAKE) -C ./src/ncm test
+	$(MAKE) -C ./src/orchestrator test
+	$(MAKE) -C ./src/ovnaction test
+	$(MAKE) -C ./src/rsync test
+	$(MAKE) -C ./src/tools/emcoctl test
 	@echo "    Done."
 
 tidy:

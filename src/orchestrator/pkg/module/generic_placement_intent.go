@@ -148,7 +148,7 @@ func (c *GenericPlacementIntentClient) GetAllGenericPlacementIntents(p string, c
 	//Check if project exists
 	_, err := NewProjectClient().GetProject(p)
 	if err != nil {
-		return []GenericPlacementIntent{}, pkgerrors.Wrap(err, "db Find error")
+		return []GenericPlacementIntent{}, err
 	}
 
 	// check if compositeApp exists

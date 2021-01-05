@@ -4,6 +4,7 @@
 package module
 
 import (
+	"github.com/open-ness/EMCO/src/orchestrator/pkg/infra/db"
 	pkgerrors "github.com/pkg/errors"
 )
 
@@ -18,6 +19,8 @@ type Quota struct {
 type QMetaDataList struct {
 	QuotaName   string `json:"name"`
 	Description string `json:"description"`
+	UserData1    string `json:"userData1"`
+	UserData2    string `json:"userData2"`
 }
 
 // TODO: use QSpec fields to validate quota keys
@@ -69,17 +72,14 @@ type QuotaManager interface {
 type QuotaClient struct {
 	storeName string
 	tagMeta   string
-	util      Utility
 }
 
 // QuotaClient returns an instance of the QuotaClient
 // which implements the QuotaManager
 func NewQuotaClient() *QuotaClient {
-	service := DBService{}
 	return &QuotaClient{
 		storeName: "orchestrator",
 		tagMeta:   "quota",
-		util:      service,
 	}
 }
 
@@ -94,12 +94,12 @@ func (v *QuotaClient) CreateQuota(project, logicalCloud string, c Quota) (Quota,
 	}
 
 	//Check if project exists
-	err := v.util.CheckProject(project)
+	err := CheckProject(project)
 	if err != nil {
 		return Quota{}, pkgerrors.New("Unable to find the project")
 	}
 	//check if logical cloud exists
-	err = v.util.CheckLogicalCloud(project, logicalCloud)
+	err = CheckLogicalCloud(project, logicalCloud)
 	if err != nil {
 		return Quota{}, pkgerrors.New("Unable to find the logical cloud")
 	}
@@ -109,7 +109,7 @@ func (v *QuotaClient) CreateQuota(project, logicalCloud string, c Quota) (Quota,
 		return Quota{}, pkgerrors.New("Quota already exists")
 	}
 
-	err = v.util.DBInsert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return Quota{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -126,7 +126,7 @@ func (v *QuotaClient) GetQuota(project, logicalCloud, quotaName string) (Quota, 
 		LogicalCloudName: logicalCloud,
 		QuotaName:        quotaName,
 	}
-	value, err := v.util.DBFind(v.storeName, key, v.tagMeta)
+	value, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
 	if err != nil {
 		return Quota{}, pkgerrors.Wrap(err, "Quota")
 	}
@@ -134,7 +134,7 @@ func (v *QuotaClient) GetQuota(project, logicalCloud, quotaName string) (Quota, 
 	//value is a byte array
 	if value != nil {
 		q := Quota{}
-		err = v.util.DBUnmarshal(value[0], &q)
+		err = db.DBconn.Unmarshal(value[0], &q)
 		if err != nil {
 			return Quota{}, pkgerrors.Wrap(err, "Unmarshaling value")
 		}
@@ -153,14 +153,14 @@ func (v *QuotaClient) GetAllQuotas(project, logicalCloud string) ([]Quota, error
 		QuotaName:        "",
 	}
 	var resp []Quota
-	values, err := v.util.DBFind(v.storeName, key, v.tagMeta)
+	values, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
 	if err != nil {
 		return []Quota{}, pkgerrors.Wrap(err, "Error getting all Quotas")
 	}
 
 	for _, value := range values {
 		q := Quota{}
-		err = v.util.DBUnmarshal(value, &q)
+		err = db.DBconn.Unmarshal(value, &q)
 		if err != nil {
 			return []Quota{}, pkgerrors.Wrap(err, "Unmarshaling value")
 		}
@@ -178,7 +178,7 @@ func (v *QuotaClient) DeleteQuota(project, logicalCloud, quotaName string) error
 		LogicalCloudName: logicalCloud,
 		QuotaName:        quotaName,
 	}
-	err := v.util.DBRemove(v.storeName, key)
+	err := db.DBconn.Remove(v.storeName, key)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Delete Quota")
 	}
@@ -202,7 +202,7 @@ func (v *QuotaClient) UpdateQuota(project, logicalCloud, quotaName string, c Quo
 	if err != nil {
 		return Quota{}, pkgerrors.New("Cluster Quota does not exist")
 	}
-	err = v.util.DBInsert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return Quota{}, pkgerrors.Wrap(err, "Updating DB Entry")
 	}

@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fw0-firewall
+  labels:
+    release: fw0
+    app: firewall
+    chart: firewall
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: firewall
+      release: fw0
+  template:
+    metadata:
+      labels:
+        app: firewall
+        release: fw0
+      annotations:
+        kubernetes.io/target-runtime: virtlet.cloud
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: extraRuntime
+                operator: In
+                values:
+                - virtlet
+      containers:
+      - name: firewall
+        imagePullPolicy: IfNotPresent
+        tty: true
+        stdin: true
+        resources:
+          limits:
+            memory: 4Gi

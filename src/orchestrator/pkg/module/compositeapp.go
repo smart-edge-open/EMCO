@@ -22,8 +22,8 @@ type CompositeApp struct {
 type CompositeAppMetaData struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	UserData1   string `userData1:"userData1"`
-	UserData2   string `userData2:"userData2"`
+	UserData1   string `json:"userData1"`
+	UserData2   string `json:"userData2"`
 }
 
 //CompositeAppSpec contains the Version of the CompositeApp
@@ -50,7 +50,7 @@ func (cK CompositeAppKey) String() string {
 
 // CompositeAppManager is an interface exposes the CompositeApp functionality
 type CompositeAppManager interface {
-	CreateCompositeApp(c CompositeApp, p string) (CompositeApp, error)
+	CreateCompositeApp(c CompositeApp, p string, exists bool) (CompositeApp, error)
 	GetCompositeApp(name string, version string, p string) (CompositeApp, error)
 	GetAllCompositeApps(p string) ([]CompositeApp, error)
 	DeleteCompositeApp(name string, version string, p string) error
@@ -73,7 +73,7 @@ func NewCompositeAppClient() *CompositeAppClient {
 }
 
 // CreateCompositeApp creates a new collection based on the CompositeApp
-func (v *CompositeAppClient) CreateCompositeApp(c CompositeApp, p string) (CompositeApp, error) {
+func (v *CompositeAppClient) CreateCompositeApp(c CompositeApp, p string, exists bool) (CompositeApp, error) {
 
 	//Construct the composite key to select the entry
 	key := CompositeAppKey{
@@ -84,7 +84,7 @@ func (v *CompositeAppClient) CreateCompositeApp(c CompositeApp, p string) (Compo
 
 	//Check if this CompositeApp already exists
 	_, err := v.GetCompositeApp(c.Metadata.Name, c.Spec.Version, p)
-	if err == nil {
+	if err == nil && !exists{
 		return CompositeApp{}, pkgerrors.New("CompositeApp already exists")
 	}
 
@@ -114,6 +114,8 @@ func (v *CompositeAppClient) GetCompositeApp(name string, version string, p stri
 	value, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
 	if err != nil {
 		return CompositeApp{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(value) == 0 {
+		return CompositeApp{}, pkgerrors.New("CompositeApp not found")
 	}
 
 	//value is a byte array
@@ -147,6 +149,8 @@ func (v *CompositeAppClient) GetAllCompositeApps(p string) ([]CompositeApp, erro
 	values, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
 	if err != nil {
 		return []CompositeApp{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(values) == 0 {
+		return []CompositeApp{}, pkgerrors.New("CompositeApps not found")
 	}
 
 	for _, value := range values {
@@ -176,6 +180,8 @@ func (v *CompositeAppClient) DeleteCompositeApp(name string, version string, p s
 			return pkgerrors.Wrap(err, "db Remove error - not found")
 		} else if strings.Contains(err.Error(), "Can't delete parent without deleting child") {
 			return pkgerrors.Wrap(err, "db Remove error - conflict")
+		} else if strings.Contains(err.Error(), "not found") {
+			return pkgerrors.Wrap(err, "Composite App not found")
 		} else {
 			return pkgerrors.Wrap(err, "db Remove error - general")
 		}

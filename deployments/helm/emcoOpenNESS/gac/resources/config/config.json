@@ -2,5 +2,6 @@
     "database-type": "mongo",
     "database-ip": "emco-mongo",
     "etcd-ip": "emco-etcd",
-    "service-port": "9020"
+    "service-port": "9020",
+    "log-level": {{ .Values.global.loglevel | quote }}
 }

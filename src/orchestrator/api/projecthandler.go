@@ -91,14 +91,14 @@ func (h projectHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Name is required.
 	if p.MetaData.Name == "" {
-		log.Error(err.Error(), log.Fields{})
+		log.Error("Missing name in PUT request", log.Fields{})
 		http.Error(w, "Missing name in PUT request", http.StatusBadRequest)
 		return
 	}
 
 	// Name in URL should match name in body
 	if p.MetaData.Name != name {
-		log.Error(err.Error(), log.Fields{})
+		log.Error("Mismatch between the project-names", log.Fields{})
 		http.Error(w, "Mismatched name in PUT request", http.StatusBadRequest)
 		return
 	}
@@ -139,6 +139,8 @@ func (h projectHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 			log.Error(err.Error(), log.Fields{})
 			if strings.Contains(err.Error(), "db Find error") {
 				http.Error(w, err.Error(), http.StatusNotFound)
+			} else if strings.Contains(err.Error(), "not found") {
+				http.Error(w, err.Error(), http.StatusNotFound)
 			} else {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
@@ -166,6 +168,8 @@ func (h projectHandler) getHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error(err.Error(), log.Fields{})
 		if strings.Contains(err.Error(), "db Find error") {
 			http.Error(w, err.Error(), http.StatusNotFound)
+		} else if strings.Contains(err.Error(), "not found") {
+			http.Error(w, err.Error(), http.StatusNotFound)
 		} else {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -191,6 +195,8 @@ func (h projectHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error(err.Error(), log.Fields{})
 		if strings.Contains(err.Error(), "db Find error") {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else if strings.Contains(err.Error(), "not found") {
 			http.Error(w, err.Error(), http.StatusNotFound)
 		} else {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

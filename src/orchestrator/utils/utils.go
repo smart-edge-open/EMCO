@@ -14,10 +14,9 @@ import (
 	"path"
 	"path/filepath"
 
+	log "github.com/open-ness/EMCO/src/orchestrator/pkg/infra/logutils"
 	pkgerrors "github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v3"
-	log "github.com/open-ness/EMCO/src/orchestrator/pkg/infra/logutils"
-
 )
 
 // ListYamlStruct is applied when the kind is list
@@ -95,10 +94,10 @@ func ExtractYamlParameters(f string) (YamlStruct, error) {
 		li := strings.LastIndex(filename, "/")
 		fn := string(filename[li+1:])
 		yamlStruct.Metadata.Name = fn
-		log.Info("Setting the metadata", log.Fields{"MetaDataName":fn})
+		log.Info("Setting the metadata", log.Fields{"MetaDataName": fn})
 	}
 	if yamlStruct.isValid() {
-		log.Info(":: YAML parameters ::", log.Fields{"fileName": f, "yamlStruct":yamlStruct})
+		log.Info(":: YAML parameters ::", log.Fields{"fileName": f, "yamlStruct": yamlStruct})
 
 		return yamlStruct, nil
 	}

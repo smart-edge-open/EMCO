@@ -79,6 +79,8 @@ func NewControllerClient() *ControllerClient {
 // CreateController a new collection based on the Controller
 func (mc *ControllerClient) CreateController(m Controller, mayExist bool) (Controller, error) {
 
+	log.Info("CreateController .. start", log.Fields{"Controller": m, "exists": mayExist})
+
 	//Construct the composite key to select the entry
 	key := ControllerKey{
 		ControllerName: m.Metadata.Name,
@@ -98,6 +100,7 @@ func (mc *ControllerClient) CreateController(m Controller, mayExist bool) (Contr
 	// send message to create/update the  rpc connection
 	rpc.UpdateRpcConn(m.Metadata.Name, m.Spec.Host, m.Spec.Port)
 
+	log.Info("CreateController .. end", log.Fields{"Controller": m, "exists": mayExist})
 	return m, nil
 }
 
@@ -111,6 +114,8 @@ func (mc *ControllerClient) GetController(name string) (Controller, error) {
 	value, err := db.DBconn.Find(mc.collectionName, key, mc.tagMeta)
 	if err != nil {
 		return Controller{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(value) == 0 {
+		return Controller{}, pkgerrors.New("Controller not found")
 	}
 
 	if value != nil {

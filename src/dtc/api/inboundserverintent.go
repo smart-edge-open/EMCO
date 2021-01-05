@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/open-ness/EMCO/src/dtc/pkg/module"
+	orcmod "github.com/open-ness/EMCO/src/orchestrator/pkg/module"
 	log "github.com/open-ness/EMCO/src/orchestrator/pkg/infra/logutils"
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/infra/validation"
 	pkgerrors "github.com/pkg/errors"
@@ -40,8 +41,14 @@ func (h inboundserverintentHandler) createHandler(w http.ResponseWriter, r *http
 	compositeAppVersion := vars["version"]
 	deploymentIntentGroupName := vars["deployment-intent-group-name"]
 	trafficIntentGroupName := vars["traffic-group-intent-name"]
-
-	err := json.NewDecoder(r.Body).Decode(&isi)
+	// check if the deploymentIntentGrpName exists
+	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(deploymentIntentGroupName, project, compositeApp, compositeAppVersion)
+	if err != nil {
+		log.Error(":: Error validating inbound server POST parameters::", log.Fields{"Error": err})
+		http.Error(w, "Invalid parameters", http.StatusNotFound)
+		return
+	}
+	err = json.NewDecoder(r.Body).Decode(&isi)
 	switch {
 	case err == io.EOF:
 		log.Error(":: Empty inbound server POST body ::", log.Fields{"Error": err})

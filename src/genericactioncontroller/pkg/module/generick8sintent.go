@@ -4,6 +4,7 @@ package module
 // Copyright (c) 2020 Intel Corporation
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/infra/db"
@@ -35,6 +36,16 @@ type GenericK8sIntentManager interface {
 // GenericK8sIntentClient consists of the clientInfo
 type GenericK8sIntentClient struct {
 	db ClientDbInfo
+}
+
+// We will use json marshalling to convert to string to
+// preserve the underlying structure.
+func (gk GenericK8sIntentKey) String() string {
+	out, err := json.Marshal(gk)
+	if err != nil {
+		return ""
+	}
+	return string(out)
 }
 
 // NewGenericK8sIntentClient returns an instance of the GenericK8sIntentClient

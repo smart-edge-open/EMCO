@@ -62,6 +62,22 @@ spec:
           env:
             - name: MONGO_INITDB_DATABASE
               value: "{{ .Values.config.dbName }}"
+            {{- if eq (empty .Values.global.disableDbAuth) true }}
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: "root"
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: emco-mongo
+                  key: rootPassword
+            - name: DB_EMCO_USERNAME
+              value: "emco"
+            - name: DB_EMCO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: emco-mongo
+                  key: userPassword
+            {{- end }}
           ports:
           - containerPort: {{ .Values.service.internalPort }}
           # disable liveness probe when breakpoints set in debugger
@@ -85,6 +101,10 @@ spec:
           volumeMounts:
           - mountPath: /data/db
             name: {{ include "common.fullname" . }}-data
+          {{- if eq (empty .Values.global.disableDbAuth) true }}
+          - name: {{ include "common.fullname" . }}-configmap
+            mountPath: /docker-entrypoint-initdb.d
+          {{- end }}
           resources:
 {{ include "common.resources" . | indent 12 }}
         {{- if .Values.nodeSelector }}
@@ -106,3 +126,8 @@ spec:
 #{{ else }}
         emptyDir: {}
 #{{ end }}
+      {{- if eq (empty .Values.global.disableDbAuth) true }}
+      - name: {{ include "common.fullname" . }}-configmap
+        configMap:
+          name: {{ include "common.fullname" . }}-configmap
+      {{- end }}

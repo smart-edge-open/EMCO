@@ -16,8 +16,9 @@ type InboundClientsIntent struct {
 }
 
 type InboundClientsIntentSpec struct {
-	AppName     string   `json:"application"`
-	ServiceName string   `json:"servicename"`
+	AppName     string   `json:"appName"`
+	AppLabel    string   `json:"appLabel"`
+	ServiceName string   `json:"serviceName"`
 	Namespaces  []string `json:"namespaces"`
 	IpRange     []string `json:"cidrs"`
 }

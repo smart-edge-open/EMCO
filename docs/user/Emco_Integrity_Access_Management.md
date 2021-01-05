@@ -28,6 +28,20 @@ $ kubectl label namespace emco istio-injection=enabled
 #### Install EMCO in the emco namespace
 Use the EMCO Helm chart to install EMCO in the emco namespace. EMCO services will come up with Istio sidecars.
 
+### Enable mTLS
+Enable mTLS in the emco namespace
+
+```shell
+apiVersion: "security.istio.io/v1beta1"
+kind: "PeerAuthentication"
+metadata:
+  name: "default"
+  namespace: emco
+spec:
+  mtls:
+    mode: STRICT
+```
+
 #### Configure Istio Ingress Gateway
 
 Create certificate for Ingress Gateway and create secret for Istio Ingress Gateway
@@ -73,6 +87,10 @@ Make sure the EMCO service is accessible through Istio Ingress Gateway at this p
 ```shell
 $ curl http://<istio-ingress-url>/v2/projects
 200: ...
+
+OR
+
+$ emcoctl get projects
 ```
 
 #### Enable Istio Authentication and Authorization Policy
@@ -116,12 +134,61 @@ Curl to the EMCO url will give an error "403 : RBAC: access denied"
 Retrieve access token from Keycloak and use it to access EMCO resources.
 
 ```
-$ export TOKEN=`curl --location --request POST 'http://192.168.121.8:30664/auth/realms/enterprise1/protocol/openid-connect/token' --header 'Content-Type: application/x-www-form-urlencoded' --data-urlencode 'grant_type=password' --data-urlencode 'client_id=emco' --data-urlencode 'username=user1' --data-urlencode 'password=test' --data-urlencode 'client_secret=1f07edc2-8ca3-4529-b91d-8c9ab01f1295' | jq .access_token`
+$ export TOKEN=`curl --location --request POST 'http://<keycloack url>/auth/realms/enterprise1/protocol/openid-connect/token' --header 'Content-Type: application/x-www-form-urlencoded' --data-urlencode 'grant_type=password' --data-urlencode 'client_id=emco' --data-urlencode 'username=user1' --data-urlencode 'password=test' --data-urlencode 'client_secret=<secret>' | jq .access_token`
 
 $ curl --header "Authorization: Bearer $TOKEN"  http://<istio-ingress-url>/v2/projects
 
-```
+OR
 
+$ emcoctl get projects -t $TOKEN
+
+```
+#### Authorization Policies with Istio
+
+As specified in Keycloak section Role Mappers are created using Keycloak. Check Keycloak section on how to create Roles using Keycloak. These can be used apply authorizations based on Role of the user.
+
+For example to allow Role "Admin" to perform any operations and Role "User" to only create/delete resources under a specified project following policies can be used.
+
+```shell
+
+apiVersion: "security.istio.io/v1beta1"
+kind: AuthorizationPolicy
+metadata:
+  name: allow-admin
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      app: istio-ingressgateway
+  action: ALLOW
+  rules:
+  - when:
+    - key: request.auth.claims[role]
+      values: ["Admin"]
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-user
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      app: istio-ingressgateway
+  action: ALLOW
+  rules:
+  - to:
+    - operation:
+        paths: ["/v2/projects/restrictedproj/*"]
+    - operation:
+        methods: ["GET"]
+        paths: ["/v2/projects/restrictedproj"]
+    when:
+      - key: request.auth.claims[role]
+        values: ["User"]
+
+```
 
 ## Steps for setting up EMCO with Istio + Authservice
 
@@ -272,46 +339,6 @@ spec:
                     port_value: 10003
 ```
 
-#### Authorization Policies with Istio
-
-As specified in Keycloak section Role Mappers are created using Keycloak. These can be used apply authorizations for users. Some examples the can used:
-
-```shell
-
-apiVersion: "security.istio.io/v1beta1"
-kind: AuthorizationPolicy
-metadata:
-  name: allow-admin
-  namespace: istio-system
-spec:
-  selector:
-    matchLabels:
-      app: istio-ingressgateway
-  action: ALLOW
-  rules:
-  - when:
-    - key: request.auth.claims[role]
-      values: ["ADMIN"]
-
----
-apiVersion: security.istio.io/v1beta1
-kind: AuthorizationPolicy
-metadata:
-  name: allow-user
-  namespace: istio-system
-spec:
-  selector:
-    matchLabels:
-      app: istio-ingressgateway
-  action: ALLOW
-  rules:
-  - to:
-    - operation:
-        paths: ["/v2/projects/enterprise1/*"]
-    when:
-    - key: request.auth.claims[role]
-      values: ["USER"]
-```
 
 ### Support Multiple OAUTH Servers
 

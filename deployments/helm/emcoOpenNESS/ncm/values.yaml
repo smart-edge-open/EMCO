@@ -12,7 +12,8 @@ global:
 #################################################################
 # application image
 repository:
-image: emco-ncm:latest
+image: emco-ncm
+imageTag:
 pullPolicy: Always
 args: ""
 command: "./ncm"

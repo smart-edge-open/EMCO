@@ -12,6 +12,9 @@ image:
 server:
   domain: "http://http-service:30080"
 
+proxy:
+  http: 
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""

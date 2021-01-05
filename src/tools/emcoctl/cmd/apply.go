@@ -25,19 +25,19 @@ var applyCmd = &cobra.Command{
 			for _, res := range resources {
 				if res.file != "" {
 					err := c.RestClientMultipartPost(res.anchor, res.body, res.file)
-					if err != nil {
+					if err != nil && err.Error() != "Server Error" {
 						fmt.Println("Apply: ", res.anchor, "Error: ", err)
 						return
 					}
 				} else if len(res.files) > 0 {
 					err := c.RestClientMultipartPostMultipleFiles(res.anchor, res.body, res.files)
-					if err != nil {
+					if err != nil && err.Error() != "Server Error" {
 						fmt.Println("Apply: ", res.anchor, "Error: ", err)
 						return
 					}
 				} else {
 					err := c.RestClientPost(res.anchor, res.body)
-					if err != nil {
+					if err != nil && err.Error() != "Server Error" {
 						fmt.Println("Apply: ", res.anchor, "Error: ", err)
 						return
 					}

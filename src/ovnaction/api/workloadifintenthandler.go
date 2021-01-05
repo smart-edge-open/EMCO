@@ -29,11 +29,6 @@ type workloadifintentHandler struct {
 
 // Check for valid format of input parameters
 func validateWorkloadIfIntentInputs(wif moduleLib.WorkloadIfIntent) error {
-	// validate metadata
-	err := moduleLib.IsValidMetadata(wif.Metadata)
-	if err != nil {
-		return pkgerrors.Wrap(err, "Invalid network controller intent metadata")
-	}
 
 	errs := validation.IsValidName(wif.Spec.IfName)
 	if len(errs) > 0 {
@@ -55,7 +50,7 @@ func validateWorkloadIfIntentInputs(wif moduleLib.WorkloadIfIntent) error {
 
 	// optional - only validate if supplied
 	if len(wif.Spec.IpAddr) > 0 {
-		err = validation.IsIp(wif.Spec.IpAddr)
+		err := validation.IsIp(wif.Spec.IpAddr)
 		if err != nil {
 			return pkgerrors.Errorf("Invalid IP address = [%v], errors: %v", wif.Spec.IpAddr, err)
 		}
@@ -63,7 +58,7 @@ func validateWorkloadIfIntentInputs(wif moduleLib.WorkloadIfIntent) error {
 
 	// optional - only validate if supplied
 	if len(wif.Spec.MacAddr) > 0 {
-		err = validation.IsMac(wif.Spec.MacAddr)
+		err := validation.IsMac(wif.Spec.MacAddr)
 		if err != nil {
 			return pkgerrors.Errorf("Invalid MAC address = [%v], errors: %v", wif.Spec.MacAddr, err)
 		}
@@ -99,13 +94,6 @@ func (h workloadifintentHandler) createHandler(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		log.Error(":: Invalid workload interface POST body ::", log.Fields{"Error": err})
 		http.Error(w, err.Error(), httpError)
-		return
-	}
-
-	// Name is required.
-	if wif.Metadata.Name == "" {
-		log.Error(":: Missing workload interface name in POST request ::", log.Fields{})
-		http.Error(w, "Missing name in POST request", http.StatusBadRequest)
 		return
 	}
 

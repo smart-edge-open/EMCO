@@ -217,38 +217,62 @@ Note: in the initial EMCO release, logical clouds do not support the status API.
 
 The following query parameters are available:
 
-type=_< rsync | cluster >_
-* default type is 'rsync'
-* rsync: gathers status based on the rsync resources.
-* cluster: gathers status based on cluster resource information received in the ResourceBundleState CRs received from the cluster(s)
+`type`=_< `rsync` | `cluster` >_
+* default type is `rsync`
+* `rsync`: gathers status based on the rsync resources.
+* `cluster`: gathers status based on cluster resource information received in the ResourceBundleState CRs received from the cluster(s)
 
-output=_< summary | all | detail >_
-* default output value is: 'all'
-* summary: will just show the top level EMCO resource state and status along with aggregated resource statuses but no resource detail information
+`output`=_< `summary` | `all` | `detail` >_
+* default output value is: `all`
+* `summary`: will just show the top level EMCO resource state and status along with aggregated resource statuses but no resource detail information
   any filters added will affect the aggregated resource status results, although resource details will not be displayed
-* all: will include a list of resources, organized by App and Cluster, showing basic resource identification (Group Version Kind) and resource statuses
-* detail: includes in the resource list the metadata, spec, and status of the resource as received in the ResourceBundleState CR
+* `all`: will include a list of resources, organized by App and Cluster, showing basic resource identification (Group Version Kind) and resource statuses
+* `detail`: includes in the resource list the metadata, spec, and status of the resource as received in the ResourceBundleState CR
 
 
 The following query parameters filter the results returned.  Aggregated status results at the top level are relative to the filter parameters supplied
 These parameters can be supplied multiple times in a given status query.
 
-app=_< appname >_
+`app`=_< `appname` >_
 * default is all apps
 * This will filter the results of the query to show results only for the resources of the specified App(s).
+* Multiple occurrences of this parameter may be supplied.
 
-cluster=_< cluster >_
+`cluster`=_< `cluster` >_
 * default is all clusters
 * This will filter the results of the query to show results only for the specified cluster(s)
+* Multiple occurrences of this parameter may be supplied.
 
-resource=_< resource name >_
+`resource`=_< `resource name` >_
 * default is all resources
 * This will filter the results of the query to show results only for the specified resource(s)
+* Multiple occurrences of this parameter may be supplied.
+
+The following query parameters may be included in status queries for `Deployment Intent Groups`.  If one of these parameters is present, then the status
+query will make the corresponding query.  See the examples below.  Any other query parameters that are not appropriate will be ignored.
+
+`apps`
+* Return a list of all of the apps for this app context.
+* This parameter takes precedence over `clusters` and `resources` query parameters.
+* The `instance` query parameter may be provided.
+
+`clusters`
+* Returns a list of clusters to which this `Deployment Intent Group` will be deployed
+* This parameter takes precedence over the `resources` query parameter.
+* The `app` query filter may be included to filter the response to just the clusters to which the supplied app(s) are deployed.
+* The `instance` query parameter may be provided.
+
+`resources`
+* Returns a list of resources for this `Deployment Intent Group`,
+* The `app` query filter may be included to filter the response to just the resources for the supplied app(s).
+* The `instance` query parameter may be provided.
+* The `type` parameter may be supplied to return results for either `rsync` or `cluster` resources.
+* If `type`=`cluster` is provided, then the `cluster` query filter may also be provided to filter results for the suppplied cluster(s).
 
 
 #### Status Query Examples
 
-Basic status query.  By default, all apps, clusters and resources will be displayed.  The default query type is 'rsync', so the status returned indicates
+Basic status query.  By default, all apps, clusters and resources will be displayed.  The default query type is `rsync`, so the status returned indicates
 the status of whether or not EMCO has successfully applied or terminated the resources (not the actual resource status in the cluster).
 ```
 URL: GET /v2/projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/status
@@ -269,6 +293,232 @@ URL: GET /v2/projects/proj1/composite-apps/collection-composite-app/v1/deploymen
 
 #### Output Examples:
 Illustrates the type of output that appears given various query parameters.
+
+##### Example query for `apps`
+
+```
+URL: /v2/projects/testvfw/composite-apps/compositevfw/v1/deployment-intent-groups/vfw_deployment_intent_group/status?apps
+{
+  "project": "testvfw",
+  "composite-app-name": "compositevfw",
+  "composite-app-version": "v1",
+  "composite-profile-name": "vfw_composite-profile",
+  "name": "vfw_deployment_intent_group",
+  "apps": [
+    "firewall",
+    "packetgen",
+    "sink"
+  ]
+}
+```
+
+#### Example query for `clusters` filtered by the `sink` and `firewall` apps
+
+```
+URL: /v2/projects/testvfw/composite-apps/compositevfw/v1/deployment-intent-groups/vfw_deployment_intent_group/status?clusters&app=sink&app=firewall
+{
+  "project": "testvfw",
+  "composite-app-name": "compositevfw",
+  "composite-app-version": "v1",
+  "composite-profile-name": "vfw_composite-profile",
+  "name": "vfw_deployment_intent_group",
+  "clusters-by-app": [
+    {
+      "app": "firewall",
+      "clusters": [
+        {
+          "cluster-provider": "vfw-cluster-provider",
+          "cluster": "edge01"
+        },
+        {
+          "cluster-provider": "vfw-cluster-provider",
+          "cluster": "edge02"
+        }
+      ]
+    },
+    {
+      "app": "sink",
+      "clusters": [
+        {
+          "cluster-provider": "vfw-cluster-provider",
+          "cluster": "edge01"
+        },
+        {
+          "cluster-provider": "vfw-cluster-provider",
+          "cluster": "edge02"
+        }
+      ]
+    }
+  ]
+}
+```
+
+##### Example query for `resources` filtered by app `packetgen`, by default query `type`=`rsync` is used.
+
+```
+URL: /v2/projects/testvfw/composite-apps/compositevfw/v1/deployment-intent-groups/vfw_deployment_intent_group/status?resources&app=packetgen
+{
+  "project": "testvfw",
+  "composite-app-name": "compositevfw",
+  "composite-app-version": "v1",
+  "composite-profile-name": "vfw_composite-profile",
+  "name": "vfw_deployment_intent_group",
+  "resources-by-app": [
+    {
+      "app": "packetgen",
+      "resources": [
+        {
+          "name": "fw0-packetgen",
+          "GVK": {
+            "Group": "apps",
+            "Version": "v1",
+            "Kind": "Deployment"
+          }
+        },
+        {
+          "name": "packetgen-service",
+          "GVK": {
+            "Group": "",
+            "Version": "v1",
+            "Kind": "Service"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+##### Example query for `resources` filtered by app `packetgen`, query `type`=`cluster` to get resources from the clusters.
+
+```
+URL: /v2/projects/testvfw/composite-apps/compositevfw/v1/deployment-intent-groups/vfw_deployment_intent_group/status?resources&type=cluster&app=packetgen
+{
+  "project": "testvfw",
+  "composite-app-name": "compositevfw",
+  "composite-app-version": "v1",
+  "composite-profile-name": "vfw_composite-profile",
+  "name": "vfw_deployment_intent_group",
+  "resources-by-app": [
+    {
+      "app": "packetgen",
+      "cluster-provider": "vfw-cluster-provider",
+      "cluster": "edge01",
+      "resources": [
+        {
+          "name": "fw0-packetgen-5fd8b6db69-x55vx",
+          "GVK": {
+            "Group": "",
+            "Version": "v1",
+            "Kind": "Pod"
+          }
+        },
+        {
+          "name": "packetgen-service",
+          "GVK": {
+            "Group": "",
+            "Version": "v1",
+            "Kind": "Service"
+          }
+        },
+        {
+          "name": "fw0-packetgen",
+          "GVK": {
+            "Group": "apps",
+            "Version": "v1",
+            "Kind": "Deployment"
+          }
+        }
+      ]
+    },
+    {
+      "app": "packetgen",
+      "cluster-provider": "vfw-cluster-provider",
+      "cluster": "edge02",
+      "resources": [
+        {
+          "name": "fw0-packetgen-5fd8b6db69-mz8fd",
+          "GVK": {
+            "Group": "",
+            "Version": "v1",
+            "Kind": "Pod"
+          }
+        },
+        {
+          "name": "packetgen-service",
+          "GVK": {
+            "Group": "",
+            "Version": "v1",
+            "Kind": "Service"
+          }
+        },
+        {
+          "name": "fw0-packetgen",
+          "GVK": {
+            "Group": "apps",
+            "Version": "v1",
+            "Kind": "Deployment"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+##### Example query for `resources` filtered by app `sink`, query `type`=`cluster` to get resources from the clusters, filter by cluster `edge02`
+
+```
+URL: /v2/projects/testvfw/composite-apps/compositevfw/v1/deployment-intent-groups/vfw_deployment_intent_group/status?resources&type=cluster&app=sink&cluster=vfw-cluster-provider%2Bedge02
+{
+  "project": "testvfw",
+  "composite-app-name": "compositevfw",
+  "composite-app-version": "v1",
+  "composite-profile-name": "vfw_composite-profile",
+  "name": "vfw_deployment_intent_group",
+  "resources-by-app": [
+    {
+      "app": "sink",
+      "cluster-provider": "vfw-cluster-provider",
+      "cluster": "edge02",
+      "resources": [
+        {
+          "name": "fw0-sink-8b7557f65-ppkfp",
+          "GVK": {
+            "Group": "",
+            "Version": "v1",
+            "Kind": "Pod"
+          }
+        },
+        {
+          "name": "sink-service",
+          "GVK": {
+            "Group": "",
+            "Version": "v1",
+            "Kind": "Service"
+          }
+        },
+        {
+          "name": "fw0-sink",
+          "GVK": {
+            "Group": "apps",
+            "Version": "v1",
+            "Kind": "Deployment"
+          }
+        },
+        {
+          "name": "sink-configmap",
+          "GVK": {
+            "Group": "",
+            "Version": "v1",
+            "Kind": "ConfigMap"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
 
 ##### Example summary query
 
@@ -664,21 +914,24 @@ All the same query parameters apply.
 
 Note: if the type=cluster query is made, the ResourceBundleState CR currently does not support the Network and ProviderNetwork resources, so no resources will be found
 
+Note: the format of the cluster intents status query has changed in 21.03.  The `apps` and `clusters` levels have been removed since they are not applicable or
+redundant for this query. They have been replaced with a single `cluster` object which contains the list of network resources.
+
 ```
 URL: /v2/cluster-providers/vfw-cluster-provider/clusters/edge01/status
 {
   "name": "vfw-cluster-provider+edge01",
-  "state": {
-    "Actions": [
+  "states": {
+    "actions": [
       {
-        "State": "Created",
-        "ContextId": "",
-        "TimeStamp": "2020-08-21T18:17:02.464Z"
+        "state": "Created",
+        "instance": "",
+        "time": "2021-03-22T21:04:59.436Z"
       },
       {
-        "State": "Applied",
-        "ContextId": "9116473999070524329",
-        "TimeStamp": "2020-08-21T18:17:11.983Z"
+        "state": "Applied",
+        "instance": "1737313389201980306",
+        "time": "2021-03-22T21:05:03.575Z"
       }
     ]
   },
@@ -686,45 +939,38 @@ URL: /v2/cluster-providers/vfw-cluster-provider/clusters/edge01/status
   "rsync-status": {
     "Applied": 3
   },
-  "apps": [
-    {
-      "name": "network-intents",
-      "clusters": [
-        {
-          "cluster-provider": "vfw-cluster-provider",
-          "cluster": "edge01",
-          "resources": [
-            {
-              "GVK": {
-                "Group": "k8s.plugin.opnfv.org",
-                "Version": "v1alpha1",
-                "Kind": "ProviderNetwork"
-              },
-              "name": "emco-private-net",
-              "rsync-status": "Applied"
-            },
-            {
-              "GVK": {
-                "Group": "k8s.plugin.opnfv.org",
-                "Version": "v1alpha1",
-                "Kind": "Network"
-              },
-              "name": "protected-private-net",
-              "rsync-status": "Applied"
-            },
-            {
-              "GVK": {
-                "Group": "k8s.plugin.opnfv.org",
-                "Version": "v1alpha1",
-                "Kind": "ProviderNetwork"
-              },
-              "name": "unprotected-private-net",
-              "rsync-status": "Applied"
-            }
-          ]
-        }
-      ]
-    }
-  ]
+  "cluster": {
+    "cluster-provider": "vfw-cluster-provider",
+    "cluster": "edge01",
+    "resources": [
+      {
+        "GVK": {
+          "Group": "k8s.plugin.opnfv.org",
+          "Version": "v1alpha1",
+          "Kind": "ProviderNetwork"
+        },
+        "name": "emco-private-net",
+        "rsync-status": "Applied"
+      },
+      {
+        "GVK": {
+          "Group": "k8s.plugin.opnfv.org",
+          "Version": "v1alpha1",
+          "Kind": "Network"
+        },
+        "name": "protected-private-net",
+        "rsync-status": "Applied"
+      },
+      {
+        "GVK": {
+          "Group": "k8s.plugin.opnfv.org",
+          "Version": "v1alpha1",
+          "Kind": "ProviderNetwork"
+        },
+        "name": "unprotected-private-net",
+        "rsync-status": "Applied"
+      }
+    ]
+  }
 }
 ```

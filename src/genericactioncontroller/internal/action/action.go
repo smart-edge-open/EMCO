@@ -96,7 +96,13 @@ func UpdateAppContext(intentName, appContextID string) error {
 			var dataFiles [][]byte
 
 			for _, content := range dataArr.FileContents {
-				dataBytes, err = base64.StdEncoding.DecodeString(content)
+				
+				if strings.ToLower(rs.Spec.ResourceGVK.Kind) == "secret" {
+					dataBytes = []byte(content)
+				} else {
+					dataBytes, err = base64.StdEncoding.DecodeString(content)
+				}
+				
 				if err != nil {
 					log.Error(":: Base64 encoding error ::", log.Fields{"Error": err})
 					return pkgerrors.Errorf("Internal error")

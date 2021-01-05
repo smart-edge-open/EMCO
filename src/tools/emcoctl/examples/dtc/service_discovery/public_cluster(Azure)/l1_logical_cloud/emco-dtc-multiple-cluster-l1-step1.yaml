@@ -1,0 +1,204 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+
+#creating controller entries
+version: emco/v2
+resourceContext:
+  anchor: controllers
+metadata :
+   name: rsync
+   description: test
+   userData1: test1
+   userData2: test2
+spec:
+  host: <node-IP>
+  port: 31595
+
+---
+version: emco/v2
+resourceContext:
+  anchor: controllers
+metadata :
+    name: dtc
+    description: test
+    userData1: test1
+    userData2: test2
+spec:
+  host: <node-IP>
+  port: 31708
+  type: "action"
+  priority: 1
+
+---
+#creating cluster provider
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers
+metadata :
+   name: provider1
+   description: test
+   userData1: test1
+   userData2: test2
+
+---
+#creating cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters
+metadata :
+   name: cluster1
+   description: test
+   userData1: test1
+   userData2: test2
+file:
+  <path/to/kubeconfig>
+
+---
+#creating cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters
+metadata :
+   name: cluster2
+   description: test
+   userData1: test1
+   userData2: test2
+file:
+  <path/to/azure/kubeconfig>
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster1/labels
+label-name: edge-cluster
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster2/labels
+label-name: edge-cluster1
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster1/labels
+label-name: networkpolicy-supported
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster2/labels
+label-name: networkpolicy-supported
+---
+#create project
+version: emco/v2
+resourceContext:
+  anchor: projects
+metadata :
+   name: proj1
+   description: test
+   userData1: test1
+   userData2: test2
+
+---
+#create L1 logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/logical-clouds
+metadata:
+  name: lc1
+spec:
+  namespace: ns1
+  user:
+    user-name: user-1
+    type: certificate
+    user-permissions:
+    - permission-name: permission-1
+      apiGroups:
+      - ""
+      - "apps"
+      - "k8splugin.io"
+      - "extensions"
+      - "networking.k8s.io"
+      resources:
+      - secrets
+      - pods
+      - configmaps
+      - services
+      - deployments
+      - resourcebundlestates
+      - networkpolicies
+      - serviceaccounts
+      - endpoints
+      verbs:
+      - get
+      - watch
+      - list
+      - create
+
+---
+#create cluster quotas
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/logical-clouds/lc1/cluster-quotas
+metadata:
+    name: quota-1
+spec:
+    limits.cpu: "40"
+    limits.memory: 1Gi
+    requests.cpu: "30"
+    requests.memory: 5Gi
+    requests.storage: 500Gi
+    requests.ephemeral-storage: '500'
+    limits.ephemeral-storage: '500'
+    persistentvolumeclaims: '500'
+    pods: '500'
+    configmaps: '1000'
+    replicationcontrollers: '500'
+    resourcequotas: '500'
+    services: '500'
+    services.loadbalancers: '500'
+    services.nodeports: '500'
+    secrets: '500'
+    count/replicationcontrollers: '500'
+    count/deployments.apps: '500'
+    count/replicasets.apps: '500'
+    count/statefulsets.apps: '500'
+    count/jobs.batch: '500'
+    count/cronjobs.batch: '500'
+    count/deployments.extensions: '500'
+---
+#add cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/logical-clouds/lc1/cluster-references
+metadata:
+  name: lc-cl-1
+spec:
+  cluster-provider: provider1
+  cluster-name: cluster1
+  loadbalancer-ip: "0.0.0.0"
+
+---
+#add cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/logical-clouds/lc1/cluster-references
+metadata:
+  name: lc-cl-2
+spec:
+  cluster-provider: provider1
+  cluster-name: cluster2
+  loadbalancer-ip: "0.0.0.0"
+
+---
+#instantiate logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/logical-clouds/lc1/instantiate
+
+---

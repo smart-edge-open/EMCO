@@ -44,7 +44,7 @@ func (h appHandler) createAppHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Implemenation using multipart form
 	// Set Max size to 16mb here
-	err := r.ParseMultipartForm(16777216)
+	err := r.ParseMultipartForm(maxMemory)
 	if err != nil {
 		log.Error(err.Error(), log.Fields{})
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
@@ -89,7 +89,7 @@ func (h appHandler) createAppHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Limit file Size to 1 GB
-	if len(content) > 1073741824 {
+	if len(content) > int(oneGB) {
 		log.Error(err.Error(), log.Fields{})
 		http.Error(w, "File Size Exceeds 1 GB", http.StatusUnprocessableEntity)
 		return
@@ -108,7 +108,7 @@ func (h appHandler) createAppHandler(w http.ResponseWriter, r *http.Request) {
 	compositeAppName := vars["composite-app-name"]
 	compositeAppVersion := vars["version"]
 
-	ret, createErr := h.client.CreateApp(a, ac, projectName, compositeAppName, compositeAppVersion)
+	ret, createErr := h.client.CreateApp(a, ac, projectName, compositeAppName, compositeAppVersion, false)
 	if createErr != nil {
 		log.Error(createErr.Error(), log.Fields{})
 		if strings.Contains(createErr.Error(), "Unable to find the project") {
@@ -151,6 +151,8 @@ func (h appHandler) getAppHandler(w http.ResponseWriter, r *http.Request) {
 			log.Error(err.Error(), log.Fields{})
 			if strings.Contains(err.Error(), "db Find error") {
 				http.Error(w, err.Error(), http.StatusNotFound)
+			} else if strings.Contains(err.Error(), "not found") {
+				http.Error(w, err.Error(), http.StatusNotFound)
 			} else {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
@@ -187,6 +189,8 @@ func (h appHandler) getAppHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error(err.Error(), log.Fields{})
 		if strings.Contains(err.Error(), "db Find error") {
 			http.Error(w, err.Error(), http.StatusNotFound)
+		} else if strings.Contains(err.Error(), "not found") {
+			http.Error(w, err.Error(), http.StatusNotFound)
 		} else {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -197,6 +201,8 @@ func (h appHandler) getAppHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error(err.Error(), log.Fields{})
 		if strings.Contains(err.Error(), "db Find error") {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else if strings.Contains(err.Error(), "not found") {
 			http.Error(w, err.Error(), http.StatusNotFound)
 		} else {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -263,7 +269,7 @@ func (h appHandler) getAppHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	default:
-		log.Error(err.Error(), log.Fields{})
+		log.Error("HEADER missing::set Accept: multipart/form-data, application/json or application/octet-stream", log.Fields{})
 		http.Error(w, "set Accept: multipart/form-data, application/json or application/octet-stream", http.StatusMultipleChoices)
 		return
 	}
@@ -284,6 +290,8 @@ func (h appHandler) deleteAppHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusNotFound)
 		} else if strings.Contains(err.Error(), "conflict") {
 			http.Error(w, err.Error(), http.StatusConflict)
+		} else if strings.Contains(err.Error(), "not found") {
+			http.Error(w, err.Error(), http.StatusNotFound)
 		} else {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -291,4 +299,99 @@ func (h appHandler) deleteAppHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h appHandler) updateAppHandler(w http.ResponseWriter, r *http.Request) {
+	var a moduleLib.App
+	var ac moduleLib.AppContent
+
+	// Implemenation using multipart form
+	// Set Max size to 16mb here
+	err := r.ParseMultipartForm(maxMemory)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	jsn := bytes.NewBuffer([]byte(r.FormValue("metadata")))
+	err = json.NewDecoder(jsn).Decode(&a)
+	switch {
+	case err == io.EOF:
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, "Empty body", http.StatusBadRequest)
+		return
+	case err != nil:
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	// Verify JSON Body
+	err, httpError := validation.ValidateJsonSchemaData(appJSONFile, a)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), httpError)
+		return
+	}
+
+	//Read the file section and ignore the header
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, "Unable to process file", http.StatusUnprocessableEntity)
+		return
+	}
+
+	defer file.Close()
+	//Convert the file content to base64 for storage
+	content, err := ioutil.ReadAll(file)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, "Unable to read file", http.StatusUnprocessableEntity)
+		return
+	}
+	// Limit file Size to 1 GB
+	if len(content) > int(oneGB) {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, "File Size Exceeds 1 GB", http.StatusUnprocessableEntity)
+		return
+	}
+	err = validation.IsTarGz(bytes.NewBuffer(content))
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, "Error in file format", http.StatusUnprocessableEntity)
+		return
+	}
+
+	ac.FileContent = base64.StdEncoding.EncodeToString(content)
+
+	vars := mux.Vars(r)
+	projectName := vars["project-name"]
+	compositeAppName := vars["composite-app-name"]
+	compositeAppVersion := vars["version"]
+
+	ret, createErr := h.client.CreateApp(a, ac, projectName, compositeAppName, compositeAppVersion, true)
+	if createErr != nil {
+		log.Error(createErr.Error(), log.Fields{})
+		if strings.Contains(createErr.Error(), "Unable to find the project") {
+			http.Error(w, createErr.Error(), http.StatusNotFound)
+		} else if strings.Contains(createErr.Error(), "Unable to find the composite app with version") {
+			http.Error(w, createErr.Error(), http.StatusNotFound)
+		} else if strings.Contains(createErr.Error(), "App already exists") {
+			http.Error(w, createErr.Error(), http.StatusConflict)
+		} else {
+			http.Error(w, createErr.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	err = json.NewEncoder(w).Encode(ret)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

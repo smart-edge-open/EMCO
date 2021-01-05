@@ -1,0 +1,357 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+
+#creating controller entries
+version: emco/v2
+resourceContext:
+  anchor: controllers
+metadata :
+   name: rsync
+   description: test
+   userData1: test1
+   userData2: test2
+spec:
+  host: <node-IP>
+  port: 31595
+
+---
+version: emco/v2
+resourceContext:
+  anchor: controllers
+metadata :
+    name: dtc
+    description: test
+    userData1: test1
+    userData2: test2
+spec:
+  host: <node-IP>
+  port: 31708
+  type: "action"
+  priority: 1
+---
+#creating cluster provider
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers
+metadata :
+   name: provider1
+   description: test
+   userData1: test1
+   userData2: test2
+
+---
+#creating cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters
+metadata :
+   name: cluster1
+   description: test
+   userData1: test1
+   userData2: test2
+file:
+  <path/to/kubeconfig>
+
+---
+#creating cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters
+metadata :
+   name: cluster2
+   description: test
+   userData1: test1
+   userData2: test2
+file:
+  <path/to/kubeconfig>
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster1/labels
+label-name: edge-cluster
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster2/labels
+label-name: edge-cluster1
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster1/labels
+label-name: networkpolicy-supported
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/provider1/clusters/cluster2/labels
+label-name: networkpolicy-supported
+---
+
+#create project
+version: emco/v2
+resourceContext:
+  anchor: projects
+metadata :
+   name: proj1
+   description: test
+   userData1: test1
+   userData2: test2
+
+---
+#create default logical cloud with admin permissions
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/logical-clouds
+metadata:
+  name: default
+spec:
+  level: "0"
+
+---
+#add cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/logical-clouds/default/cluster-references
+metadata:
+  name: lc-cl-1
+spec:
+  cluster-provider: provider1
+  cluster-name: cluster1
+  loadbalancer-ip: "0.0.0.0"
+
+---
+#add cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/logical-clouds/default/cluster-references
+metadata:
+  name: lc-cl-2
+spec:
+  cluster-provider: provider1
+  cluster-name: cluster2
+  loadbalancer-ip: "0.0.0.0"
+
+---
+#instantiate logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/logical-clouds/default/instantiate
+
+---
+#creating collection composite app entry
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/composite-apps
+metadata :
+  name: collection-composite-app
+  description: test
+  userData1: test1
+  userData2: test2
+spec:
+  version: v1
+
+---
+#adding http-client app to the composite app
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/composite-apps/collection-composite-app/v1/apps
+metadata :
+  name: http-client
+  description: "description for app"
+  userData1: test1
+  userData2: test2
+file:
+  http-client.tgz
+
+---
+#adding http-server app to the composite app
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/composite-apps/collection-composite-app/v1/apps
+metadata :
+  name: http-server
+  description: "description for app"
+  userData1: test1
+  userData2: test2
+file:
+  http-server.tgz
+
+---
+#creating collection composite profile entry
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/composite-apps/collection-composite-app/v1/composite-profiles
+metadata :
+  name: collection-composite-profile
+  description: test
+  userData1: test1
+  userData2: test2
+
+---
+#adding http-client app profiles to the composite profile
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/composite-apps/collection-composite-app/v1/composite-profiles/collection-composite-profile/profiles
+metadata :
+  name: http-client-profile
+  description: test
+  userData1: test1
+  userData2: test2
+spec:
+  app-name: http-client
+file:
+  http-client-profile.tar.gz
+
+---
+#adding http-server app profiles to the composite profile
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/composite-apps/collection-composite-app/v1/composite-profiles/collection-composite-profile/profiles
+metadata :
+  name: http-server-profile
+  description: test
+  userData1: test1
+  userData2: test2
+spec:
+  app-name: http-server
+file:
+  http-server-profile.tar.gz
+
+---
+#create deployment intent group
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups
+metadata :
+  name: collection-deployment-intent-group
+  description: "description"
+  userData1: test1
+  userData2: test2
+spec:
+  profile: collection-composite-profile
+  version: r1
+  logical-cloud: default
+  override-values: []
+
+---
+#create intent in deployment intent group
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/intents
+metadata :
+  name: collection-deployment-intent
+  description: "description"
+  userData1: test1
+  userData2: test2
+spec:
+  intent:
+    genericPlacementIntent: collection-placement-intent
+    dtc: testdtc
+
+---
+#create the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/generic-placement-intents
+metadata :
+  name: collection-placement-intent
+  description: "description for app"
+  userData1: test1
+  userData2: test2
+
+---
+#add the http-client app placement intent to the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/generic-placement-intents/collection-placement-intent/app-intents
+metadata:
+  name: http-client-placement-intent
+  description: description of placement_intent
+  userData1: user data 1
+  userData2: user data 2
+spec:
+  app-name: http-client
+  intent:
+    allOf:
+    - provider-name: provider1
+      cluster-label-name: edge-cluster
+
+---
+#add the http-server app placement intent to the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/generic-placement-intents/collection-placement-intent/app-intents
+metadata:
+  name: http-server-placement-intent
+  description: description of placement_intent
+  userData1: user data 1
+  userData2: user data 2
+spec:
+  app-name: http-server
+  intent:
+    allOf:
+    - provider-name: provider1
+      cluster-label-name: edge-cluster1
+
+---
+#add the traffic group intent
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/traffic-group-intents
+metadata:
+  name: testdtc
+  description: description of traffic intent
+  userData1: user data 1
+  userData2: user data 2
+
+---
+#add the server intent
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/traffic-group-intents/testdtc/inbound-intents
+metadata:
+  name: serverin
+  description: description of traffic intent
+  userData1: user data 1
+  userData2: user data 2
+spec:
+  appName: http-server
+  appLabel: app=http-server
+  serviceName: http-service
+  port: 3333
+  protocol: TCP
+
+---
+#add the client intent
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/traffic-group-intents/testdtc/inbound-intents/serverin/clients
+metadata:
+  name: client1
+  description: description of traffic intent
+  userData1: user data 1
+  userData2: user data 2
+spec:
+  appName: http-client
+  appLabel: app=http-client
+  serviceName: http-client
+  namespaces: []
+  cidrs: []
+---
+#Approve
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/approve
+
+---
+#Instantiate
+version: emco/v2
+resourceContext:
+  anchor: projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/instantiate

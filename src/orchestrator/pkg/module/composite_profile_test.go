@@ -3,9 +3,15 @@
 
 package module
 
-//pkgerrors "github.com/pkg/errors"
+import (
+	"reflect"
+	"strings"
+	"testing"
 
-/* TODO - db.MockDB needs to be enhanced and then these can be fixed up
+	"github.com/open-ness/EMCO/src/orchestrator/pkg/infra/db"
+)
+
+
 func TestCreateCompositeProfile(t *testing.T) {
 	testCases := []struct {
 		label               string
@@ -40,7 +46,7 @@ func TestCreateCompositeProfile(t *testing.T) {
 			},
 			expectedError: "",
 			mockdb: &db.MockDB{
-				Items: map[string]map[string][]byte{
+				Items: []map[string]map[string][]byte{{
 					ProjectKey{ProjectName: "testProject"}.String(): {
 						"projectmetadata": []byte(
 							"{" +
@@ -52,7 +58,7 @@ func TestCreateCompositeProfile(t *testing.T) {
 								"}"),
 					},
 					CompositeAppKey{CompositeAppName: "testCompositeApp", Project: "testProject", Version: "v1"}.String(): {
-						"compositeAppmetadata": []byte(
+						"compositeappmetadata": []byte(
 							"{" +
 								"\"metadata\" : {" +
 								"\"Name\":\"testCompositeApp\"," +
@@ -63,7 +69,7 @@ func TestCreateCompositeProfile(t *testing.T) {
 								"\"Version\": \"v1\"}" +
 								"}"),
 					},
-				},
+				},},
 			},
 		},
 	}
@@ -72,7 +78,7 @@ func TestCreateCompositeProfile(t *testing.T) {
 		t.Run(testCase.label, func(t *testing.T) {
 			db.DBconn = testCase.mockdb
 			cprofCli := NewCompositeProfileClient()
-			got, err := cprofCli.CreateCompositeProfile(testCase.compositeProfile, testCase.projectName, testCase.compositeApp, testCase.compositeAppVersion)
+			got, err := cprofCli.CreateCompositeProfile(testCase.compositeProfile, testCase.projectName, testCase.compositeApp, testCase.compositeAppVersion, false)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("CreateCompositeProfile returned an unexpected error %s", err)
@@ -118,20 +124,20 @@ func TestGetCompositeProfile(t *testing.T) {
 			},
 			expectedError: "",
 			mockdb: &db.MockDB{
-				Items: map[string]map[string][]byte{
+				Items: []map[string]map[string][]byte{{
 					CompositeProfileKey{
 						Name:         "testCompositeProfile",
 						Project:      "testProject",
 						CompositeApp: "testCompositeApp",
 						Version:      "v1",
 					}.String(): {
-						"compositeprofile": []byte(
+						"compositeprofilemetadata": []byte(
 							"{\"metadata\":{\"Name\":\"testCompositeProfile\"," +
 								"\"Description\":\"A sample CompositeProfile for testing\"," +
 								"\"UserData1\": \"userData1\"," +
 								"\"UserData2\": \"userData2\"}}"),
 					},
-				},
+				},},
 			},
 		},
 	}
@@ -159,4 +165,4 @@ func TestGetCompositeProfile(t *testing.T) {
 	}
 
 }
-*/
+

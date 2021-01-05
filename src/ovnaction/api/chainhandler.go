@@ -84,31 +84,25 @@ func validateNetworkChain(chain string) error {
 
 // Check for valid format of input parameters
 func validateChainInputs(ch moduleLib.Chain) error {
-	// validate metadata
-	err := moduleLib.IsValidMetadata(ch.Metadata)
-	if err != nil {
-		return pkgerrors.Wrap(err, "Invalid network chain metadata")
-	}
-
 	if strings.ToLower(ch.Spec.ChainType) != moduleLib.RoutingChainType {
-		return pkgerrors.Wrap(err, "Invalid network chain type")
+		return pkgerrors.New("Invalid network chain type")
 	}
 
 	for _, r := range ch.Spec.RoutingSpec.LeftNetwork {
-		err = validateRoutingNetwork(r)
+		err := validateRoutingNetwork(r)
 		if err != nil {
 			return err
 		}
 	}
 
 	for _, r := range ch.Spec.RoutingSpec.RightNetwork {
-		err = validateRoutingNetwork(r)
+		err := validateRoutingNetwork(r)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = validateNetworkChain(ch.Spec.RoutingSpec.NetworkChain)
+	err := validateNetworkChain(ch.Spec.RoutingSpec.NetworkChain)
 	if err != nil {
 		return err
 	}

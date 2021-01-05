@@ -55,7 +55,7 @@ func (h compositeProfileHandler) createHandler(w http.ResponseWriter, r *http.Re
 	compositeAppName := vars["composite-app-name"]
 	version := vars["composite-app-version"]
 
-	cProf, createErr := h.client.CreateCompositeProfile(cpf, projectName, compositeAppName, version)
+	cProf, createErr := h.client.CreateCompositeProfile(cpf, projectName, compositeAppName, version, false)
 	if createErr != nil {
 		log.Error(createErr.Error(), log.Fields{})
 		if strings.Contains(createErr.Error(), "Unable to find the project") {
@@ -114,6 +114,8 @@ func (h compositeProfileHandler) getHandler(w http.ResponseWriter, r *http.Reque
 			log.Error(err.Error(), log.Fields{})
 			if strings.Contains(err.Error(), "db Find error") {
 				http.Error(w, err.Error(), http.StatusNotFound)
+			} else if strings.Contains(err.Error(), "not found") {
+				http.Error(w, err.Error(), http.StatusNotFound)
 			} else {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
@@ -139,6 +141,8 @@ func (h compositeProfileHandler) getHandler(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		log.Error(err.Error(), log.Fields{})
 		if strings.Contains(err.Error(), "db Find error") {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else if strings.Contains(err.Error(), "not found") {
 			http.Error(w, err.Error(), http.StatusNotFound)
 		} else {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -177,4 +181,59 @@ func (h compositeProfileHandler) deleteHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+
+func (h compositeProfileHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
+
+	var cpf moduleLib.CompositeProfile
+
+	err := json.NewDecoder(r.Body).Decode(&cpf)
+	switch {
+	case err == io.EOF:
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, "Empty body", http.StatusBadRequest)
+		return
+	case err != nil:
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	// Verify JSON Body
+	err, httpError := validation.ValidateJsonSchemaData(caprofileJSONFile, cpf)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), httpError)
+		return
+	}
+
+	vars := mux.Vars(r)
+	projectName := vars["project-name"]
+	compositeAppName := vars["composite-app-name"]
+	version := vars["composite-app-version"]
+
+	cProf, createErr := h.client.CreateCompositeProfile(cpf, projectName, compositeAppName, version, true)
+	if createErr != nil {
+		log.Error(createErr.Error(), log.Fields{})
+		if strings.Contains(createErr.Error(), "Unable to find the project") {
+			http.Error(w, createErr.Error(), http.StatusNotFound)
+		} else if strings.Contains(createErr.Error(), "Unable to find the composite-app") {
+			http.Error(w, createErr.Error(), http.StatusNotFound)
+		} else if strings.Contains(createErr.Error(), "CompositeProfile already exists") {
+			http.Error(w, createErr.Error(), http.StatusConflict)
+		} else {
+			http.Error(w, createErr.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	err = json.NewEncoder(w).Encode(cProf)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

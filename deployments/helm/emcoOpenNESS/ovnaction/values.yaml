@@ -12,7 +12,8 @@ global:
 #################################################################
 # application image
 repository:
-image: emco-ovn:latest
+image: emco-ovn
+imageTag:
 pullPolicy: Always
 args: ""
 command: "./ovnaction"

@@ -31,6 +31,8 @@ spec:
           env:
             - name: SERVERDOMAIN
               value: "{{ .Values.server.domain }}"
+            - name: HTTPPROXY
+              value: "{{ .Values.proxy.http }}"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

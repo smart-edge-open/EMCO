@@ -153,30 +153,9 @@ func addResourcesToCluster(ct appcontext.AppContext, ch interface{}, resources [
 }
 
 //addClustersToAppContext method shall add cluster details save into etcd
-func addClustersToAppContext(l gpic.ClusterList, ct appcontext.AppContext, appHandle interface{}, resources []resource, namespace string) error {
-	mc := l.MandatoryClusters
-	gc := l.ClusterGroups
-
-	for _, c := range mc {
-		p := c.ProviderName
-		n := c.ClusterName
-		clusterhandle, err := ct.AddCluster(appHandle, p+SEPARATOR+n)
-		if err != nil {
-			cleanuperr := ct.DeleteCompositeApp()
-			if cleanuperr != nil {
-				log.Info(":: Error Cleaning up AppContext after add cluster failure ::", log.Fields{"cluster-provider": p, "cluster-name": n, "Error": cleanuperr.Error})
-			}
-			return pkgerrors.Wrapf(err, "Error adding Cluster(provider::%s and name::%s) to AppContext", p, n)
-		}
-
-		err = addResourcesToCluster(ct, clusterhandle, resources, namespace)
-		if err != nil {
-			return pkgerrors.Wrapf(err, "Error adding Resources to Cluster(provider::%s and name::%s) to AppContext", p, n)
-		}
-	}
-
-	for _, eachGrp := range gc {
-		oc := eachGrp.OptionalClusters
+func addClustersToAppContextHelper(cg []gpic.ClusterGroup, ct appcontext.AppContext, appHandle interface{}, resources []resource, namespace string) error {
+	for _, eachGrp := range cg {
+		oc := eachGrp.Clusters
 		gn := eachGrp.GroupNumber
 
 		for _, eachCluster := range oc {
@@ -192,6 +171,7 @@ func addClustersToAppContext(l gpic.ClusterList, ct appcontext.AppContext, appHa
 				}
 				return pkgerrors.Wrapf(err, "Error adding Cluster(provider::%s and name::%s) to AppContext", p, n)
 			}
+			log.Info(":: Added cluster ::", log.Fields{"Cluster ": p + SEPARATOR + n})
 
 			err = ct.AddClusterMetaGrp(clusterhandle, gn)
 			if err != nil {
@@ -201,6 +181,7 @@ func addClustersToAppContext(l gpic.ClusterList, ct appcontext.AppContext, appHa
 				}
 				return pkgerrors.Wrapf(err, "Error adding Cluster(provider::%s and name::%s) to AppContext", p, n)
 			}
+			log.Info(":: Added cluster ::", log.Fields{"Cluster ": p + SEPARATOR + n, "GroupNumber ": gn})
 
 			err = addResourcesToCluster(ct, clusterhandle, resources, namespace)
 			if err != nil {
@@ -211,14 +192,32 @@ func addClustersToAppContext(l gpic.ClusterList, ct appcontext.AppContext, appHa
 	return nil
 }
 
+func addClustersToAppContext(l gpic.ClusterList, ct appcontext.AppContext, appHandle interface{}, resources []resource, namespace string) error {
+	mClusters := l.MandatoryClusters
+	oClusters := l.OptionalClusters
+
+	err := addClustersToAppContextHelper(mClusters, ct, appHandle, resources, namespace)
+	if err != nil {
+		return err
+	}
+	log.Info("::Added mandatory clusters to the AppContext", log.Fields{})
+
+	err = addClustersToAppContextHelper(oClusters, ct, appHandle, resources, namespace)
+	if err != nil {
+		return err
+	}
+	log.Info("::Added optional clusters to the AppContext", log.Fields{})
+	return nil
+}
+
 /*
 verifyResources method is just to check if the resource handles are correctly saved.
 */
 func verifyResources(l gpic.ClusterList, ct appcontext.AppContext, resources []resource, appName string) error {
 
-	for _, cg := range l.ClusterGroups {
+	for _, cg := range l.OptionalClusters {
 		gn := cg.GroupNumber
-		oc := cg.OptionalClusters
+		oc := cg.Clusters
 		for _, eachCluster := range oc {
 			p := eachCluster.ProviderName
 			n := eachCluster.ClusterName
@@ -239,16 +238,18 @@ func verifyResources(l gpic.ClusterList, ct appcontext.AppContext, resources []r
 		log.Info(":: GetGroupMapReults ::", log.Fields{"GroupMap": grpMap})
 	}
 
-	for _, mc := range l.MandatoryClusters {
-		p := mc.ProviderName
-		n := mc.ClusterName
-		cn := p + SEPARATOR + n
-		for _, res := range resources {
-			rh, err := ct.GetResourceHandle(appName, cn, res.name)
-			if err != nil {
-				return pkgerrors.Wrapf(err, "Error getting resoure handle for resource :: %s, app:: %s, cluster :: %s", appName, res.name, cn)
+	for _, mClusters := range l.MandatoryClusters {
+		for _, mc := range mClusters.Clusters {
+			p := mc.ProviderName
+			n := mc.ClusterName
+			cn := p + SEPARATOR + n
+			for _, res := range resources {
+				rh, err := ct.GetResourceHandle(appName, cn, res.name)
+				if err != nil {
+					return pkgerrors.Wrapf(err, "Error getting resoure handle for resource :: %s, app:: %s, cluster :: %s", appName, res.name, cn)
+				}
+				log.Info(":: GetResourceHandle ::", log.Fields{"ResourceHandler": rh, "appName": appName, "Cluster": cn, "Resource": res.name})
 			}
-			log.Info(":: GetResourceHandle ::", log.Fields{"ResourceHandler": rh, "appName": appName, "Cluster": cn, "Resource": res.name})
 		}
 	}
 	return nil

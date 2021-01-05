@@ -22,7 +22,6 @@ var getCmd = &cobra.Command{
 		}
 		if len(inputFiles) > 0 {
 			resources := readResources()
-			c := NewRestClient()
 			for _, res := range resources {
 				c.RestClientGet(res.anchor, res.body)
 			}

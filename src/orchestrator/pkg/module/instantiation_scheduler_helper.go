@@ -11,6 +11,7 @@ import (
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/appcontext"
 	client "github.com/open-ness/EMCO/src/orchestrator/pkg/grpc/contextupdateclient"
 	rsyncclient "github.com/open-ness/EMCO/src/orchestrator/pkg/grpc/installappclient"
+	plsGrpcClient "github.com/open-ness/EMCO/src/orchestrator/pkg/grpc/placementcontrollerclient"
 	log "github.com/open-ness/EMCO/src/orchestrator/pkg/infra/logutils"
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/module/controller"
 	mtypes "github.com/open-ness/EMCO/src/orchestrator/pkg/module/types"
@@ -93,12 +94,14 @@ func getPrioritizedControllerList(p, ca, v, di string) (PrioritizedControlList, 
 	listPC := make([]*ControllerElement, 0)
 	listAC := make([]*ControllerElement, 0)
 
+	log.Info("getPrioritizedControllerList .. controllers info", log.Fields{"listOfControllers": listOfControllers})
 	for _, cn := range listOfControllers {
 		c, err := NewClient().Controller.GetController(cn)
 
 		if err != nil {
 			return PrioritizedControlList{}, map[string]string{}, err
 		}
+		log.Info("getPrioritizedControllerList .. controllers info", log.Fields{"Spec.Type": c.Spec.Type})
 		if c.Spec.Type == ControllerTypePlacement {
 			// Collect in listPC
 			listPC = append(listPC, &ControllerElement{controller: controller.Controller{
@@ -159,6 +162,7 @@ func getPrioritizedControllerList(p, ca, v, di string) (PrioritizedControlList, 
 		prioritizedActControllerList = append(prioritizedActControllerList, ce.controller)
 	}
 
+	log.Info("getPrioritizedControllerList .. controllers info", log.Fields{"placement-controllers": prioritizedPlaControllerList, "action-controllers": prioritizedActControllerList})
 	prioritizedControlList := PrioritizedControlList{pPlaCont: prioritizedPlaControllerList, pActCont: prioritizedActControllerList}
 
 	return prioritizedControlList, mapOfControllers, nil
@@ -174,9 +178,29 @@ func callGrpcForControllerList(cl []controller.Controller, mc map[string]string,
 		controller := c.Metadata.Name
 		controllerIntentName := mc[controller]
 		appContextID := fmt.Sprintf("%v", contextid)
+		log.Info("callGrpcForControllerList .. Invoking action-controller.", log.Fields{
+			"controller": controller, "controllerIntentName": controllerIntentName, "appContextID": appContextID})
 		err := client.InvokeContextUpdate(controller, controllerIntentName, appContextID)
 		if err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+/*
+callGrpcForPlacementControllerList method shall take in a list of placement controllers, a map of contollers to controllerIntentNames and contextID.
+It invokes the filter clusters through the grpc client for the given list of controllers.
+*/
+func callGrpcForPlacementControllerList(cl []controller.Controller, contextid interface{}) error {
+	for _, c := range cl {
+		controller := c.Metadata.Name
+		appContextID := fmt.Sprintf("%v", contextid)
+		log.Info("callGrpcForControllerList .. Invoking placement-controller.", log.Fields{
+			"controller": controller, "appContextID": appContextID})
+		err := plsGrpcClient.InvokeFilterClusters(c, appContextID)
+		if err != nil {
+			return pkgerrors.Wrapf(err, "Placement-controller returned error. failed-placement-controller[%v] appContextID[%v]", controller, appContextID)
 		}
 	}
 	return nil

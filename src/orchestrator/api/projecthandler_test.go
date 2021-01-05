@@ -263,8 +263,8 @@ func TestProjectGetHandler(t *testing.T) {
 			},
 		},
 		{
-			label:        "Get Non-Exiting Project",
-			expectedCode: http.StatusNotFound,
+			label:        "Get Non-Existing Project",
+			expectedCode: http.StatusInternalServerError,
 			name:         "nonexistingproject",
 			projectClient: &mockProjectManager{
 				Items: []moduleLib.Project{},
@@ -325,8 +325,8 @@ func TestProjectDeleteHandler(t *testing.T) {
 			},
 		},
 		{
-			label:        "Delete Non-Exiting Project",
-			expectedCode: http.StatusNotFound,
+			label:        "Delete Non-Existing Project",
+			expectedCode: http.StatusInternalServerError,
 			name:         "testProject",
 			projectClient: &mockProjectManager{
 				Err: pkgerrors.New("Internal Error"),

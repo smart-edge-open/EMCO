@@ -958,7 +958,7 @@ paths:
           content:
             application/json: # operation response mime type
               schema:
-                $ref: '#/components/schemas/DeploymentIntentArray'
+                $ref: '#/components/schemas/ListOfIntents'
         '404':
           description: No Deployment Intent Group found
         '400':
@@ -1074,7 +1074,7 @@ paths:
           content:
             application/json: # operation response mime type
               schema:
-                $ref: '#/components/schemas/DeploymentIntent'
+                $ref: '#/components/schemas/ListOfIntents'
         '404':
           description: Deployment Intent not found
         '400':
@@ -1393,7 +1393,7 @@ paths:
           content:
             application/json: # operation response mime type
               schema:
-                $ref: '#/components/schemas/GenericPlacementAppIntent'
+                $ref: '#/components/schemas/GenericPlacementAppIntentSpec'
         '404':
           description: Generic Placement Intent for application not found
         '400':
@@ -1514,28 +1514,40 @@ paths:
           default: all
       - in: query
         name: instance
-        description: instance identifier
+        description: display status for given instance identifier
         schema:
           type: string
           maxLength: 32
       - in: query
         name: app
-        description: app name
+        description: filter status query results by given app name
         schema:
           type: string
           maxLength: 64
       - in: query
         name: cluster
-        description: cluster-provider+cluster
+        description: filter status query results by given cluster-provider+cluster
         schema:
           type: string
           maxLength: 128
       - in: query
         name: resource
-        description: resource name
+        description: filter status query results by given resource name
         schema:
           type: string
           maxLength: 64
+      - in: query
+        name: apps
+        description: query parameter (no value) to get list of apps
+        schema: {}
+      - in: query
+        name: clusters
+        description: query parameter (no value) to get list of clusters, optionally filtered by app
+        schema: {}
+      - in: query
+        name: resources
+        description: query parameter (no value) to get list of resources, optionally filtered by app and/or cluster (if output=cluster)
+        schema: {}
     get:
       tags:
         - Deployment Lifecycle
@@ -1712,7 +1724,128 @@ paths:
           description: Conflict
         '500':
           description: Internal Server Error
+############################ Clm Controller Registration API'S #################################################
+  /clm-controllers:
+    post:
+      tags:
+        - Clm Controller Registration
+      summary: Clm Controller Registration
+      description: Add a new `ClmController`
+      operationId: addClmController
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/ClmController'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json:
+            schema:
+                $ref: '#/components/schemas/ClmController'
+        description: ClmController Info
+        required: true
+    get: # documentation for GET operation for this path
+          tags:
+            - Clm Controller Registration
+          summary: Get all controllers
 
+          description: |
+            Get all `controllers`
+
+          operationId: getClmControllers
+          responses: # list of responses
+            '200':
+              description: Success
+              content:
+                application/json: # operation response mime type
+                  schema:
+                    $ref: '#/components/schemas/ClmControllerArray'
+            '404':
+              description: No controllers found
+            '400':
+              description: Bad Request
+            '500':
+              description: Internal Server Error
+
+  /clm-controllers/{controller-name}:
+    # parameters list that are used with each operation for this path
+    parameters:
+    - $ref: '#/components/parameters/controllerName'
+    get: # documentation for GET operation for this path
+      tags:
+        - Clm Controller Registration
+      summary: Get ClmController by name
+
+      description: |
+        Get `ClmController`
+
+      operationId: getClmController
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/ClmController'
+        '404':
+          description: ClmController not found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - Clm Controller Registration
+      summary: Update ClmController
+      description: Update `ClmController`
+      operationId: updateClmController
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/ClmController'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClmController'
+        description: Update controllers object
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - Clm Controller Registration
+      summary: Delete ClmController
+
+      description: |
+        Delete `ClmController`
+
+      operationId: deleteClmController
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '500':
+          description: Internal Server Error
 ############################ Cluster Provider API'S #################################################
   /cluster-providers:
     post:
@@ -1723,7 +1856,7 @@ paths:
       operationId: addClusterProvider
       responses:
         '201':
-          description: Success
+          description: Created
           content:
             application/json: # operation response mime type
               schema:
@@ -1760,7 +1893,7 @@ paths:
               content:
                 application/json: # operation response mime type
                   schema:
-                    $ref: '#/components/schemas/Metadata'
+                    $ref: '#/components/schemas/MetadataArray'
             '404':
               description: No cluster provider found
             '400':
@@ -1801,8 +1934,8 @@ paths:
       description: Update `cluster providers`
       operationId: updateClusterProviders
       responses:
-        '200':
-          description: Success
+        '201':
+          description: Created
           content:
             application/json: # operation response mime type
               schema:
@@ -1855,7 +1988,7 @@ paths:
       operationId: addClusterToClusterProvider
       responses:
         '201':
-          description: Success
+          description: Created
           content:
             application/json: # operation response mime type
               schema:
@@ -1878,10 +2011,17 @@ paths:
     get: # documentation for GET operation for this path
       tags:
         - Clusters
-      summary: Get all clusters for cluster provider
+      summary: Get all clusters for cluster provider.  Option to query by label.
+      parameters:
+        - in: query
+          description: Query for clusters with label
+          name: label
+          schema:
+            type: string
+            maxLength: 128
+          required: false
 
-      description: |
-        Get all `clusters for cluster provider`
+      description: Query clusters for a cluster provider.  When the query by label parameter is supplied, a list of cluster names is returned in the form `[ "name1", "name2" ]`, otherwise, a list of cluster objects is returned.
 
       operationId: getAllClusterForClusterProvider
       responses: # list of responses
@@ -1934,20 +2074,22 @@ paths:
     put:
       tags:
         - Clusters
-      summary: Update Cluster
-      description: Update `cluster`
+      summary: Update Cluster (NOT SUPPORTED YET)
+      description: Update `cluster` (NOT SUPPORTED YET)
       operationId: updateClusterToClusterProvider
       responses:
-        '200':
+        '201':
           content:
             application/json: # operation response mime type
               schema:
                 $ref: '#/components/schemas/Metadata'
-          description: Success
+          description: Created
         '400':
           description: Bad Request
         '404':
           description: Not Found
+        '405':
+          description: Method not allowed
         '409':
           description: Conflict
         '422':
@@ -1995,7 +2137,7 @@ paths:
       operationId: addLabelToCluster
       responses:
         '201':
-          description: Success
+          description: Created
           content:
             application/json: # operation response mime type
               schema:
@@ -2032,7 +2174,9 @@ paths:
               content:
                 application/json: # operation response mime type
                   schema:
-                    $ref: '#/components/schemas/ClusterLabel'
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ClusterLabel'
             '404':
               description: No labels found
             '400':
@@ -2075,8 +2219,8 @@ paths:
       description: Update label for `cluster`
       operationId: updateLabelForCluster
       responses:
-        '200':
-          description: Success
+        '201':
+          description: Created
           content:
             application/json: # operation response mime type
               schema:
@@ -2117,39 +2261,6 @@ paths:
         '500':
           description: Internal Server Error
 
-# Qurey for label - Get clusters for label
-  /cluster-providers/{cluster-providers-name}/clusters/:
-    # parameters list that are used with each operation for this path
-    parameters:
-      - $ref: '#/components/parameters/clusterProviderName'
-      - in: query
-        name: label
-        schema:
-          type: string
-          maxLength: 128
-        required: true
-    get: # documentation for GET operation for this path
-      tags:
-        - Clusters
-      summary: Get clusters for label
-
-      description: |
-        Get `clusters for label`
-      operationId: getClustersForLabel
-      responses: # list of responses
-        '200':
-          description: Success
-          content:
-            application/json: # operation response mime type
-              schema:
-                $ref: '#/components/schemas/MetadataArray'
-        '404':
-          description: label not found
-        '400':
-          description: Bad Request
-        '500':
-          description: Internal Server Error
-
 ############################ Cluster Key Value API'S #################################################
   /cluster-providers/{cluster-providers-name}/clusters/{cluster-name}/kv-pairs:
     # parameters list that are used with each operation for this path
@@ -2164,7 +2275,7 @@ paths:
       operationId: addKvpairToCluster
       responses:
         '201':
-          description: Success
+          description: Created
           content:
             application/json: # operation response mime type
               schema:
@@ -2201,7 +2312,9 @@ paths:
               content:
                 application/json: # operation response mime type
                   schema:
-                    $ref: '#/components/schemas/ClusterKv'
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ClusterKv'
             '404':
               description: No labels found
             '400':
@@ -2216,12 +2329,19 @@ paths:
       - $ref: '#/components/parameters/clusterName'
       - $ref: '#/components/parameters/clusterKvpairName'
     get: # documentation for GET operation for this path
+      parameters:
+        - in: query
+          name: key
+          description: query for value of key
+          schema:
+            type: string
+            maxLength: 128
+          required: false
       tags:
         - Clusters
-      summary: Get KV Pair
-
+      summary: Query KV Pair
       description: |
-        Get `KV pair` for cluster
+        Get `KV pair` for cluster. If the query by key parameter is supplied, the corresponding value from the kv-pair is returned as: `{"value": <value>}`
 
       operationId: getKvpairForCluster
       responses: # list of responses
@@ -2232,7 +2352,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ClusterKv'
         '404':
-          description: KV pair not found
+          description: KV pair or key value not found
         '400':
           description: Bad Request
         '500':
@@ -2244,8 +2364,8 @@ paths:
       description: Update KV Pair for `cluster`
       operationId: updateKvPairForCluster
       responses:
-        '200':
-          description: Success
+        '201':
+          description: Created
           content:
             application/json: # operation response mime type
               schema:
@@ -2283,42 +2403,6 @@ paths:
           description: Not Found
         '409':
           description: Conflict
-        '500':
-          description: Internal Server Error
-
-  #Query Key Value
-  /cluster-providers/{cluster-providers-name}/clusters/{cluster-name}/kv-pairs/{kv-pair-name}/:
-    # parameters list that are used with each operation for this path
-    parameters:
-      - $ref: '#/components/parameters/clusterProviderName'
-      - $ref: '#/components/parameters/clusterName'
-      - $ref: '#/components/parameters/clusterKvpairName'
-      - in: query
-        name: key
-        schema:
-          type: string
-          maxLength: 128
-        required: true
-    get: # documentation for GET operation for this path
-      tags:
-        - Clusters
-      summary: Query KV Pair
-
-      description: |
-        Query `KV pair` for cluster
-
-      operationId: queryKvpairForCluster
-      responses: # list of responses
-        '200':
-          description: Success
-          content:
-            application/json: # operation response mime type
-              schema:
-                $ref: '#/components/schemas/Kv'
-        '404':
-          description: KV pair not found
-        '400':
-          description: Bad Request
         '500':
           description: Internal Server Error
 
@@ -2624,13 +2708,13 @@ paths:
           maxLength: 64
       - in: query
         name: cluster
-        description: cluster-provider+cluster
+        description: filter status query results by given cluster-provider+cluster
         schema:
           type: string
           maxLength: 128
       - in: query
         name: resource
-        description: resource name
+        description: filter status query results by given resource
         schema:
           type: string
           maxLength: 64
@@ -4482,6 +4566,8 @@ components:
           type: string
           maxLength: 512
           example: "Some more data"
+      required:
+        - name
     Metadata:
       type: object
       properties:
@@ -4499,6 +4585,8 @@ components:
           type: string
           maxLength: 128
           example: "v1"
+      required:
+        - version
     CompositeAppVersion:
       type: object
       properties:
@@ -4537,15 +4625,15 @@ components:
           type: object
           description: AppProfileSpec contains the Spec for AppProfiles
           properties:
-            metadata:
-              $ref: '#/components/schemas/MetadataBase'
             app-name:
               type: string
               description: Application Name
               maxLength: 128
               example: "Application1"
-              required:
-              - app-name
+          required:
+            - app-name
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
     ProfileAppSpecArray:
       type: array
       items:
@@ -4577,6 +4665,7 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/GenericPlacementIntent'
+
     GenericPlacementAppIntentSpec:
       type: object
       description: ''
@@ -4714,6 +4803,23 @@ components:
               type: object
           required:
           - intent
+    IntentMapping:
+      type: object
+      additionalProperties:
+        type: string
+        maxLength: 128
+
+        description: Maps intent types to intent names
+    IntentMappingArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/IntentMapping'
+    ListOfIntents:
+      type: object
+      properties:
+        intent:
+          $ref: '#/components/schemas/IntentMappingArray'
+
     DeploymentIntentArray:
       type: array
       items:
@@ -4755,6 +4861,36 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Controller'
+    ClmController:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          type: object
+          properties:
+            host:
+              type: string
+              description: Controller reachibility information
+              maxLength: 128
+              example: "10.7.100.4"
+            port:
+              type: string
+              description: Port for controller
+              maxLength: 128
+              example: "9029"
+            priority:
+              type: string
+              description: Priority of controller to be called
+              maxLength: 128
+              example: "4"
+          required:
+            - host
+            - port
+    ClmControllerArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/ClmController'
     ClusterLabel:
       type: object
       properties:
@@ -4763,6 +4899,8 @@ components:
           description: Logical Cloud to use for this intent
           maxLength: 128
           example: "cluster-label-1"
+      required:
+      - label-name
     ClusterKv:
       type: object
       properties:
@@ -4816,8 +4954,6 @@ components:
                     type: string
                     maxLength: 128
                 required:
-                - excludeIps
-                - gateway
                 - name
                 - subnet
                 type: object
@@ -4852,8 +4988,6 @@ components:
                     type: string
                     maxLength: 128
                 required:
-                - excludeIps
-                - gateway
                 - name
                 - subnet
                 type: object
@@ -4988,6 +5122,10 @@ components:
                   description: Type of the workload
                   maxLength: 128
                   example: "deployment"
+              required:
+              - application-name
+              - workload-resource
+              - type
     NetworkWorkloadSpecArray:
       type: array
       items:
@@ -5256,6 +5394,9 @@ components:
                 type: string
                 maxLength: 128
                 example: "map1"
+      required:
+        - appName
+        - newObject
     GenericResourceMetaSpec:
       type: object
       properties:
@@ -5310,6 +5451,10 @@ components:
                 type: string
                 maxLength: 128
                 example: "allow"
+            required:
+             - scope
+             - clusterProvider
+             - mode
         patchType:
           description: Patching type used. "json" is the only supported patch type
           type: string
@@ -5335,6 +5480,8 @@ components:
                 example: "test"
             type: object
           type: array
+      required:
+        - clusterSpecific
     GenericResourceCustomization:
       type: object
       properties:
@@ -5364,6 +5511,11 @@ components:
           type: string
           maxLength: 128
           example: "vfw"
+        appLabel:
+          description: Application label
+          type: string
+          maxLength: 128
+          example: "app=vfw"
         serviceName:
           description: Service name
           type: string
@@ -5386,6 +5538,12 @@ components:
         externalSupport:
           description: External Support
           type: boolean
+      required:
+        - appName
+        - serviceName
+        - port
+        - protocol
+        - appLabel
     InboundServerIntent:
       type: object
       properties:
@@ -5406,6 +5564,11 @@ components:
           type: string
           maxLength: 128
           example: "vfw"
+        appLabel:
+          description: Application label
+          type: string
+          maxLength: 128
+          example: "app=vfw"
         serviceName:
           description: Service name
           type: string
@@ -5417,12 +5580,18 @@ components:
           items:
             type: string
             maxLength: 128
-        ipRange:
+        cidrs:
           description: Ip Range list
           type: array
           items:
             type: string
             maxLength: 128
+      required:
+        - appName
+        - serviceName
+        - namespaces
+        - cidrs
+        - appLabel
     InboundClientIntent:
       type: object
       properties:
@@ -5526,7 +5695,7 @@ components:
     clusterLabelName:
       name: cluster-label-name
       in: path
-      description: Name of the cluster
+      description: Name of the cluster label name
       required: true
       schema:
         type: string
@@ -5534,7 +5703,7 @@ components:
     clusterKvpairName:
       name: kv-pair-name
       in: path
-      description: Name of the cluster
+      description: Name of the cluster kv-pair
       required: true
       schema:
         type: string
@@ -5550,7 +5719,7 @@ components:
     netControlIntent:
       name: net-control-intent
       in: path
-      description: Name of the network
+      description: Name of the network control intent
       required: true
       schema:
         type: string
@@ -5558,7 +5727,7 @@ components:
     netControlWorkloadIntent:
       name: workload-intent-name
       in: path
-      description: Name of the network
+      description: Name of the network workload intent
       required: true
       schema:
         type: string
@@ -5566,7 +5735,7 @@ components:
     netControlWorkloadInterface:
       name: interface-name
       in: path
-      description: Name of the network
+      description: Name of the network workload interface intent
       required: true
       schema:
         type: string

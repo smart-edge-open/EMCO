@@ -12,7 +12,8 @@ global:
 #################################################################
 # application image
 repository:
-image: emco-clm:latest
+image: emco-clm
+imageTag:
 pullPolicy: Always
 command: "./clm"
 args: ""

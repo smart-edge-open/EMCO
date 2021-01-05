@@ -31,14 +31,54 @@ spec:
         release: {{ .Release.Name }}
     spec:
       containers:
-      - image: "{{ include "common.repository" . }}/{{ .Values.image }}"
+      - image: "{{ include "common.repository" . }}{{ .Values.image }}:{{ .Values.imageTag }}"
         imagePullPolicy: {{ .Values.global.pullPolicy | default .Values.pullPolicy }}
         name: {{ include "common.name" . }}
+        env:
+        {{- $userProxy := .Values | default dict }}
+        {{- if $userProxy.noProxyHosts }}
+        - name: NO_PROXY
+          value: {{ $userProxy.noProxyHosts }}
+        - name: no_proxy
+          value: {{ $userProxy.noProxyHosts }}
+        {{- end}}
+        {{- if $userProxy.httpProxy }}
+        - name: HTTP_PROXY
+          value: {{ .Values.httpProxy }}
+        - name: http_proxy
+          value: {{ .Values.httpProxy }}
+        {{- end}}
+        {{- if $userProxy.httpsProxy }}
+        - name: HTTPS_PROXY
+          value: {{ .Values.httpsProxy }}
+        - name: https_proxy
+          value: {{ .Values.httpsProxy }}
+        {{- end}}
+        {{- if eq (empty .Values.global.disableDbAuth) true }}
+        - name: DB_EMCO_USERNAME
+          value: emco
+        - name: DB_EMCO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: emco-mongo
+              key: userPassword
+        - name: CONTEXTDB_EMCO_USERNAME
+          value: "root"
+        - name: CONTEXTDB_EMCO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: emco-etcd
+              key: etcd-root-password
+        {{- end }}
         command: [{{ .Values.command }}]
         args: [{{ .Values.args }}]
         workingDir: {{ .Values.workingDir }}
         ports:
         - containerPort: {{ .Values.service.internalPort }}
+        {{- $si := .Values.serviceInternal | default dict }}
+        {{- if $si.internalPort }}
+        - containerPort: {{ $si.internalPort }}
+        {{- end }}
         {{- if eq .Values.liveness.enabled true }}
         livenessProbe:
           tcpSocket:
@@ -56,7 +96,7 @@ spec:
           - mountPath: /etc/localtime
             name: localtime
             readOnly: true
-          - mountPath: {{ .Values.workingDir }}/config.json 
+          - mountPath: {{ .Values.workingDir }}/config.json
             name: {{ include "common.name" .}}
             subPath: config.json
         resources:

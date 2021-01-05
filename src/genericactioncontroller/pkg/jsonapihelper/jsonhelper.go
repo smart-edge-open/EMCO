@@ -197,11 +197,11 @@ func SetBaseSecret(fns []string, cmName string) ([]byte, error) {
 
 	secret := SecretResource{
 		APIVersion: "v1",
-		Kind:       "ConfigMap",
+		Kind:       "Secret",
 		MetaData: MetaDataStr{
 			Name: cmName,
 		},
-		Type: "kubernetes.io/ssh-auth",
+		Type: "Opaque",
 		Data: secretData,
 	}
 

@@ -16,3 +16,7 @@
 # Global configuration default values that can be inherited by
 # all subcharts.
 #################################################################
+repository:
+imageTag: latest
+global:
+  loglevel: warn

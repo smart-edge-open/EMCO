@@ -4,6 +4,7 @@
 package module
 
 import (
+	"github.com/open-ness/EMCO/src/orchestrator/pkg/infra/db"
 	pkgerrors "github.com/pkg/errors"
 )
 
@@ -48,17 +49,14 @@ type KeyValueManager interface {
 type KeyValueClient struct {
 	storeName string
 	tagMeta   string
-	util      Utility
 }
 
 // KeyValueClient returns an instance of the KeyValueClient
 // which implements the KeyValueManager
 func NewKeyValueClient() *KeyValueClient {
-	service := DBService{}
 	return &KeyValueClient{
 		storeName: "orchestrator",
 		tagMeta:   "keyvalue",
-		util:      service,
 	}
 }
 
@@ -73,12 +71,12 @@ func (v *KeyValueClient) CreateKVPair(project, logicalCloud string, c KeyValue) 
 	}
 
 	//Check if project exist
-	err := v.util.CheckProject(project)
+	err := CheckProject(project)
 	if err != nil {
 		return KeyValue{}, pkgerrors.New("Unable to find the project")
 	}
 	//check if logical cloud exists
-	err = v.util.CheckLogicalCloud(project, logicalCloud)
+	err = CheckLogicalCloud(project, logicalCloud)
 	if err != nil {
 		return KeyValue{}, pkgerrors.New("Unable to find the logical cloud")
 	}
@@ -88,7 +86,7 @@ func (v *KeyValueClient) CreateKVPair(project, logicalCloud string, c KeyValue) 
 		return KeyValue{}, pkgerrors.New("Key Value already exists")
 	}
 
-	err = v.util.DBInsert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return KeyValue{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -105,7 +103,7 @@ func (v *KeyValueClient) GetKVPair(project, logicalCloud, kvPairName string) (Ke
 		LogicalCloudName: logicalCloud,
 		KeyValueName:     kvPairName,
 	}
-	value, err := v.util.DBFind(v.storeName, key, v.tagMeta)
+	value, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
 	if err != nil {
 		return KeyValue{}, pkgerrors.Wrap(err, "Get Key Value")
 	}
@@ -113,7 +111,7 @@ func (v *KeyValueClient) GetKVPair(project, logicalCloud, kvPairName string) (Ke
 	//value is a byte array
 	if value != nil {
 		kv := KeyValue{}
-		err = v.util.DBUnmarshal(value[0], &kv)
+		err = db.DBconn.Unmarshal(value[0], &kv)
 		if err != nil {
 			return KeyValue{}, pkgerrors.Wrap(err, "Unmarshaling value")
 		}
@@ -133,14 +131,14 @@ func (v *KeyValueClient) GetAllKVPairs(project, logicalCloud string) ([]KeyValue
 		KeyValueName:     "",
 	}
 	var resp []KeyValue
-	values, err := v.util.DBFind(v.storeName, key, v.tagMeta)
+	values, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
 	if err != nil {
 		return []KeyValue{}, pkgerrors.Wrap(err, "Get Key Value")
 	}
 
 	for _, value := range values {
 		kv := KeyValue{}
-		err = v.util.DBUnmarshal(value, &kv)
+		err = db.DBconn.Unmarshal(value, &kv)
 		if err != nil {
 			return []KeyValue{}, pkgerrors.Wrap(err, "Unmarshaling value")
 		}
@@ -159,7 +157,7 @@ func (v *KeyValueClient) DeleteKVPair(project, logicalCloud, kvPairName string) 
 		LogicalCloudName: logicalCloud,
 		KeyValueName:     kvPairName,
 	}
-	err := v.util.DBRemove(v.storeName, key)
+	err := db.DBconn.Remove(v.storeName, key)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Delete Key Value")
 	}
@@ -183,7 +181,7 @@ func (v *KeyValueClient) UpdateKVPair(project, logicalCloud, kvPairName string, 
 	if err != nil {
 		return KeyValue{}, pkgerrors.New("KV Pair does not exist")
 	}
-	err = v.util.DBInsert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return KeyValue{}, pkgerrors.Wrap(err, "Updating DB Entry")
 	}

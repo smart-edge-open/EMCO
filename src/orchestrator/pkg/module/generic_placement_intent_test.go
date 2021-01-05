@@ -18,7 +18,7 @@ func TestCreateGenericPlacementIntent(t *testing.T) {
 		inputProject             string
 		inputCompositeApp        string
 		inputCompositeAppVersion string
-		inputDepIntGrpName		 string
+		inputDepIntGrpName       string
 		expectedError            string
 		mockdb                   *db.MockDB
 		expected                 GenericPlacementIntent
@@ -47,58 +47,59 @@ func TestCreateGenericPlacementIntent(t *testing.T) {
 			},
 			expectedError: "",
 			mockdb: &db.MockDB{
-				Items: map[string]map[string][]byte{
-					ProjectKey{ProjectName: "testProject"}.String(): {
-						"projectmetadata": []byte(
-							"{\"project-name\":\"testProject\"," +
-								"\"description\":\"Test project for unit testing\"}"),
+				Items: []map[string]map[string][]byte{
+					{
+						ProjectKey{ProjectName: "testProject"}.String(): {
+							"projectmetadata": []byte(
+								"{\"project-name\":\"testProject\"," +
+									"\"description\":\"Test project for unit testing\"}"),
+						},
+						CompositeAppKey{CompositeAppName: "testCompositeApp",
+							Version: "testCompositeAppVersion", Project: "testProject"}.String(): {
+							"compositeappmetadata": []byte(
+								"{\"metadata\":{" +
+									"\"name\":\"testCompositeApp\"," +
+									"\"description\":\"description\"," +
+									"\"userData1\":\"user data\"," +
+									"\"userData2\":\"user data\"" +
+									"}," +
+									"\"spec\":{" +
+									"\"version\":\"version of the composite app\"}}"),
+						},
+						DeploymentIntentGroupKey{
+							Name:         "testDeploymentIntentGroup",
+							Project:      "testProject",
+							CompositeApp: "testCompositeApp",
+							Version:      "testCompositeAppVersion",
+						}.String(): {
+							"deploymentintentgroupmetadata": []byte(
+								"{\"metadata\":{\"name\":\"testDeploymentIntentGroup\"," +
+									"\"description\":\"DescriptionTestDeploymentIntentGroup\"," +
+									"\"userData1\": \"userData1\"," +
+									"\"userData2\": \"userData2\"}," +
+									"\"spec\":{\"profile\": \"Testprofile\"," +
+									"\"version\": \"version of deployment\"," +
+									"\"override-values\":[" +
+									"{" +
+									"\"app-name\": \"TestAppName\"," +
+									"\"values\": " +
+									"{" +
+									"\"imageRepository\":\"registry.hub.docker.com\"" +
+									"}" +
+									"}," +
+									"{" +
+									"\"app-name\": \"TestAppName\"," +
+									"\"values\": " +
+									"{" +
+									"\"imageRepository\":\"registry.hub.docker.com\"" +
+									"}" +
+									"}" +
+									"]," +
+									"\"logical-cloud\": \"cloud1\"" +
+									"}" +
+									"}"),
+						},
 					},
-					CompositeAppKey{CompositeAppName: "testCompositeApp",
-						Version: "testCompositeAppVersion", Project: "testProject"}.String(): {
-						"compositeappmetadata": []byte(
-							"{\"metadata\":{" +
-								"\"name\":\"testCompositeApp\"," +
-								"\"description\":\"description\"," +
-								"\"userData1\":\"user data\"," +
-								"\"userData2\":\"user data\"" +
-								"}," +
-								"\"spec\":{" +
-								"\"version\":\"version of the composite app\"}}"),
-					},
-					DeploymentIntentGroupKey{
-						Name:         "testDeploymentIntentGroup",
-						Project:      "testProject",
-						CompositeApp: "testCompositeApp",
-						Version:      "testCompositeAppVersion",
-					}.String(): {
-						"deploymentintentgroupmetadata": []byte(
-							"{\"metadata\":{\"name\":\"testDeploymentIntentGroup\"," +
-								"\"description\":\"DescriptionTestDeploymentIntentGroup\"," +
-								"\"userData1\": \"userData1\"," +
-								"\"userData2\": \"userData2\"}," +
-								"\"spec\":{\"profile\": \"Testprofile\"," +
-								"\"version\": \"version of deployment\"," +
-								"\"override-values\":[" +
-								"{" +
-								"\"app-name\": \"TestAppName\"," +
-								"\"values\": " +
-								"{" +
-								"\"imageRepository\":\"registry.hub.docker.com\"" +
-								"}" +
-								"}," +
-								"{" +
-								"\"app-name\": \"TestAppName\"," +
-								"\"values\": " +
-								"{" +
-								"\"imageRepository\":\"registry.hub.docker.com\"" +
-								"}" +
-								"}" +
-								"]," +
-								"\"logical-cloud\": \"cloud1\"" +
-								"}"+
-								"}"),
-					},
-
 				},
 			},
 		},
@@ -129,22 +130,22 @@ func TestCreateGenericPlacementIntent(t *testing.T) {
 func TestGetGenericPlacementIntent(t *testing.T) {
 
 	testCases := []struct {
-		label               string
-		expectedError       string
-		expected            GenericPlacementIntent
-		mockdb              *db.MockDB
-		intentName          string
-		projectName         string
-		compositeAppName    string
-		compositeAppVersion string
+		label                     string
+		expectedError             string
+		expected                  GenericPlacementIntent
+		mockdb                    *db.MockDB
+		intentName                string
+		projectName               string
+		compositeAppName          string
+		compositeAppVersion       string
 		deploymentIntentGroupName string
 	}{
 		{
-			label:               "Get Intent",
-			intentName:          "testIntent",
-			projectName:         "testProject",
-			compositeAppName:    "testCompositeApp",
-			compositeAppVersion: "testVersion",
+			label:                     "Get Intent",
+			intentName:                "testIntent",
+			projectName:               "testProject",
+			compositeAppName:          "testCompositeApp",
+			compositeAppVersion:       "testVersion",
 			deploymentIntentGroupName: "testDeploymentIntentGroup",
 			expected: GenericPlacementIntent{
 				MetaData: GenIntentMetaData{
@@ -156,20 +157,22 @@ func TestGetGenericPlacementIntent(t *testing.T) {
 			},
 			expectedError: "",
 			mockdb: &db.MockDB{
-				Items: map[string]map[string][]byte{
-					GenericPlacementIntentKey{
-						Name:         "testIntent",
-						Project:      "testProject",
-						CompositeApp: "testCompositeApp",
-						Version:      "testVersion",
-						DigName: "testDeploymentIntentGroup",
-					}.String(): {
-						"genericplacementintentmetadata": []byte(
-							"{\"metadata\":{\"Name\":\"testIntent\"," +
-								"\"Description\":\"A sample intent for testing\"," +
-								"\"UserData1\": \"userData1\"," +
-								"\"UserData2\": \"userData2\"}" +
-								"}"),
+				Items: []map[string]map[string][]byte{
+					{
+						GenericPlacementIntentKey{
+							Name:         "testIntent",
+							Project:      "testProject",
+							CompositeApp: "testCompositeApp",
+							Version:      "testVersion",
+							DigName:      "testDeploymentIntentGroup",
+						}.String(): {
+							"genericplacementintentmetadata": []byte(
+								"{\"metadata\":{\"Name\":\"testIntent\"," +
+									"\"Description\":\"A sample intent for testing\"," +
+									"\"UserData1\": \"userData1\"," +
+									"\"UserData2\": \"userData2\"}" +
+									"}"),
+						},
 					},
 				},
 			},

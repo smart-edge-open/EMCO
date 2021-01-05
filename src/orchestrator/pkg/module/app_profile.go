@@ -58,7 +58,7 @@ type AppProfileFindByAppKey struct {
 
 // AppProfileManager exposes the AppProfile functionality
 type AppProfileManager interface {
-	CreateAppProfile(provider, compositeApp, compositeAppVersion, compositeProfile string, ap AppProfile, ac AppProfileContent) (AppProfile, error)
+	CreateAppProfile(provider, compositeApp, compositeAppVersion, compositeProfile string, ap AppProfile, ac AppProfileContent, exists bool) (AppProfile, error)
 	GetAppProfile(project, compositeApp, compositeAppVersion, compositeProfile, profile string) (AppProfile, error)
 	GetAppProfiles(project, compositeApp, compositeAppVersion, compositeProfile string) ([]AppProfile, error)
 	GetAppProfileByApp(project, compositeApp, compositeAppVersion, compositeProfile, appName string) (AppProfile, error)
@@ -86,7 +86,7 @@ func NewAppProfileClient() *AppProfileClient {
 }
 
 // CreateAppProfile creates an entry for AppProfile in the database.
-func (c *AppProfileClient) CreateAppProfile(project, compositeApp, compositeAppVersion, compositeProfile string, ap AppProfile, ac AppProfileContent) (AppProfile, error) {
+func (c *AppProfileClient) CreateAppProfile(project, compositeApp, compositeAppVersion, compositeProfile string, ap AppProfile, ac AppProfileContent, exists bool) (AppProfile, error) {
 	key := AppProfileKey{
 		Project:             project,
 		CompositeApp:        compositeApp,
@@ -99,12 +99,12 @@ func (c *AppProfileClient) CreateAppProfile(project, compositeApp, compositeAppV
 	}
 
 	res, err := c.GetAppProfile(project, compositeApp, compositeAppVersion, compositeProfile, ap.Metadata.Name)
-	if res != (AppProfile{}) {
+	if res != (AppProfile{}) && !exists{
 		return AppProfile{}, pkgerrors.New("AppProfile already exists")
 	}
 
 	res, err = c.GetAppProfileByApp(project, compositeApp, compositeAppVersion, compositeProfile, ap.Spec.AppName)
-	if res != (AppProfile{}) {
+	if res != (AppProfile{}) && !exists{
 		return AppProfile{}, pkgerrors.New("App already has an AppProfile")
 	}
 
@@ -141,6 +141,8 @@ func (c *AppProfileClient) GetAppProfile(project, compositeApp, compositeAppVers
 	value, err := db.DBconn.Find(c.storeName, key, c.tagMeta)
 	if err != nil {
 		return AppProfile{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(value) == 0 {
+		return AppProfile{}, pkgerrors.New("AppProfile not found")
 	}
 
 	if value != nil {
@@ -171,6 +173,8 @@ func (c *AppProfileClient) GetAppProfiles(project, compositeApp, compositeAppVer
 	values, err := db.DBconn.Find(c.storeName, key, c.tagMeta)
 	if err != nil {
 		return []AppProfile{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(values) == 0 {
+		return []AppProfile{}, pkgerrors.New("AppProfiles not found")
 	}
 
 	for _, value := range values {
@@ -199,6 +203,8 @@ func (c *AppProfileClient) GetAppProfileByApp(project, compositeApp, compositeAp
 	value, err := db.DBconn.Find(c.storeName, key, c.tagMeta)
 	if err != nil {
 		return AppProfile{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(value) == 0 {
+		return AppProfile{}, pkgerrors.New("AppProfile not found")
 	}
 
 	if value != nil {
@@ -225,6 +231,8 @@ func (c *AppProfileClient) GetAppProfileContent(project, compositeApp, composite
 	value, err := db.DBconn.Find(c.storeName, key, c.tagContent)
 	if err != nil {
 		return AppProfileContent{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(value) == 0 {
+		return AppProfileContent{}, pkgerrors.New("AppProfileContent not found")
 	}
 
 	//value is a byte array
@@ -252,6 +260,8 @@ func (c *AppProfileClient) GetAppProfileContentByApp(project, compositeApp, comp
 	value, err := db.DBconn.Find(c.storeName, key, c.tagContent)
 	if err != nil {
 		return AppProfileContent{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(value) == 0 {
+		return AppProfileContent{}, pkgerrors.New("AppProfileContent not found")
 	}
 
 	//value is a byte array
@@ -283,6 +293,8 @@ func (c *AppProfileClient) DeleteAppProfile(project, compositeApp, compositeAppV
 			return pkgerrors.Wrap(err, "db Remove error - not found")
 		} else if strings.Contains(err.Error(), "Can't delete parent without deleting child") {
 			return pkgerrors.Wrap(err, "db Remove error - conflict")
+		} else if strings.Contains(err.Error(), "not found") {
+			return pkgerrors.Wrap(err, "App profile not found")
 		} else {
 			return pkgerrors.Wrap(err, "db Remove error - general")
 		}

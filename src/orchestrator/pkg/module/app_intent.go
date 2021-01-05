@@ -44,7 +44,7 @@ type AppIntentManager interface {
 	CreateAppIntent(a AppIntent, p string, ca string, v string, i string, digName string) (AppIntent, error)
 	GetAppIntent(ai string, p string, ca string, v string, i string, digName string) (AppIntent, error)
 	GetAllIntentsByApp(aN, p, ca, v, i, digName string) (SpecData, error)
-	GetAllAppIntents(p, ca, v, i, digName string) (ApplicationsAndClusterInfo, error)
+	GetAllAppIntents(p, ca, v, i, digName string) ([]AppIntent, error)
 	DeleteAppIntent(ai string, p string, ca string, v string, i string, digName string) error
 }
 
@@ -223,9 +223,9 @@ func (c *AppIntentClient) GetAllIntentsByApp(aN, p, ca, v, i, digName string) (S
 
 /*
 GetAllAppIntents takes in paramaters ProjectName, CompositeAppName, CompositeNameVersion
-and GenericPlacementIntentName,DeploymentIntentGroupName. Returns the ApplicationsAndClusterInfo Object - an array of AppClusterInfo
+and GenericPlacementIntentName,DeploymentIntentGroupName. Returns an array of AppIntents
 */
-func (c *AppIntentClient) GetAllAppIntents(p, ca, v, i, digName string) (ApplicationsAndClusterInfo, error) {
+func (c *AppIntentClient) GetAllAppIntents(p, ca, v, i, digName string) ([]AppIntent, error) {
 	k := AppIntentKey{
 		Name:                      "",
 		Project:                   p,
@@ -236,29 +236,23 @@ func (c *AppIntentClient) GetAllAppIntents(p, ca, v, i, digName string) (Applica
 	}
 	result, err := db.DBconn.Find(c.storeName, k, c.tagMetaData)
 	if err != nil {
-		return ApplicationsAndClusterInfo{}, pkgerrors.Wrap(err, "db Find error")
+		return []AppIntent{}, pkgerrors.Wrap(err, "db Find error")
 	}
 
-	var a AppIntent
-	var appClusterInfoArray []AppClusterInfo
+	var appIntents []AppIntent
 
 	if len(result) != 0 {
 		for i := range result {
-			a = AppIntent{}
-			err = db.DBconn.Unmarshal(result[i], &a)
+			aI := AppIntent{}
+			err = db.DBconn.Unmarshal(result[i], &aI)
 			if err != nil {
-				return ApplicationsAndClusterInfo{}, pkgerrors.Wrap(err, "Unmarshalling  AppIntent")
+				return []AppIntent{}, pkgerrors.Wrap(err, "Unmarshalling  AppIntent")
 			}
-			appName := a.Spec.AppName
-			allOfArray := a.Spec.Intent.AllOfArray
-			anyOfArray := a.Spec.Intent.AnyOfArray
-			appClusterInfo := AppClusterInfo{appName, allOfArray,
-				anyOfArray}
-			appClusterInfoArray = append(appClusterInfoArray, appClusterInfo)
+			appIntents = append(appIntents, aI)
 		}
 	}
-	applicationsAndClusterInfo := ApplicationsAndClusterInfo{appClusterInfoArray}
-	return applicationsAndClusterInfo, err
+
+	return appIntents, err
 }
 
 // DeleteAppIntent delete an AppIntent

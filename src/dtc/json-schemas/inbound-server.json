@@ -4,29 +4,37 @@
   "properties": {
     "spec": {
       "required": [
-        "application",
-        "servicename",
+        "appName",
+        "appLabel",
+        "serviceName",
         "port",
         "protocol"
       ],
       "type": "object",
       "description": "Traffic inbound server Intent",
       "properties": {
-        "application": {
+        "appName": {
           "description": "Application Name",
           "type": "string",
           "example": "smartapp",
           "maxLength": 128,
           "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
         },
-        "servicename": {
+        "appLabel": {
+          "description": "Application Label",
+          "type": "string",
+          "example": "app=smartapp",
+          "maxLength": 128,
+          "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.=]*)?[A-Za-z0-9]$"
+        },
+        "serviceName": {
           "description": "Servicename Name",
           "type": "string",
           "example": "httpbin",
           "maxLength": 128,
           "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
         },
-        "externalname": {
+        "externalName": {
           "description": "External Name",
           "type": "string",
           "example": "httpbin.k8s.com",
@@ -46,7 +54,7 @@
           "maxLength": 5,
           "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
         },
-        "external-support": {
+        "externalSupport": {
           "description": "External support",
           "type": "boolean",
           "example": false

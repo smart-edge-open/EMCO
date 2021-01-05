@@ -1,7 +1,6 @@
+#!/bin/bash
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (c) 2020 Intel Corporation
-
-#!/bin/bash
 
 REGISTRY=${EMCODOCKERREPO}
 BRANCH=`git rev-parse --abbrev-ref HEAD`

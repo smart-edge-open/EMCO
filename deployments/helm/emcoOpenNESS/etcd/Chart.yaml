@@ -1,13 +1,22 @@
-# SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2020 Intel Corporation
-
+annotations:
+  category: Database
 apiVersion: v1
+appVersion: 3.4.14
+description: etcd is a distributed key value store that provides a reliable way to store data across a cluster of machines
+engine: gotpl
+home: https://github.com/bitnami/charts/tree/master/bitnami/etcd
+icon: https://bitnami.com/assets/stacks/etcd/img/etcd-stack-220x234.png
+keywords:
+  - etcd
+  - cluster
+  - database
+  - cache
+  - key-value
+maintainers:
+  - email: containers@bitnami.com
+    name: Bitnami
 name: etcd
-home: https://github.com/coreos/etcd
-version: 3.2.26
-appVersion: 2.2.5
-description: Distributed reliable key-value store for the most critical data of a
-  distributed system.
--icon: https://raw.githubusercontent.com/coreos/etcd/master/logos/etcd-horizontal-color.png
 sources:
-- https://github.com/coreos/etcd
+  - https://github.com/bitnami/bitnami-docker-etcd
+  - https://coreos.com/etcd/
+version: 5.6.2

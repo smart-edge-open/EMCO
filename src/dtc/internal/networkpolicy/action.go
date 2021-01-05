@@ -55,8 +55,15 @@ func UpdateAppContext(intentName, appContextId string) error {
 			Description: "",
 		}
 
+		sl := strings.Split(is.Spec.AppLabel, "=" )
+		if len(sl) != 2 {
+			log.Error("Not a valid app label", log.Fields{
+					"label": is.Spec.AppLabel,
+			})
+			return pkgerrors.New("Not a valid app label")
+		}
 		ps := make(map[string]string)
-		ps["app"] = is.Spec.AppName
+		ps[sl[0]] = sl[1]
 
 		inports := []interface{}{}
 		proto := Protocol{Proto: is.Spec.Protocol}
@@ -82,8 +89,15 @@ func UpdateAppContext(intentName, appContextId string) error {
 
 		flist := []interface{}{}
 		for _, ic := range ics {
-			if ic.Spec.AppName != "" {
-				flist = append(flist, Pods{Pod: PodSelector{MatchLabels: map[string]string{"app": ic.Spec.AppName}}})
+			if ic.Spec.AppLabel != "" {
+				cl := strings.Split(ic.Spec.AppLabel, "=")
+				if len(cl) != 2 {
+					log.Error("Not a valid app label", log.Fields{
+						"label": ic.Spec.AppLabel,
+					})
+					return pkgerrors.New("Not a valid app label")
+				}
+				flist = append(flist, Pods{Pod: PodSelector{MatchLabels: map[string]string{cl[0]: cl[1]}}})
 			}
 			if is.Spec.ExternalSupport {
 				for _, cidr := range ic.Spec.IpRange {

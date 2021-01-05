@@ -55,7 +55,7 @@ func NewSchedulerClient() *SchedulerClient {
 
 // ClusterStatus holds the status data prepared for cluster network intent status queries
 type ClusterStatus struct {
-	status.StatusResult `json:",inline"`
+	status.ClusterStatusResult `json:",inline"`
 }
 
 func deleteAppContext(ac appcontext.AppContext) {
@@ -385,17 +385,13 @@ func (c SchedulerClient) NetworkIntentsStatus(clusterProvider, cluster, qInstanc
 		return ClusterStatus{}, pkgerrors.Wrap(err, "cluster state not found")
 	}
 
-	// Prepare the apps list (just one hardcoded value)
-	allApps := make([]string, 0)
-	allApps = append(allApps, nettypes.CONTEXT_CLUSTER_APP)
-
-	statusResponse, err := status.PrepareStatusResult(s, allApps, qInstance, qType, qOutput, qApps, qClusters, qResources)
+	statusResponse, err := status.PrepareClusterStatusResult(s, qInstance, qType, qOutput, qApps, qClusters, qResources)
 	if err != nil {
 		return ClusterStatus{}, err
 	}
 	statusResponse.Name = clusterProvider + "+" + cluster
 	clStatus := ClusterStatus{
-		StatusResult: statusResponse,
+		ClusterStatusResult: statusResponse,
 	}
 
 	return clStatus, nil

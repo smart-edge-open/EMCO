@@ -21,8 +21,8 @@ type Project struct {
 type ProjectMetaData struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	UserData1   string `userData1:"userData1"`
-	UserData2   string `userData2:"userData2"`
+	UserData1   string `json:"userData1"`
+	UserData2   string `json:"userData2"`
 }
 
 // ProjectKey is the key structure that is used in the database
@@ -97,6 +97,8 @@ func (v *ProjectClient) GetProject(name string) (Project, error) {
 	value, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
 	if err != nil {
 		return Project{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(value) == 0 {
+		return Project{}, pkgerrors.New("Project not found")
 	}
 
 	//value is a byte array
