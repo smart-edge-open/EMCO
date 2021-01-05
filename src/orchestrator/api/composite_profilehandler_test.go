@@ -26,7 +26,7 @@ type mockCompositeProfileManager struct {
 }
 
 func (m *mockCompositeProfileManager) CreateCompositeProfile(inp moduleLib.CompositeProfile, p string, ca string,
-	v string) (moduleLib.CompositeProfile, error) {
+	v string, exists bool) (moduleLib.CompositeProfile, error) {
 	if m.Err != nil {
 		return moduleLib.CompositeProfile{}, m.Err
 	}

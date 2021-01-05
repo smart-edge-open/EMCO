@@ -9,7 +9,7 @@
           "newobject"
         ],
         "type": "object",
-        "description": "BaseResourceSpec has appName, newObject and existingResource object(if newObject is false)",
+        "description": "ResourceSpec has appName, newObject and existingResource object(if newObject is false)",
         "properties": {
           "appname" : {
               "type": "string",
@@ -21,14 +21,14 @@
               "maxLength": 128,
               "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
           },
-          "existingresource" :{
+          "resourcegvk" :{
             "required": [
               "apiversion",
               "kind",
               "name"
             ],
             "type": "object",
-            "description": "existingresource is required only when newObject is false. It contains apiVersion, Kind and Name",
+            "description": "resourcegvk is required only when newObject is false. It contains apiVersion, Kind and Name",
             "properties": {
               "apiversion": {
                 "type": "string",

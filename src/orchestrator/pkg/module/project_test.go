@@ -61,16 +61,18 @@ func TestCreateProject(t *testing.T) {
 			},
 			expectedError: "Project already exists",
 			mockdb: &db.MockDB{
-				Items: map[string]map[string][]byte{
-					ProjectKey{ProjectName: "testProject"}.String(): {
-						"projectmetadata": []byte(
-							"{" +
-								"\"metadata\" : {" +
-								"\"Name\":\"testProject\"," +
-								"\"Description\":\"Test project for unit testing\"," +
-								"\"UserData1\":\"userData1\"," +
-								"\"UserData2\":\"userData2\"}" +
-								"}"),
+				Items: []map[string]map[string][]byte{
+					{
+						ProjectKey{ProjectName: "testProject"}.String(): {
+							"projectmetadata": []byte(
+								"{" +
+									"\"metadata\" : {" +
+									"\"Name\":\"testProject\"," +
+									"\"Description\":\"Test project for unit testing\"," +
+									"\"UserData1\":\"userData1\"," +
+									"\"UserData2\":\"userData2\"}" +
+									"}"),
+						},
 					},
 				},
 			},
@@ -127,16 +129,18 @@ func TestUpdateProject(t *testing.T) {
 			},
 			expectedError: "",
 			mockdb: &db.MockDB{
-				Items: map[string]map[string][]byte{
-					ProjectKey{ProjectName: "testProject"}.String(): {
-						"projectmetadata": []byte(
-							"{" +
-								"\"metadata\" : {" +
-								"\"Name\":\"testProject\"," +
-								"\"Description\":\"Test project for unit testing\"," +
-								"\"UserData1\":\"userData1\"," +
-								"\"UserData2\":\"userData2\"}" +
-								"}"),
+				Items: []map[string]map[string][]byte{
+					{
+						ProjectKey{ProjectName: "testProject"}.String(): {
+							"projectmetadata": []byte(
+								"{" +
+									"\"metadata\" : {" +
+									"\"Name\":\"testProject\"," +
+									"\"Description\":\"Test project for unit testing\"," +
+									"\"UserData1\":\"userData1\"," +
+									"\"UserData2\":\"userData2\"}" +
+									"}"),
+						},
 					},
 				},
 			},
@@ -201,16 +205,18 @@ func TestGetProject(t *testing.T) {
 			},
 			expectedError: "",
 			mockdb: &db.MockDB{
-				Items: map[string]map[string][]byte{
-					ProjectKey{ProjectName: "testProject"}.String(): {
-						"projectmetadata": []byte(
-							"{" +
-								"\"metadata\" : {" +
-								"\"Name\":\"testProject\"," +
-								"\"Description\":\"Test project for unit testing\"," +
-								"\"UserData1\": \"userData1\"," +
-								"\"UserData2\":\"userData2\"}" +
-								"}"),
+				Items: []map[string]map[string][]byte{
+					{
+						ProjectKey{ProjectName: "testProject"}.String(): {
+							"projectmetadata": []byte(
+								"{" +
+									"\"metadata\" : {" +
+									"\"Name\":\"testProject\"," +
+									"\"Description\":\"Test project for unit testing\"," +
+									"\"UserData1\": \"userData1\"," +
+									"\"UserData2\":\"userData2\"}" +
+									"}"),
+						},
 					},
 				},
 			},

@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fw0-packetgen
+  labels:
+    release: fw0
+    app: packetgen
+    chart: packetgen
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: packetgen
+      release: fw0
+  template:
+    metadata:
+      labels:
+        app: packetgen
+        release: fw0
+      annotations:
+        app: packetgen
+        release: fw0
+        VirtletLibvirtCPUSetting: |
+          mode: host-model
+        VirtletCloudInitUserData: |
+          ssh_pwauth: True
+          users:
+          - name: admin
+            gecos: User
+            primary-group: admin
+            groups: users
+            sudo: ALL=(ALL) NOPASSWD:ALL
+            lock_passwd: false
+          runcmd:
+            - export demo_artifacts_version=1.6.0
+            - export vfw_private_ip_0=192.168.10.3
+            - export vsn_private_ip_0=192.168.20.3
+            - export protected_net_cidr=192.168.20.0/24
+            - export dcae_collector_ip=10.0.4.1
+            - export dcae_collector_port=8081
+            - export protected_net_gw=192.168.20.100/24
+            - export protected_private_net_cidr=192.168.10.0/24
+            - wget -O - https://git.onap.org/multicloud/k8s/plain/kud/tests/vFW/packetgen | sudo -E bash
+        VirtletRootVolumeSize: 5Gi
+        kubernetes.io/target-runtime: virtlet.cloud
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: extraRuntime
+                operator: In
+                values:
+                - virtlet
+      containers:
+      - name: packetgen
+        imagePullPolicy: IfNotPresent
+        tty: true
+        stdin: true
+        resources:
+          limits:
+            memory: 4Gi

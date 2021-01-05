@@ -37,7 +37,7 @@ type mockClusterManager struct {
 	Err                  error
 }
 
-func (m *mockClusterManager) CreateClusterProvider(inp cluster.ClusterProvider) (cluster.ClusterProvider, error) {
+func (m *mockClusterManager) CreateClusterProvider(inp cluster.ClusterProvider, exists bool) (cluster.ClusterProvider, error) {
 	if m.Err != nil {
 		return cluster.ClusterProvider{}, m.Err
 	}
@@ -117,7 +117,7 @@ func (m *mockClusterManager) DeleteCluster(provider, name string) error {
 	return m.Err
 }
 
-func (m *mockClusterManager) CreateClusterLabel(provider, clusterName string, inp cluster.ClusterLabel) (cluster.ClusterLabel, error) {
+func (m *mockClusterManager) CreateClusterLabel(provider, clusterName string, inp cluster.ClusterLabel, exists bool) (cluster.ClusterLabel, error) {
 	if m.Err != nil {
 		return cluster.ClusterLabel{}, m.Err
 	}
@@ -145,7 +145,7 @@ func (m *mockClusterManager) DeleteClusterLabel(provider, clusterName, label str
 	return m.Err
 }
 
-func (m *mockClusterManager) CreateClusterKvPairs(provider, clusterName string, inp cluster.ClusterKvPairs) (cluster.ClusterKvPairs, error) {
+func (m *mockClusterManager) CreateClusterKvPairs(provider, clusterName string, inp cluster.ClusterKvPairs, exists bool) (cluster.ClusterKvPairs, error) {
 	if m.Err != nil {
 		return cluster.ClusterKvPairs{}, m.Err
 	}
@@ -161,6 +161,20 @@ func (m *mockClusterManager) GetClusterKvPairs(provider, clusterName, kvpair str
 	return m.ClusterKvPairsItems[0], nil
 }
 
+func (m *mockClusterManager) GetClusterKvPairsValue(provider, cluster, kvpair, kvkey string) (interface{}, error) {
+	if m.Err != nil {
+		return nil, m.Err
+	}
+
+	for _, kvMap := range m.ClusterKvPairsItems[0].Spec.Kv {
+		if val, ok := kvMap[kvkey]; ok {
+			return val, nil
+		}
+	}
+	return nil, m.Err
+
+}
+
 func (m *mockClusterManager) GetAllClusterKvPairs(provider, clusterName string) ([]cluster.ClusterKvPairs, error) {
 	if m.Err != nil {
 		return []cluster.ClusterKvPairs{}, m.Err
@@ -173,7 +187,7 @@ func (m *mockClusterManager) DeleteClusterKvPairs(provider, clusterName, kvpair 
 	return m.Err
 }
 
-func init()  {
+func init() {
 	cpJSONFile = "../json-schemas/metadata.json"
 	ckvJSONFile = "../json-schemas/cluster-kv.json"
 	clJSONFile = "../json-schemas/cluster-label.json"
@@ -242,6 +256,102 @@ func TestClusterProviderCreateHandler(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
 			request := httptest.NewRequest("POST", "/v2/cluster-providers", testCase.reader)
+			resp := executeRequest(request, NewRouter(testCase.clusterClient))
+
+			//Check returned code
+			if resp.StatusCode != testCase.expectedCode {
+				t.Fatalf("Expected %d; Got: %d", testCase.expectedCode, resp.StatusCode)
+			}
+
+			//Check returned body only if statusCreated
+			if resp.StatusCode == http.StatusCreated {
+				got := cluster.ClusterProvider{}
+				json.NewDecoder(resp.Body).Decode(&got)
+
+				if reflect.DeepEqual(testCase.expected, got) == false {
+					t.Errorf("createHandler returned unexpected body: got %v;"+
+						" expected %v", got, testCase.expected)
+				}
+			}
+		})
+	}
+}
+
+func TestClusterProviderPutHandler(t *testing.T) {
+	testCases := []struct {
+		label         string
+		name          string
+		reader        io.Reader
+		expected      cluster.ClusterProvider
+		expectedCode  int
+		clusterClient *mockClusterManager
+	}{
+		{
+			label:        "Create Cluster Provider via PUT",
+			name:         "clusterProviderTest",
+			expectedCode: http.StatusCreated,
+			reader: bytes.NewBuffer([]byte(`{
+					"metadata": {
+						"name": "clusterProviderTest",
+						"description": "testClusterProvider",
+						"userData1": "some user data 1",
+						"userData2": "some user data 2"
+					}
+				}`)),
+			expected: cluster.ClusterProvider{
+				Metadata: types.Metadata{
+					Name:        "clusterProviderTest",
+					Description: "testClusterProvider",
+					UserData1:   "some user data 1",
+					UserData2:   "some user data 2",
+				},
+			},
+			clusterClient: &mockClusterManager{
+				//Items that will be returned by the mocked Client
+				ClusterProviderItems: []cluster.ClusterProvider{
+					{
+						Metadata: types.Metadata{
+							Name:        "clusterProviderTest",
+							Description: "testClusterProvider",
+							UserData1:   "some user data 1",
+							UserData2:   "some user data 2",
+						},
+					},
+				},
+			},
+		},
+		{
+			label: "Missing ClusterProvider Name in Request Body",
+			name:  "clusterProviderTest",
+			reader: bytes.NewBuffer([]byte(`{
+					"metadata": {
+						"description": "this is a test cluster provider",
+						"userData1": "some user data 1",
+						"userData2": "some user data 2"
+					}
+				}`)),
+			expectedCode:  http.StatusBadRequest,
+			clusterClient: &mockClusterManager{},
+		},
+		{
+			label: "Mismatched Cluster Provider Name in Request",
+			name:  "clusterProviderTestABC",
+			reader: bytes.NewBuffer([]byte(`{
+					"metadata": {
+						"name": "clusterProviderTest",
+						"description": "testClusterProvider",
+						"userData1": "some user data 1",
+						"userData2": "some user data 2"
+					}
+				}`)),
+			expectedCode:  http.StatusBadRequest,
+			clusterClient: &mockClusterManager{},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.label, func(t *testing.T) {
+			request := httptest.NewRequest("PUT", "/v2/cluster-providers/"+testCase.name, testCase.reader)
 			resp := executeRequest(request, NewRouter(testCase.clusterClient))
 
 			//Check returned code
@@ -378,11 +488,29 @@ func TestClusterProviderGetHandler(t *testing.T) {
 		},
 		{
 			label:        "Get Non-Existing Cluster Provider",
+			expectedCode: http.StatusNotFound,
+			name:         "nonexistingclusterprovider",
+			clusterClient: &mockClusterManager{
+				ClusterProviderItems: []cluster.ClusterProvider{},
+				Err:                  pkgerrors.New("db Find error"),
+			},
+		},
+		{
+			label:        "Get Non-Existing Cluster Provider ",
+			expectedCode: http.StatusNotFound,
+			name:         "nonexistingclusterprovider",
+			clusterClient: &mockClusterManager{
+				ClusterProviderItems: []cluster.ClusterProvider{},
+				Err:                  pkgerrors.New("Cluster provider not found"),
+			},
+		},
+		{
+			label:        "Get Cluster Provider internal error",
 			expectedCode: http.StatusInternalServerError,
 			name:         "nonexistingclusterprovider",
 			clusterClient: &mockClusterManager{
 				ClusterProviderItems: []cluster.ClusterProvider{},
-				Err:                  pkgerrors.New("Internal Error"),
+				Err:                  pkgerrors.New("some internal error"),
 			},
 		},
 	}
@@ -427,11 +555,27 @@ func TestClusterProviderDeleteHandler(t *testing.T) {
 			clusterClient: &mockClusterManager{},
 		},
 		{
-			label:        "Delete Non-Existing Cluster Provider",
+			label:        "Delete Cluster Provider internal error",
 			expectedCode: http.StatusInternalServerError,
 			name:         "testClusterProvider",
 			clusterClient: &mockClusterManager{
 				Err: pkgerrors.New("Internal Error"),
+			},
+		},
+		{
+			label:        "Delete Non-Existing Cluster Provider",
+			expectedCode: http.StatusNotFound,
+			name:         "testClusterProvider",
+			clusterClient: &mockClusterManager{
+				Err: pkgerrors.New("cluster provider not found"),
+			},
+		},
+		{
+			label:        "Delete Cluster Provider with children",
+			expectedCode: http.StatusConflict,
+			name:         "testClusterProvider",
+			clusterClient: &mockClusterManager{
+				Err: pkgerrors.New("db Remove error - conflict"),
 			},
 		},
 	}
@@ -534,6 +678,30 @@ to the creation
 of clusterTest
 `,
 			clusterClient: &mockClusterManager{},
+		},
+		{
+			label:        "Cluster already exists",
+			expectedCode: http.StatusConflict,
+			metadata: `
+{
+ "metadata": {
+  "name": "alreadyExists",
+  "description": "this is test cluster",
+  "userData1": "some cluster data abc",
+  "userData2": "some cluster data def"
+ }
+}`,
+			kubeconfig: `test contents
+of a file attached
+to the creation
+of clusterTest
+`,
+			clusterClient: &mockClusterManager{
+				//Items that will be returned by the mocked Client
+				ClusterItems:        []cluster.Cluster{},
+				ClusterContentItems: []cluster.ClusterContent{},
+				Err:                 pkgerrors.New("Cluster already exists"),
+			},
 		},
 	}
 
@@ -704,6 +872,26 @@ func TestClusterGetHandler(t *testing.T) {
 		{
 			label:        "Get Non-Existing Cluster",
 			accept:       "application/json",
+			expectedCode: http.StatusNotFound,
+			name:         "nonexistingcluster",
+			clusterClient: &mockClusterManager{
+				ClusterItems: []cluster.Cluster{},
+				Err:          pkgerrors.New("cluster not found"),
+			},
+		},
+		{
+			label:        "Get Non-Existing Cluster",
+			accept:       "application/json",
+			expectedCode: http.StatusNotFound,
+			name:         "nonexistingcluster",
+			clusterClient: &mockClusterManager{
+				ClusterItems: []cluster.Cluster{},
+				Err:          pkgerrors.New("db Find error"),
+			},
+		},
+		{
+			label:        "Get Cluster internal error",
+			accept:       "application/json",
 			expectedCode: http.StatusInternalServerError,
 			name:         "nonexistingcluster",
 			clusterClient: &mockClusterManager{
@@ -729,6 +917,69 @@ func TestClusterGetHandler(t *testing.T) {
 			//Check returned body only if statusOK
 			if resp.StatusCode == http.StatusOK {
 				got := cluster.Cluster{}
+				json.NewDecoder(resp.Body).Decode(&got)
+
+				if reflect.DeepEqual(testCase.expected, got) == false {
+					t.Errorf("listHandler returned unexpected body: got %v;"+
+						" expected %v", got, testCase.expected)
+				}
+			}
+		})
+	}
+}
+
+func TestClusterGetByLabelHandler(t *testing.T) {
+
+	testCases := []struct {
+		label         string
+		expected      []string
+		matchLabel    string
+		expectedCode  int
+		clusterClient *mockClusterManager
+	}{
+		{
+			label:        "Get Clusters by label",
+			expectedCode: http.StatusOK,
+			expected:     []string{"cluster1", "cluster2"},
+			matchLabel:   "labelA",
+			clusterClient: &mockClusterManager{
+				//Items that will be returned by the mocked Client
+				ClusterList: []string{"cluster1", "cluster2"},
+			},
+		},
+		{
+			label:        "Get Clusters by Label, Non-Existing Cluster provider",
+			expectedCode: http.StatusNotFound,
+			matchLabel:   "labelA",
+			clusterClient: &mockClusterManager{
+				ClusterList: []string{},
+				Err:         pkgerrors.New("cluster provider not found"),
+			},
+		},
+		{
+			label:        "Get Clusters by label internal error",
+			expectedCode: http.StatusInternalServerError,
+			matchLabel:   "labelA",
+			clusterClient: &mockClusterManager{
+				ClusterItems: []cluster.Cluster{},
+				Err:          pkgerrors.New("Internal Error"),
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.label, func(t *testing.T) {
+			request := httptest.NewRequest("GET", "/v2/cluster-providers/clusterProvider1/clusters?label="+testCase.matchLabel, nil)
+			resp := executeRequest(request, NewRouter(testCase.clusterClient))
+
+			//Check returned code
+			if resp.StatusCode != testCase.expectedCode {
+				t.Fatalf("Expected %d; Got: %d", testCase.expectedCode, resp.StatusCode)
+			}
+
+			//Check returned body only if statusOK
+			if resp.StatusCode == http.StatusOK {
+				var got []string
 				json.NewDecoder(resp.Body).Decode(&got)
 
 				if reflect.DeepEqual(testCase.expected, got) == false {
@@ -782,11 +1033,21 @@ of clusterTest
 		{
 			label:        "Get Non-Existing Cluster",
 			accept:       "application/octet-stream",
+			expectedCode: http.StatusNotFound,
+			name:         "nonexistingcluster",
+			clusterClient: &mockClusterManager{
+				ClusterItems: []cluster.Cluster{},
+				Err:          pkgerrors.New("content not found"),
+			},
+		},
+		{
+			label:        "Get Cluster Content internal error",
+			accept:       "application/octet-stream",
 			expectedCode: http.StatusInternalServerError,
 			name:         "nonexistingcluster",
 			clusterClient: &mockClusterManager{
 				ClusterItems: []cluster.Cluster{},
-				Err:          pkgerrors.New("Internal Error"),
+				Err:          pkgerrors.New("some internal error"),
 			},
 		},
 	}
@@ -835,11 +1096,27 @@ func TestClusterDeleteHandler(t *testing.T) {
 			clusterClient: &mockClusterManager{},
 		},
 		{
-			label:        "Delete Non-Existing Cluster",
+			label:        "Delete Cluster with children",
+			expectedCode: http.StatusConflict,
+			name:         "testCluster",
+			clusterClient: &mockClusterManager{
+				Err: pkgerrors.New("db Remove error - conflict"),
+			},
+		},
+		{
+			label:        "Delete Cluster internal error",
 			expectedCode: http.StatusInternalServerError,
 			name:         "testCluster",
 			clusterClient: &mockClusterManager{
 				Err: pkgerrors.New("Internal Error"),
+			},
+		},
+		{
+			label:        "Delete Non-Existing Cluster",
+			expectedCode: http.StatusNotFound,
+			name:         "testCluster",
+			clusterClient: &mockClusterManager{
+				Err: pkgerrors.New("cluster not found"),
 			},
 		},
 	}
@@ -871,6 +1148,16 @@ func TestClusterLabelCreateHandler(t *testing.T) {
 			clusterClient: &mockClusterManager{},
 		},
 		{
+			label:        "Create Cluster Label cluster does not exist",
+			expectedCode: http.StatusNotFound,
+			reader: bytes.NewBuffer([]byte(`{
+					"label-name": "test-label"
+				}`)),
+			clusterClient: &mockClusterManager{
+				Err: pkgerrors.New("Cluster does not exist"),
+			},
+		},
+		{
 			label:        "Create Cluster Label",
 			expectedCode: http.StatusCreated,
 			reader: bytes.NewBuffer([]byte(`{
@@ -893,6 +1180,99 @@ func TestClusterLabelCreateHandler(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
 			request := httptest.NewRequest("POST", "/v2/cluster-providers/cp1/clusters/cl1/labels", testCase.reader)
+			resp := executeRequest(request, NewRouter(testCase.clusterClient))
+
+			//Check returned code
+			if resp.StatusCode != testCase.expectedCode {
+				t.Fatalf("Expected %d; Got: %d", testCase.expectedCode, resp.StatusCode)
+			}
+
+			//Check returned body only if statusCreated
+			if resp.StatusCode == http.StatusCreated {
+				got := cluster.ClusterLabel{}
+				json.NewDecoder(resp.Body).Decode(&got)
+
+				if reflect.DeepEqual(testCase.expected, got) == false {
+					t.Errorf("createHandler returned unexpected body: got %v;"+
+						" expected %v", got, testCase.expected)
+				}
+			}
+		})
+	}
+}
+
+func TestClusterLabelPutHandler(t *testing.T) {
+	testCases := []struct {
+		name          string
+		label         string
+		reader        io.Reader
+		expected      cluster.ClusterLabel
+		expectedCode  int
+		clusterClient *mockClusterManager
+	}{
+		{
+			name:          "test-label",
+			label:         "Missing Cluster Label Body Failure",
+			expectedCode:  http.StatusBadRequest,
+			clusterClient: &mockClusterManager{},
+		},
+		{
+			name:         "test-label",
+			label:        "Cluster not found",
+			expectedCode: http.StatusNotFound,
+			reader: bytes.NewBuffer([]byte(`{
+					"label-name": "test-label"
+				}`)),
+			expected: cluster.ClusterLabel{
+				LabelName: "test-label",
+			},
+			clusterClient: &mockClusterManager{
+				Err: pkgerrors.New("Cluster does not exist"),
+			},
+		},
+		{
+			name:         "test-labelABC",
+			label:        "Mismatched Cluster Label Update",
+			expectedCode: http.StatusBadRequest,
+			reader: bytes.NewBuffer([]byte(`{
+					"label-name": "test-label"
+				}`)),
+			expected: cluster.ClusterLabel{
+				LabelName: "test-label",
+			},
+			clusterClient: &mockClusterManager{
+				//Items that will be returned by the mocked Client
+				ClusterLabelItems: []cluster.ClusterLabel{
+					{
+						LabelName: "test-label",
+					},
+				},
+			},
+		},
+		{
+			name:         "test-label",
+			label:        "Update Cluster Label",
+			expectedCode: http.StatusCreated,
+			reader: bytes.NewBuffer([]byte(`{
+					"label-name": "test-label"
+				}`)),
+			expected: cluster.ClusterLabel{
+				LabelName: "test-label",
+			},
+			clusterClient: &mockClusterManager{
+				//Items that will be returned by the mocked Client
+				ClusterLabelItems: []cluster.ClusterLabel{
+					{
+						LabelName: "test-label",
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.label, func(t *testing.T) {
+			request := httptest.NewRequest("PUT", "/v2/cluster-providers/cp1/clusters/cl1/labels/"+testCase.name, testCase.reader)
 			resp := executeRequest(request, NewRouter(testCase.clusterClient))
 
 			//Check returned code
@@ -1005,6 +1385,24 @@ func TestClusterLabelGetHandler(t *testing.T) {
 		},
 		{
 			label:        "Get Non-Existing Cluster Label",
+			expectedCode: http.StatusNotFound,
+			name:         "nonexistingclusterlabel",
+			clusterClient: &mockClusterManager{
+				ClusterLabelItems: []cluster.ClusterLabel{},
+				Err:               pkgerrors.New("Label not found"),
+			},
+		},
+		{
+			label:        "Get Non-Existing Cluster Label",
+			expectedCode: http.StatusNotFound,
+			name:         "nonexistingclusterlabel",
+			clusterClient: &mockClusterManager{
+				ClusterLabelItems: []cluster.ClusterLabel{},
+				Err:               pkgerrors.New("db Find error"),
+			},
+		},
+		{
+			label:        "Get Cluster Label server error",
 			expectedCode: http.StatusInternalServerError,
 			name:         "nonexistingclusterlabel",
 			clusterClient: &mockClusterManager{
@@ -1055,6 +1453,14 @@ func TestClusterLabelDeleteHandler(t *testing.T) {
 		},
 		{
 			label:        "Delete Non-Existing Cluster Label",
+			expectedCode: http.StatusNotFound,
+			name:         "testClusterLabel",
+			clusterClient: &mockClusterManager{
+				Err: pkgerrors.New("cluster label not found"),
+			},
+		},
+		{
+			label:        "Delete Cluster Label internal error",
 			expectedCode: http.StatusInternalServerError,
 			name:         "testClusterLabel",
 			clusterClient: &mockClusterManager{
@@ -1157,6 +1563,148 @@ func TestClusterKvPairsCreateHandler(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
 			request := httptest.NewRequest("POST", "/v2/cluster-providers/cp1/clusters/cl1/kv-pairs", testCase.reader)
+			resp := executeRequest(request, NewRouter(testCase.clusterClient))
+
+			//Check returned code
+			if resp.StatusCode != testCase.expectedCode {
+				t.Fatalf("Expected %d; Got: %d", testCase.expectedCode, resp.StatusCode)
+			}
+
+			//Check returned body only if statusCreated
+			if resp.StatusCode == http.StatusCreated {
+				got := cluster.ClusterKvPairs{}
+				json.NewDecoder(resp.Body).Decode(&got)
+
+				if reflect.DeepEqual(testCase.expected, got) == false {
+					t.Errorf("createHandler returned unexpected body: got %v;"+
+						" expected %v", got, testCase.expected)
+				}
+			}
+		})
+	}
+}
+
+func TestClusterKvPairsPutHandler(t *testing.T) {
+	testCases := []struct {
+		name          string
+		label         string
+		reader        io.Reader
+		expected      cluster.ClusterKvPairs
+		expectedCode  int
+		clusterClient *mockClusterManager
+	}{
+		{
+			name:          "ClusterKvPair1",
+			label:         "Missing Cluster KvPairs Body Failure",
+			expectedCode:  http.StatusBadRequest,
+			clusterClient: &mockClusterManager{},
+		},
+		{
+			label: "Missing Cluster KV Pair Name in Request Body",
+			name:  "ClusterKvPair1",
+			reader: bytes.NewBuffer([]byte(`{
+					"metadata": {
+						"description": "this is a test cluster kvpair",
+						"userData1": "some user data 1",
+						"userData2": "some user data 2"
+					}
+				}`)),
+			expectedCode:  http.StatusBadRequest,
+			clusterClient: &mockClusterManager{},
+		},
+		{
+			label:        "Mismatched Cluster KV Pair Name in Request",
+			name:         "ClusterKvPair1ABC",
+			expectedCode: http.StatusBadRequest,
+			reader: bytes.NewBuffer([]byte(`{
+					"metadata": {
+						"name": "ClusterKvPair1",
+						"description": "test cluster kv pairs",
+						"userData1": "some user data 1",
+						"userData2": "some user data 2"
+					},
+					"spec": {
+						"kv": [
+							{
+								"key1": "value1"
+							},
+							{
+								"key2": "value2"
+							}
+						]
+					}
+				}`)),
+			clusterClient: &mockClusterManager{},
+		},
+		{
+			name:         "ClusterKvPair1",
+			label:        "Update Cluster KvPairs",
+			expectedCode: http.StatusCreated,
+			reader: bytes.NewBuffer([]byte(`{
+					"metadata": {
+						"name": "ClusterKvPair1",
+						"description": "test cluster kv pairs",
+						"userData1": "some user data 1",
+						"userData2": "some user data 2"
+					},
+					"spec": {
+						"kv": [
+							{
+								"key1": "value1"
+							},
+							{
+								"key2": "value2"
+							}
+						]
+					}
+				}`)),
+			expected: cluster.ClusterKvPairs{
+				Metadata: types.Metadata{
+					Name:        "ClusterKvPair1",
+					Description: "test cluster kv pairs",
+					UserData1:   "some user data 1",
+					UserData2:   "some user data 2",
+				},
+				Spec: cluster.ClusterKvSpec{
+					Kv: []map[string]interface{}{
+						{
+							"key1": "value1",
+						},
+						{
+							"key2": "value2",
+						},
+					},
+				},
+			},
+			clusterClient: &mockClusterManager{
+				//Items that will be returned by the mocked Client
+				ClusterKvPairsItems: []cluster.ClusterKvPairs{
+					{
+						Metadata: types.Metadata{
+							Name:        "ClusterKvPair1",
+							Description: "test cluster kv pairs",
+							UserData1:   "some user data 1",
+							UserData2:   "some user data 2",
+						},
+						Spec: cluster.ClusterKvSpec{
+							Kv: []map[string]interface{}{
+								{
+									"key1": "value1",
+								},
+								{
+									"key2": "value2",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.label, func(t *testing.T) {
+			request := httptest.NewRequest("PUT", "/v2/cluster-providers/cp1/clusters/cl1/kv-pairs/"+testCase.name, testCase.reader)
 			resp := executeRequest(request, NewRouter(testCase.clusterClient))
 
 			//Check returned code
@@ -1296,6 +1844,102 @@ func TestClusterKvPairsGetAllHandler(t *testing.T) {
 	}
 }
 
+func TestClusterKvPairsGetValueHandler(t *testing.T) {
+
+	testCases := []struct {
+		label         string
+		expected      string
+		name, version string
+		key           string
+		expectedCode  int
+		clusterClient *mockClusterManager
+	}{
+		{
+			label:        "Get Cluster KV Pairs key value",
+			expectedCode: http.StatusOK,
+			expected:     "valueB",
+			name:         "ClusterKvPair2",
+			key:          "keyB",
+			clusterClient: &mockClusterManager{
+				//Items that will be returned by the mocked Client
+				ClusterKvPairsItems: []cluster.ClusterKvPairs{
+					{
+						Metadata: types.Metadata{
+							Name:        "ClusterKvPair2",
+							Description: "test cluster kv pairs",
+							UserData1:   "some user data A",
+							UserData2:   "some user data B",
+						},
+						Spec: cluster.ClusterKvSpec{
+							Kv: []map[string]interface{}{
+								{
+									"keyA": "valueA",
+								},
+								{
+									"keyB": "valueB",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			label:        "Get Non-Existing Cluster KV Pairs",
+			expectedCode: http.StatusNotFound,
+			name:         "nonexistingclusterkvpairs",
+			key:          "keyB",
+			clusterClient: &mockClusterManager{
+				ClusterKvPairsItems: []cluster.ClusterKvPairs{},
+				Err:                 pkgerrors.New("Cluster key value pair not found"),
+			},
+		},
+		{
+			label:        "Get Non-Existing Cluster KV Pairs",
+			expectedCode: http.StatusNotFound,
+			name:         "nonexistingclusterkvpairs",
+			key:          "keyB",
+			clusterClient: &mockClusterManager{
+				ClusterKvPairsItems: []cluster.ClusterKvPairs{},
+				Err:                 pkgerrors.New("db Find error"),
+			},
+		},
+		{
+			label:        "Get Cluster KV Pairs internal error",
+			expectedCode: http.StatusInternalServerError,
+			name:         "nonexistingclusterkvpairs",
+			key:          "keyB",
+			clusterClient: &mockClusterManager{
+				ClusterKvPairsItems: []cluster.ClusterKvPairs{},
+				Err:                 pkgerrors.New("Internal error"),
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.label, func(t *testing.T) {
+			request := httptest.NewRequest("GET", "/v2/cluster-providers/clusterProvider1/clusters/cl1/kv-pairs/"+testCase.name+"?key="+testCase.key, nil)
+			resp := executeRequest(request, NewRouter(testCase.clusterClient))
+
+			//Check returned code
+			if resp.StatusCode != testCase.expectedCode {
+				t.Fatalf("Expected %d; Got: %d", testCase.expectedCode, resp.StatusCode)
+			}
+
+			//Check returned body only if statusOK
+			if resp.StatusCode == http.StatusOK {
+				var got string
+				json.NewDecoder(resp.Body).Decode(&got)
+
+				if reflect.DeepEqual(testCase.expected, got) == false {
+					t.Errorf("listHandler returned unexpected body: got %v;"+
+						" expected %v", got, testCase.expected)
+				}
+			}
+		})
+	}
+}
+
 func TestClusterKvPairsGetHandler(t *testing.T) {
 
 	testCases := []struct {
@@ -1353,11 +1997,29 @@ func TestClusterKvPairsGetHandler(t *testing.T) {
 		},
 		{
 			label:        "Get Non-Existing Cluster KV Pairs",
+			expectedCode: http.StatusNotFound,
+			name:         "nonexistingclusterkvpairs",
+			clusterClient: &mockClusterManager{
+				ClusterKvPairsItems: []cluster.ClusterKvPairs{},
+				Err:                 pkgerrors.New("not found"),
+			},
+		},
+		{
+			label:        "Get Non-Existing Cluster KV Pairs - part II",
+			expectedCode: http.StatusNotFound,
+			name:         "nonexistingclusterkvpairs",
+			clusterClient: &mockClusterManager{
+				ClusterKvPairsItems: []cluster.ClusterKvPairs{},
+				Err:                 pkgerrors.New("db Find error"),
+			},
+		},
+		{
+			label:        "Get Cluster KV Pairs internal error",
 			expectedCode: http.StatusInternalServerError,
 			name:         "nonexistingclusterkvpairs",
 			clusterClient: &mockClusterManager{
 				ClusterKvPairsItems: []cluster.ClusterKvPairs{},
-				Err:                 pkgerrors.New("Internal Error"),
+				Err:                 pkgerrors.New("some other error"),
 			},
 		},
 	}
@@ -1403,6 +2065,14 @@ func TestClusterKvPairsDeleteHandler(t *testing.T) {
 		},
 		{
 			label:        "Delete Non-Existing Cluster KV Pairs",
+			expectedCode: http.StatusNotFound,
+			name:         "testClusterKvPairs",
+			clusterClient: &mockClusterManager{
+				Err: pkgerrors.New("kv pair not found"),
+			},
+		},
+		{
+			label:        "Delete Cluster KV Pairs internal error",
 			expectedCode: http.StatusInternalServerError,
 			name:         "testClusterKvPairs",
 			clusterClient: &mockClusterManager{

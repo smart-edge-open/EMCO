@@ -4,6 +4,7 @@
 package module
 
 import (
+	"github.com/open-ness/EMCO/src/orchestrator/pkg/infra/db"
 	pkgerrors "github.com/pkg/errors"
 )
 
@@ -37,17 +38,14 @@ type UserPermissionManager interface {
 type UserPermissionClient struct {
 	storeName string
 	tagMeta   string
-	util      Utility
 }
 
 // UserPermissionClient returns an instance of the UserPermissionClient
 // which implements the UserPermissionManager
 func NewUserPermissionClient() *UserPermissionClient {
-	service := DBService{}
 	return &UserPermissionClient{
 		storeName: "orchestrator",
 		tagMeta:   "userpermission",
-		util:      service,
 	}
 }
 
@@ -62,12 +60,12 @@ func (v *UserPermissionClient) CreateUserPerm(project, logicalCloud string, c Us
 	}
 
 	//Check if project exists
-	err := v.util.CheckProject(project)
+	err := CheckProject(project)
 	if err != nil {
 		return UserPermission{}, pkgerrors.New("Unable to find the project")
 	}
 	//check if logical cloud exists
-	err = v.util.CheckLogicalCloud(project, logicalCloud)
+	err = CheckLogicalCloud(project, logicalCloud)
 	if err != nil {
 		return UserPermission{}, pkgerrors.New("Unable to find the logical cloud")
 	}
@@ -78,7 +76,7 @@ func (v *UserPermissionClient) CreateUserPerm(project, logicalCloud string, c Us
 		return UserPermission{}, pkgerrors.New("User Permission already exists")
 	}
 
-	err = v.util.DBInsert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return UserPermission{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -96,7 +94,7 @@ func (v *UserPermissionClient) GetUserPerm(project, logicalCloud, userPermName s
 		UserPermissionName: userPermName,
 	}
 
-	value, err := v.util.DBFind(v.storeName, key, v.tagMeta)
+	value, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
 	if err != nil {
 		return UserPermission{}, pkgerrors.Wrap(err, "Get User Permission")
 	}
@@ -104,7 +102,7 @@ func (v *UserPermissionClient) GetUserPerm(project, logicalCloud, userPermName s
 	//value is a byte array
 	if value != nil {
 		up := UserPermission{}
-		err = v.util.DBUnmarshal(value[0], &up)
+		err = db.DBconn.Unmarshal(value[0], &up)
 		if err != nil {
 			return UserPermission{}, pkgerrors.Wrap(err, "Unmarshaling value")
 		}
@@ -123,14 +121,14 @@ func (v *UserPermissionClient) GetAllUserPerms(project, logicalCloud string) ([]
 		UserPermissionName: "",
 	}
 	var resp []UserPermission
-	values, err := v.util.DBFind(v.storeName, key, v.tagMeta)
+	values, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
 	if err != nil {
 		return []UserPermission{}, pkgerrors.Wrap(err, "Get All User Permissions")
 	}
 
 	for _, value := range values {
 		up := UserPermission{}
-		err = v.util.DBUnmarshal(value, &up)
+		err = db.DBconn.Unmarshal(value, &up)
 		if err != nil {
 			return []UserPermission{}, pkgerrors.Wrap(err, "Unmarshaling value")
 		}
@@ -147,7 +145,7 @@ func (v *UserPermissionClient) DeleteUserPerm(project, logicalCloud, userPermNam
 		LogicalCloudName:   logicalCloud,
 		UserPermissionName: userPermName,
 	}
-	err := v.util.DBRemove(v.storeName, key)
+	err := db.DBconn.Remove(v.storeName, key)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Delete User Permission")
 	}
@@ -173,7 +171,7 @@ func (v *UserPermissionClient) UpdateUserPerm(project, logicalCloud, userPermNam
 		return UserPermission{}, pkgerrors.New(
 			"User Permission does not exist")
 	}
-	err = v.util.DBInsert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return UserPermission{}, pkgerrors.Wrap(err, "Updating DB Entry")
 	}

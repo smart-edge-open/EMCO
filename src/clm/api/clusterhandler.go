@@ -65,7 +65,7 @@ func (h clusterHandler) createClusterProviderHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	ret, err := h.client.CreateClusterProvider(p)
+	ret, err := h.client.CreateClusterProvider(p, false)
 	if err != nil {
 		log.Error(err.Error(), log.Fields{})
 		if strings.Contains(err.Error(), "ClusterProvider already exists") {
@@ -86,6 +86,64 @@ func (h clusterHandler) createClusterProviderHandler(w http.ResponseWriter, r *h
 	}
 }
 
+// putClusterProviderHandler handles updating of the ClusterProvider entry in the database
+func (h clusterHandler) putClusterProviderHandler(w http.ResponseWriter, r *http.Request) {
+	var p clusterPkg.ClusterProvider
+	var err error
+	vars := mux.Vars(r)
+	name := vars["name"]
+
+	err = json.NewDecoder(r.Body).Decode(&p)
+
+	switch {
+	case err == io.EOF:
+		log.Error(":: Empty cluster provider PUT body ::", log.Fields{"Error": err})
+		http.Error(w, "Empty body", http.StatusBadRequest)
+		return
+	case err != nil:
+		log.Error(":: Error decoding cluster provider PUT body ::", log.Fields{"Error": err, "Body": p})
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	err, httpError := validation.ValidateJsonSchemaData(cpJSONFile, p)
+	if err != nil {
+		log.Error(":: Invalid cluster provider POST body ::", log.Fields{"Error": err})
+		http.Error(w, err.Error(), httpError)
+		return
+	}
+
+	// Name is required.
+	if p.Metadata.Name == "" {
+		log.Error(":: Missing name in cluster provider POST request ::", log.Fields{"Error": err})
+		http.Error(w, "Missing name in POST request", http.StatusBadRequest)
+		return
+	}
+
+	// Name in URL shoudl match name in body
+	if p.Metadata.Name != name {
+		log.Error(":: Mismatched name in cluster provider PUT request ::", log.Fields{"Error": err})
+		http.Error(w, "Mismatched name in PUT request", http.StatusBadRequest)
+		return
+	}
+
+	ret, err := h.client.CreateClusterProvider(p, true)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	err = json.NewEncoder(w).Encode(ret)
+	if err != nil {
+		log.Error(":: Error encoding update cluster provider response ::", log.Fields{"Error": err})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
 // Get handles GET operations on a particular ClusterProvider Name
 // Returns a ClusterProvider
 func (h clusterHandler) getClusterProviderHandler(w http.ResponseWriter, r *http.Request) {
@@ -100,6 +158,8 @@ func (h clusterHandler) getClusterProviderHandler(w http.ResponseWriter, r *http
 			log.Error(":: Error getting cluster providers ::", log.Fields{"Error": err})
 			if strings.Contains(err.Error(), "db Find error") {
 				http.Error(w, err.Error(), http.StatusNotFound)
+			} else if strings.Contains(err.Error(), "not found") {
+				http.Error(w, err.Error(), http.StatusNotFound)
 			} else {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
@@ -110,6 +170,8 @@ func (h clusterHandler) getClusterProviderHandler(w http.ResponseWriter, r *http
 		if err != nil {
 			log.Error(":: Error getting cluster provider ::", log.Fields{"Error": err, "Name": name})
 			if strings.Contains(err.Error(), "db Find error") {
+				http.Error(w, err.Error(), http.StatusNotFound)
+			} else if strings.Contains(err.Error(), "not found") {
 				http.Error(w, err.Error(), http.StatusNotFound)
 			} else {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -244,17 +306,20 @@ func (h clusterHandler) getClusterHandler(w http.ResponseWriter, r *http.Request
 	name := vars["name"]
 
 	label := r.URL.Query().Get("label")
-	if len(label) != 0 {
+	if len(label) != 0 && len(name) == 0 {
 		ret, err := h.client.GetClustersWithLabel(provider, label)
 		if err != nil {
 			log.Error(":: Error getting clusters by label ::", log.Fields{"Error": err})
 			if strings.Contains(err.Error(), "db Find error") {
+				http.Error(w, err.Error(), http.StatusNotFound)
+			} else if strings.Contains(err.Error(), "not found") {
 				http.Error(w, err.Error(), http.StatusNotFound)
 			} else {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 			return
 		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		err = json.NewEncoder(w).Encode(ret)
@@ -268,12 +333,12 @@ func (h clusterHandler) getClusterHandler(w http.ResponseWriter, r *http.Request
 
 	// handle the get all clusters case - return a list of only the json parts
 	if len(name) == 0 {
-		var retList []clusterPkg.Cluster
-
 		ret, err := h.client.GetClusters(provider)
 		if err != nil {
 			log.Error(":: Error getting clusters ::", log.Fields{"Error": err})
 			if strings.Contains(err.Error(), "db Find error") {
+				http.Error(w, err.Error(), http.StatusNotFound)
+			} else if strings.Contains(err.Error(), "not found") {
 				http.Error(w, err.Error(), http.StatusNotFound)
 			} else {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -281,13 +346,9 @@ func (h clusterHandler) getClusterHandler(w http.ResponseWriter, r *http.Request
 			return
 		}
 
-		for _, cl := range ret {
-			retList = append(retList, clusterPkg.Cluster{Metadata: cl.Metadata})
-		}
-
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		err = json.NewEncoder(w).Encode(retList)
+		err = json.NewEncoder(w).Encode(ret)
 		if err != nil {
 			log.Error(":: Error encoding get clusters ::", log.Fields{"Error": err})
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -307,6 +368,8 @@ func (h clusterHandler) getClusterHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		log.Error(":: Error getting cluster ::", log.Fields{"Error": err})
 		if strings.Contains(err.Error(), "db Find error") {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else if strings.Contains(err.Error(), "not found") {
 			http.Error(w, err.Error(), http.StatusNotFound)
 		} else {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -445,7 +508,71 @@ func (h clusterHandler) createClusterLabelHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	ret, err := h.client.CreateClusterLabel(provider, cluster, p)
+	ret, err := h.client.CreateClusterLabel(provider, cluster, p, false)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		if strings.Contains(err.Error(), "Cluster does not exist") {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else if strings.Contains(err.Error(), "Cluster Label already exists") {
+			http.Error(w, err.Error(), http.StatusConflict)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	err = json.NewEncoder(w).Encode(ret)
+	if err != nil {
+		log.Error(":: Error encoding cluster label response ::", log.Fields{"Error": err})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+// putClusterLabelHanderl handles updating of a ClusterLabel entry in the database
+func (h clusterHandler) putClusterLabelHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	provider := vars["provider-name"]
+	cluster := vars["cluster-name"]
+	label := vars["label"]
+	var p clusterPkg.ClusterLabel
+
+	err := json.NewDecoder(r.Body).Decode(&p)
+	switch {
+	case err == io.EOF:
+		log.Error(":: Empty cluster label PUT body ::", log.Fields{"Error": err})
+		http.Error(w, "Empty body", http.StatusBadRequest)
+		return
+	case err != nil:
+		log.Error(":: Error decoding cluster label PUT body ::", log.Fields{"Error": err, "Body": p})
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	err, httpError := validation.ValidateJsonSchemaData(clJSONFile, p)
+	if err != nil {
+		log.Error(":: Invalid cluster label PUT body ::", log.Fields{"Error": err})
+		http.Error(w, err.Error(), httpError)
+		return
+	}
+
+	// LabelName is required.
+	if p.LabelName == "" {
+		log.Error(":: Missing cluster label name in PUT request ::", log.Fields{"Error": err})
+		http.Error(w, "Missing label name in PUT request", http.StatusBadRequest)
+		return
+	}
+
+	// LabelName should match in URL and body
+	if p.LabelName != label {
+		log.Error(":: Mismatched cluster label name in PUT request ::", log.Fields{"Error": err})
+		http.Error(w, "Mismatched label name in PUT request", http.StatusBadRequest)
+		return
+	}
+
+	ret, err := h.client.CreateClusterLabel(provider, cluster, p, true)
 	if err != nil {
 		log.Error(err.Error(), log.Fields{})
 		if strings.Contains(err.Error(), "Cluster does not exist") {
@@ -485,6 +612,8 @@ func (h clusterHandler) getClusterLabelHandler(w http.ResponseWriter, r *http.Re
 			log.Error(":: Error getting cluster labels ::", log.Fields{"Error": err})
 			if strings.Contains(err.Error(), "db Find error") {
 				http.Error(w, err.Error(), http.StatusNotFound)
+			} else if strings.Contains(err.Error(), "not found") {
+				http.Error(w, err.Error(), http.StatusNotFound)
 			} else {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
@@ -495,6 +624,8 @@ func (h clusterHandler) getClusterLabelHandler(w http.ResponseWriter, r *http.Re
 		if err != nil {
 			log.Error(":: Error getting cluster label ::", log.Fields{"Error": err})
 			if strings.Contains(err.Error(), "db Find error") {
+				http.Error(w, err.Error(), http.StatusNotFound)
+			} else if strings.Contains(err.Error(), "not found") {
 				http.Error(w, err.Error(), http.StatusNotFound)
 			} else {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -570,9 +701,74 @@ func (h clusterHandler) createClusterKvPairsHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	ret, err := h.client.CreateClusterKvPairs(provider, cluster, p)
+	ret, err := h.client.CreateClusterKvPairs(provider, cluster, p, false)
 	if err != nil {
 		log.Error(":: Error creating cluster kv pair ::", log.Fields{"Error": err})
+		if strings.Contains(err.Error(), "Cluster does not exist") {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else if strings.Contains(err.Error(), "Cluster KV Pair already exists") {
+			http.Error(w, err.Error(), http.StatusConflict)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	err = json.NewEncoder(w).Encode(ret)
+	if err != nil {
+		log.Error(":: Error encoding cluster kv pair ::", log.Fields{"Error": err})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+// putClusterKvPairsHandler  handles update of a ClusterKvPairs entry in the database
+func (h clusterHandler) putClusterKvPairsHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	provider := vars["provider-name"]
+	cluster := vars["cluster-name"]
+	kvpair := vars["kvpair"]
+	var p clusterPkg.ClusterKvPairs
+
+	err := json.NewDecoder(r.Body).Decode(&p)
+	switch {
+	case err == io.EOF:
+		log.Error(":: Empty cluster kv pair PUT body ::", log.Fields{"Error": err})
+		http.Error(w, "Empty body", http.StatusBadRequest)
+		return
+	case err != nil:
+		log.Error(":: Error decoding cluster kv pair PUT body ::", log.Fields{"Error": err, "Body": p})
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	// Verify JSON Body
+	err, httpError := validation.ValidateJsonSchemaData(ckvJSONFile, p)
+	if err != nil {
+		log.Error(":: Invalid cluster kv pair POST body ::", log.Fields{"Error": err})
+		http.Error(w, err.Error(), httpError)
+		return
+	}
+
+	// KvPairsName is required.
+	if p.Metadata.Name == "" {
+		log.Error(":: Missing cluster kv pair name in POST body ::", log.Fields{"Error": err})
+		http.Error(w, "Missing Key Value pair name in POST request", http.StatusBadRequest)
+		return
+	}
+
+	// KvPairsName should match in URL and body
+	if p.Metadata.Name != kvpair {
+		log.Error(":: Mismatched cluster kv pair name in PUT body ::", log.Fields{"Error": err})
+		http.Error(w, "Mismatched Key Value pair name in PUT request", http.StatusBadRequest)
+		return
+	}
+
+	ret, err := h.client.CreateClusterKvPairs(provider, cluster, p, true)
+	if err != nil {
+		log.Error(":: Error updating cluster kv pair ::", log.Fields{"Error": err})
 		if strings.Contains(err.Error(), "Cluster does not exist") {
 			http.Error(w, err.Error(), http.StatusNotFound)
 		} else if strings.Contains(err.Error(), "Cluster KV Pair already exists") {
@@ -600,6 +796,7 @@ func (h clusterHandler) getClusterKvPairsHandler(w http.ResponseWriter, r *http.
 	provider := vars["provider-name"]
 	cluster := vars["cluster-name"]
 	kvpair := vars["kvpair"]
+	kvkey := r.URL.Query().Get("key")
 
 	var ret interface{}
 	var err error
@@ -609,6 +806,21 @@ func (h clusterHandler) getClusterKvPairsHandler(w http.ResponseWriter, r *http.
 		if err != nil {
 			log.Error(":: Error getting cluster kv pairs ::", log.Fields{"Error": err})
 			if strings.Contains(err.Error(), "db Find error") {
+				http.Error(w, err.Error(), http.StatusNotFound)
+			} else if strings.Contains(err.Error(), "not found") {
+				http.Error(w, err.Error(), http.StatusNotFound)
+			} else {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			return
+		}
+	} else if len(kvkey) != 0 {
+		ret, err = h.client.GetClusterKvPairsValue(provider, cluster, kvpair, kvkey)
+		if err != nil {
+			log.Error(":: Error getting cluster key value pair key value ::", log.Fields{"Error": err})
+			if strings.Contains(err.Error(), "db Find error") {
+				http.Error(w, err.Error(), http.StatusNotFound)
+			} else if strings.Contains(err.Error(), "not found") {
 				http.Error(w, err.Error(), http.StatusNotFound)
 			} else {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -620,6 +832,8 @@ func (h clusterHandler) getClusterKvPairsHandler(w http.ResponseWriter, r *http.
 		if err != nil {
 			log.Error(":: Error getting cluster kv pair ::", log.Fields{"Error": err})
 			if strings.Contains(err.Error(), "db Find error") {
+				http.Error(w, err.Error(), http.StatusNotFound)
+			} else if strings.Contains(err.Error(), "not found") {
 				http.Error(w, err.Error(), http.StatusNotFound)
 			} else {
 				http.Error(w, err.Error(), http.StatusInternalServerError)

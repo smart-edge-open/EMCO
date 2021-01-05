@@ -9,7 +9,7 @@ set -o pipefail
 FUNCTIONS_DIR="$(readlink -f "$(dirname "${BASH_SOURCE[0]}")")"
 
 source /etc/environment
-source $FUNCTIONS_DIR/_common_test.sh
+#source $FUNCTIONS_DIR/_common_test.sh
 
 function print_msg {
     local msg=$1

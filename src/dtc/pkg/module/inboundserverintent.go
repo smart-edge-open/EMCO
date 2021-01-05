@@ -16,12 +16,13 @@ type InboundServerIntent struct {
 }
 
 type InbondServerIntentSpec struct {
-	AppName         string `json:"application"`
-	ServiceName     string `json:"servicename"`
-	ExternalName    string `json:"externalname", default:""`
+	AppName         string `json:"appName"`
+	AppLabel        string `json:"appLabel"`
+	ServiceName     string `json:"serviceName"`
+	ExternalName    string `json:"externalName", default:""`
 	Port            int    `json:"port"`
 	Protocol        string `json:"protocol"`
-	ExternalSupport bool   `json:"external-support", default:false`
+	ExternalSupport bool   `json:"externalSupport", default:false`
 }
 
 type InboundServerIntentManager interface {

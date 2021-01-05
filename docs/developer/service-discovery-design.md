@@ -16,6 +16,8 @@ EMCO users would declare the traffic communication policies using a single traff
 
 The service discovery feature is expected to insert virtual services and DNS entries in each cluster as needed. To do that, it must wait for the applications to be deployed, gather the network endpoints (IP addresses and ports) of relevant services, and deploy additional Kubernetes objects in each cluster as needed. The additional Kubernetes objects would depend on the specific solution adopted; for example, they may include virtual services and DNS records that map microservice/application names to network endpoints.
 
+For the external client scenario, the EMCO-managed microservice needs to be exposed as a NodePort or Load Balance service. For a Load Balancer service in a cloud (such as AWS or Azure), the configuration of the external DNS is typically handled by the cloud provider. At any rate, configuring external DNS is outside the scope of EMCO, at least for the 21.03 release.
+
 # SOLUTION
 
 ## Overview

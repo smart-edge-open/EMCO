@@ -48,7 +48,7 @@ func (cpk CompositeProfileKey) String() string {
 // CompositeProfileManager exposes the CompositeProfile functionality
 type CompositeProfileManager interface {
 	CreateCompositeProfile(cpf CompositeProfile, p string, ca string,
-		v string) (CompositeProfile, error)
+		v string, exists bool) (CompositeProfile, error)
 	GetCompositeProfile(compositeProfileName string, projectName string,
 		compositeAppName string, version string) (CompositeProfile, error)
 	GetCompositeProfiles(projectName string, compositeAppName string,
@@ -75,10 +75,10 @@ func NewCompositeProfileClient() *CompositeProfileClient {
 
 // CreateCompositeProfile creates an entry for CompositeProfile in the database. Other Input parameters for it - projectName, compositeAppName, version
 func (c *CompositeProfileClient) CreateCompositeProfile(cpf CompositeProfile, p string, ca string,
-	v string) (CompositeProfile, error) {
+	v string, exists bool) (CompositeProfile, error) {
 
 	res, err := c.GetCompositeProfile(cpf.Metadata.Name, p, ca, v)
-	if res != (CompositeProfile{}) {
+	if res != (CompositeProfile{}) && !exists{
 		return CompositeProfile{}, pkgerrors.New("CompositeProfile already exists")
 	}
 
@@ -121,6 +121,8 @@ func (c *CompositeProfileClient) GetCompositeProfile(cpf string, p string, ca st
 	result, err := db.DBconn.Find(c.storeName, key, c.tagMeta)
 	if err != nil {
 		return CompositeProfile{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(result) == 0 {
+		return CompositeProfile{}, pkgerrors.New("CompositeProfile not found")
 	}
 
 	if result != nil {
@@ -147,6 +149,8 @@ func (c *CompositeProfileClient) GetCompositeProfiles(p string, ca string, v str
 	values, err := db.DBconn.Find(c.storeName, key, c.tagMeta)
 	if err != nil {
 		return []CompositeProfile{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(values) == 0 {
+		return []CompositeProfile{}, pkgerrors.New("CompositeProfiles not found")
 	}
 
 	var resp []CompositeProfile
@@ -176,6 +180,8 @@ func (c *CompositeProfileClient) DeleteCompositeProfile(cpf string, p string, ca
 	if err != nil {
 		if strings.Contains(err.Error(), "Error finding:") {
 			return pkgerrors.Wrap(err, "db Remove error - not found")
+		} else if strings.Contains(err.Error(), "not found") {
+			return pkgerrors.Wrap(err, "Composite profile not found")
 		} else if strings.Contains(err.Error(), "Can't delete parent without deleting child") {
 			return pkgerrors.Wrap(err, "db Remove error - conflict")
 		} else {

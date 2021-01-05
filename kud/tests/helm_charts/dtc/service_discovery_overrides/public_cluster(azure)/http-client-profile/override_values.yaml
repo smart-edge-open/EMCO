@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+
+image:
+    repository: amr-registry.caas.intel.com/ngs-5g-dcc/my-custom-httptest-client-proxy
+    tag: "1.10"
+    pullPolicy: Always
+  
+server:
+    domain: "http://http-service:30080"
+
+proxy:
+    http: "http://proxy-us.intel.com:911"
+
+service:
+    type: ClusterIP
+    nameOfPort: webPort
+    annotations: {}
+    labels: {}
+    clusterIP: ""
+
+resources:
+    limits:
+        cpu: 100m
+        memory: 128Mi
+    requests:
+        cpu: 100m
+        memory: 128Mi

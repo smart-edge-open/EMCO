@@ -158,6 +158,7 @@ func (r *reconciler) updateServices(rbstate *v1alpha1.ResourceBundleState,
 			TypeMeta:   svc.TypeMeta,
 			ObjectMeta: svc.ObjectMeta,
 			Status:     svc.Status,
+			Spec:       svc.Spec,
 		}
 		rbstate.Status.ServiceStatuses = append(rbstate.Status.ServiceStatuses, resStatus)
 	}
@@ -232,6 +233,7 @@ func (r *reconciler) updateDeployments(rbstate *v1alpha1.ResourceBundleState,
 			TypeMeta:   dep.TypeMeta,
 			ObjectMeta: dep.ObjectMeta,
 			Status:     dep.Status,
+			Spec:       dep.Spec,
 		}
 		rbstate.Status.DeploymentStatuses = append(rbstate.Status.DeploymentStatuses, resStatus)
 	}

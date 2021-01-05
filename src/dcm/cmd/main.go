@@ -26,14 +26,14 @@ func main() {
 
 	err := db.InitializeDatabaseConnection("mco")
 	if err != nil {
-		log.Println("Unable to initialize database connection...")
+		log.Println("Unable to initialize mongo database connection...")
 		log.Println(err)
 		log.Fatalln("Exiting...")
 	}
 
 	err = contextDb.InitializeContextDatabase()
 	if err != nil {
-		log.Println("Unable to initialize database connection...")
+		log.Println("Unable to initialize etcd database connection...")
 		log.Println(err)
 		log.Fatalln("Exiting...")
 	}

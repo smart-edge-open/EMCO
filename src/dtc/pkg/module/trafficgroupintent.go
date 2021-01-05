@@ -57,7 +57,7 @@ func (v TrafficGroupIntentDbClient) CreateTrafficGroupIntent(tci TrafficGroupInt
 	//Check if this TrafficGroupIntent already exists
 	_, err := v.GetTrafficGroupIntent(tci.Metadata.Name, project, compositeapp, compositeappversion, deploymentintentgroupname)
 	if err == nil && !exists {
-		return TrafficGroupIntent{}, pkgerrors.Wrap(err, "TrafficGroupIntent already exists")
+		return TrafficGroupIntent{}, pkgerrors.New("TrafficGroupIntent already exists")
 	}
 
 	err = db.DBconn.Insert(v.db.storeName, key, nil, v.db.tagMeta, tci)

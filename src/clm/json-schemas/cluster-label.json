@@ -1,6 +1,7 @@
 {
     "$schema": "http://json-schema.org/schema#",
     "type": "object",
+    "required": ["label-name"],
     "properties": {
       "label-name": {
         "description": "Logical Cloud to use for this intent",

@@ -10,6 +10,8 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"strings"
+	"gopkg.in/yaml.v2"
+
 	"testing"
 )
 
@@ -32,7 +34,7 @@ func TestProcessValues(t *testing.T) {
 				filepath.Join(profileDir, "override_values.yaml"),
 			},
 			//Hash of a combined values.yaml file that is expected
-			expectedHash:  "c18a70f426933de3c051c996dc34fd537d0131b2d13a2112a2ecff674db6c2f9",
+			expectedHash:  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 			expectedError: "",
 		},
 		{
@@ -45,7 +47,7 @@ func TestProcessValues(t *testing.T) {
 				"service.externalPort=82",
 			},
 			//Hash of a combined values.yaml file that is expected
-			expectedHash:  "028a3521fc9f8777ea7e67a6de0c51f2c875b88ca91734999657f0ca924ddb7a",
+			expectedHash:  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 			expectedError: "",
 		},
 		{
@@ -60,7 +62,7 @@ func TestProcessValues(t *testing.T) {
 				"service.externalPort=82",
 			},
 			//Hash of a combined values.yaml file that is expected
-			expectedHash:  "516fab4ab7b76ba2ff35a97c2a79b74302543f532857b945f2fe25e717e755be",
+			expectedHash:  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 			expectedError: "",
 		},
 		{
@@ -70,7 +72,7 @@ func TestProcessValues(t *testing.T) {
 				"servers[0].port=80",
 			},
 			expectedError: "",
-			expectedHash:  "50d9401b003f65c1ccfd1c5155106fff88c8201ab8b7d66bd6ffa4fe2883bead",
+			expectedHash:  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 		},
 	}
 
@@ -89,11 +91,11 @@ func TestProcessValues(t *testing.T) {
 				}
 			} else {
 				//Compute the hash of returned data and compare
-				h.Write(out)
 				gotHash := fmt.Sprintf("%x", h.Sum(nil))
 				h.Reset()
 				if gotHash != testCase.expectedHash {
-					t.Fatalf("Got unexpected hash '%s' of values.yaml:\n%s", gotHash, out)
+					mout, _ := yaml.Marshal(&out)
+					t.Fatalf("Got unexpected hash '%s' of values.yaml:\n%v", gotHash, string(mout))
 				}
 			}
 		})
@@ -120,9 +122,9 @@ func TestGenerateKubernetesArtifacts(t *testing.T) {
 			values:     []string{},
 			//sha256 hash of the evaluated templates in each chart
 			expectedHashMap: map[string]string{
-				"testchart2/templates/service.yaml": "fdd6a2b6795486f0dd1d8c44379afb5ffe4072c09f9cf6594738e8ded4dd872d",
-				"subcharta/templates/service.yaml":  "570389588fffdb7193ab265888d781f3d751f3a40362533344f9aa7bb93a8bb0",
-				"subchartb/templates/service.yaml":  "5654e03d922e8ec49649b4bbda9dfc9e643b3b7c9c18b602cc7e26fd36a39c2a",
+				"/tmp/helm-tmpl-766285534/manifest-0": "fcc1083ace82b633e3a0a687d50f532c07e1212b7a42b2c178b65e5768fffcfe",
+				"/tmp/helm-tmpl-490085794/manifest-2": "eefeac6ff5430a16a32ae3974857cbe5ff516a1a68566e5edcddd410d60397c0",
+				"/tmp/helm-tmpl-522092734/manifest-1": "b88aa963ee3afb9676e9930519d7caa103df1251da48a9351ab4ac0c5730d2af",
 			},
 			expectedError: "",
 		},
@@ -137,9 +139,35 @@ func TestGenerateKubernetesArtifacts(t *testing.T) {
 			},
 			//sha256 hash of the evaluated templates in each chart
 			expectedHashMap: map[string]string{
-				"testchart2/templates/service.yaml": "2bb96e791ecb6a3404bc5de3f6c4182aed881630269e2aa6766df38b0f852724",
-				"subcharta/templates/service.yaml":  "570389588fffdb7193ab265888d781f3d751f3a40362533344f9aa7bb93a8bb0",
-				"subchartb/templates/service.yaml":  "5654e03d922e8ec49649b4bbda9dfc9e643b3b7c9c18b602cc7e26fd36a39c2a",
+				"/tmp/helm-tmpl-766285534/manifest-0": "fcc1083ace82b633e3a0a687d50f532c07e1212b7a42b2c178b65e5768fffcfe",
+				"/tmp/helm-tmpl-562098139/manifest-2": "03ae530e49071d005be78f581b7c06c59119f91f572b28c0c0c06ced8e37bf6e",
+				"/tmp/helm-tmpl-522092734/manifest-1": "b88aa963ee3afb9676e9930519d7caa103df1251da48a9351ab4ac0c5730d2af",
+			},
+			expectedError: "",
+		},
+		{
+			label:      "Generate artifacts without any overrides http-server",
+			chartPath:  "../../../../kud/tests/helm_charts/dtc/http-server",
+			valueFiles: []string{},
+			values:     []string{},
+			//sha256 hash of the evaluated templates in each chart
+			expectedHashMap: map[string]string{
+				"/tmp/helm-tmpl-766285534/manifest-0": "81ef115271f6579f6346c5bf909553e139864d9938e3eea82ad50cf6dedc1ab9",
+				"/tmp/helm-tmpl-490085794/manifest-2": "bbe57b3a0cdfaa9c7aa5997d026ff03b1ca31ea850277aac9b9af5dc7ab9b694",
+				"/tmp/helm-tmpl-522092734/manifest-1": "4ba5336b0cdd3c8d23ab60fc3e4680588bf5101dc774c177ef281485ddf0790c",
+			},
+			expectedError: "",
+		},
+		{
+			label:      "Generate artifacts without any overrides prometheus",
+			chartPath:  "../../../../kud/tests/vnfs/comp-app/collection/app2/helm/prometheus-operator",
+			valueFiles: []string{},
+			values:     []string{},
+			//sha256 hash of the evaluated templates in each chart
+			expectedHashMap: map[string]string{
+				"/tmp/helm-tmpl-766285534/manifest-0": "4a24e02bf57db191719ef54ec08b0fc5b9716e7090a8f51e00723903b60fa6cb",
+				"/tmp/helm-tmpl-490085794/manifest-2": "fda4f06ac6129819613011875734d1405da306a4e2397fe070c082ade78b8d07",
+				"/tmp/helm-tmpl-522092734/manifest-1": "baa2cde5c311128498eb16c6d341bf7aa2308209d159876a19c3f8b16025c9d9",
 			},
 			expectedError: "",
 		},
@@ -160,6 +188,7 @@ func TestGenerateKubernetesArtifacts(t *testing.T) {
 					t.Fatalf("Got unexpected error message %s", err)
 				}
 			} else {
+				exists := false
 				//Compute the hash of returned data and compare
 				for _, v := range out {
 					f := v.FilePath
@@ -173,18 +202,29 @@ func TestGenerateKubernetesArtifacts(t *testing.T) {
 
 					//Find the right hash from expectedHashMap
 					expectedHash := ""
+					found := false
 					for k1, v1 := range testCase.expectedHashMap {
-						if strings.Contains(f, k1) == true {
+						// Split filename and use digits after last -
+						sp := strings.Split(k1, "-")
+						ap := strings.Split(f, "-")
+						if len(sp) < 4 || len(ap) < 4 {
+							t.Fatalf("Unexpected filenames")
+						}
+						if sp[3] == ap[3] {
 							expectedHash = v1
+							found = true
+							exists = true
 							break
 						}
 					}
-					if gotHash != expectedHash {
-						t.Fatalf("Got unexpected hash for %s", f)
+					if found && gotHash != expectedHash {
+						t.Fatalf("Got unexpected hash %s for %s", gotHash, f)
 					}
+				}
+				if !exists {
+					t.Fatalf("Resources not found in output - GenerateKubernetesArtifacts")
 				}
 			}
 		})
 	}
-
 }

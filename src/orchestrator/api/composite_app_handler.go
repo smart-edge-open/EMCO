@@ -51,7 +51,7 @@ func (h compositeAppHandler) createHandler(w http.ResponseWriter, r *http.Reques
 	vars := mux.Vars(r)
 	projectName := vars["project-name"]
 
-	ret, err := h.client.CreateCompositeApp(c, projectName)
+	ret, err := h.client.CreateCompositeApp(c, projectName, false)
 	if err != nil {
 		log.Error(err.Error(), log.Fields{})
 		if strings.Contains(err.Error(), "Unable to find the project") {
@@ -87,6 +87,8 @@ func (h compositeAppHandler) getHandler(w http.ResponseWriter, r *http.Request) 
 		log.Error(err.Error(), log.Fields{})
 		if strings.Contains(err.Error(), "db Find error") {
 			http.Error(w, err.Error(), http.StatusNotFound)
+		} else if strings.Contains(err.Error(), "not found") {
+			http.Error(w, err.Error(), http.StatusNotFound)
 		} else {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -116,6 +118,8 @@ func (h compositeAppHandler) getAllCompositeAppsHandler(w http.ResponseWriter, r
 		if strings.Contains(err.Error(), "Unable to find") {
 			http.Error(w, err.Error(), http.StatusNotFound)
 		} else if strings.Contains(err.Error(), "db Find error") {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else if strings.Contains(err.Error(), "not found") {
 			http.Error(w, err.Error(), http.StatusNotFound)
 		} else {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -158,4 +162,52 @@ func (h compositeAppHandler) deleteHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h compositeAppHandler) updateHandler(w http.ResponseWriter, r *http.Request) {
+	var c moduleLib.CompositeApp
+
+	err := json.NewDecoder(r.Body).Decode(&c)
+	switch {
+	case err == io.EOF:
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, "Empty body", http.StatusBadRequest)
+		return
+	case err != nil:
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+	// Verify JSON Body
+	err, httpError := validation.ValidateJsonSchemaData(caJSONFile, c)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), httpError)
+		return
+	}
+
+	vars := mux.Vars(r)
+	projectName := vars["project-name"]
+
+	ret, err := h.client.CreateCompositeApp(c, projectName, true)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		if strings.Contains(err.Error(), "Unable to find the project") {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else if strings.Contains(err.Error(), "CompositeApp already exists") {
+			http.Error(w, err.Error(), http.StatusConflict)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	err = json.NewEncoder(w).Encode(ret)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

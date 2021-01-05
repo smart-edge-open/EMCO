@@ -12,7 +12,6 @@ import (
 	log "github.com/open-ness/EMCO/src/orchestrator/pkg/infra/logutils"
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/infra/validation"
 	moduleLib "github.com/open-ness/EMCO/src/ovnaction/pkg/module"
-	pkgerrors "github.com/pkg/errors"
 
 	"github.com/gorilla/mux"
 )
@@ -25,16 +24,6 @@ type netcontrolintentHandler struct {
 	// Interface that implements Cluster operations
 	// We will set this variable with a mock interface for testing
 	client moduleLib.NetControlIntentManager
-}
-
-// Check for valid format of input parameters
-func validateNetControlIntentInputs(nci moduleLib.NetControlIntent) error {
-	// validate metadata
-	err := moduleLib.IsValidMetadata(nci.Metadata)
-	if err != nil {
-		return pkgerrors.Wrap(err, "Invalid network controller intent metadata")
-	}
-	return nil
 }
 
 // Create handles creation of the NetControlIntent entry in the database
@@ -63,20 +52,6 @@ func (h netcontrolintentHandler) createHandler(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		log.Error(":: Invalid network control intent body ::", log.Fields{"Error": err})
 		http.Error(w, err.Error(), httpError)
-		return
-	}
-
-	// Name is required.
-	if nci.Metadata.Name == "" {
-		log.Error(":: Missing name in network control intent POST request ::", log.Fields{})
-		http.Error(w, "Missing name in POST request", http.StatusBadRequest)
-		return
-	}
-
-	err = validateNetControlIntentInputs(nci)
-	if err != nil {
-		log.Error(":: Invalid network control intent body inputs ::", log.Fields{"Error": err})
-		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -124,10 +99,10 @@ func (h netcontrolintentHandler) putHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Name is required.
-	if nci.Metadata.Name == "" {
-		log.Error(":: Missing network control intent name in PUT request ::", log.Fields{})
-		http.Error(w, "Missing name in PUT request", http.StatusBadRequest)
+	err, httpError := validation.ValidateJsonSchemaData(netCntIntJSONFile, nci)
+	if err != nil {
+		log.Error(":: Invalid network control intent body ::", log.Fields{"Error": err})
+		http.Error(w, err.Error(), httpError)
 		return
 	}
 
@@ -138,21 +113,10 @@ func (h netcontrolintentHandler) putHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err = validateNetControlIntentInputs(nci)
-	if err != nil {
-		log.Error(":: Invalid network control intent inputs ::", log.Fields{"Error": err})
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
 	ret, err := h.client.CreateNetControlIntent(nci, project, compositeApp, compositeAppVersion, deployIntentGroup, true)
 	if err != nil {
 		log.Error(":: Error updating network control intent ::", log.Fields{"Error": err})
-		if strings.Contains(err.Error(), "NetControlIntent already exists") {
-			http.Error(w, err.Error(), http.StatusConflict)
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

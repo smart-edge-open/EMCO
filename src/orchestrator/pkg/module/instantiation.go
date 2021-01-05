@@ -35,12 +35,44 @@ type InstantiationClient struct {
 	db InstantiationClientDbInfo
 }
 
+// DeploymentStatus is the structure used to return general status results
+// for the Deployment Intent Group
 type DeploymentStatus struct {
 	Project              string `json:"project,omitempty"`
 	CompositeAppName     string `json:"composite-app-name,omitempty"`
 	CompositeAppVersion  string `json:"composite-app-version,omitempty"`
 	CompositeProfileName string `json:"composite-profile-name,omitempty"`
 	status.StatusResult  `json:",inline"`
+}
+
+// DeploymentAppsListStatus is the structure used to return the list of Apps
+// that have been/were deployed for the DeploymentIntentGroup
+type DeploymentAppsListStatus struct {
+	Project               string `json:"project,omitempty"`
+	CompositeAppName      string `json:"composite-app-name,omitempty"`
+	CompositeAppVersion   string `json:"composite-app-version,omitempty"`
+	CompositeProfileName  string `json:"composite-profile-name,omitempty"`
+	status.AppsListResult `json:",inline"`
+}
+
+// DeploymentClustersByAppStatus is the structure used to return the list of Apps
+// that have been/were deployed for the DeploymentIntentGroup
+type DeploymentClustersByAppStatus struct {
+	Project                    string `json:"project,omitempty"`
+	CompositeAppName           string `json:"composite-app-name,omitempty"`
+	CompositeAppVersion        string `json:"composite-app-version,omitempty"`
+	CompositeProfileName       string `json:"composite-profile-name,omitempty"`
+	status.ClustersByAppResult `json:",inline"`
+}
+
+// DeploymentResourcesByAppStatus is the structure used to return the list of Apps
+// that have been/were deployed for the DeploymentIntentGroup
+type DeploymentResourcesByAppStatus struct {
+	Project                     string `json:"project,omitempty"`
+	CompositeAppName            string `json:"composite-app-name,omitempty"`
+	CompositeAppVersion         string `json:"composite-app-version,omitempty"`
+	CompositeProfileName        string `json:"composite-profile-name,omitempty"`
+	status.ResourcesByAppResult `json:",inline"`
 }
 
 /*
@@ -63,7 +95,10 @@ type InstantiationKey struct {
 type InstantiationManager interface {
 	Approve(p string, ca string, v string, di string) error
 	Instantiate(p string, ca string, v string, di string) error
-	Status(p, ca, v, di, qInstance, qType, qOutput string, qApps, qClusters, qResources []string) (DeploymentStatus, error)
+	Status(p, ca, v, di, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (DeploymentStatus, error)
+	StatusAppsList(p, ca, v, di, qInstance string) (DeploymentAppsListStatus, error)
+	StatusClustersByApp(p, ca, v, di, qInstance string, fApps []string) (DeploymentClustersByAppStatus, error)
+	StatusResourcesByApp(p, ca, v, di, qInstance, qType string, fApps, fClusters []string) (DeploymentResourcesByAppStatus, error)
 	Terminate(p string, ca string, v string, di string) error
 	Stop(p string, ca string, v string, di string) error
 }
@@ -242,6 +277,7 @@ resolution, creation and saving of context for saving into etcd.
 */
 func (c InstantiationClient) Instantiate(p string, ca string, v string, di string) error {
 
+	log.Info(":: Orchestrator Instantiate ::", log.Fields{"project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": di})
 	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(di, p, ca, v)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Not finding the deploymentIntentGroup")
@@ -400,6 +436,7 @@ func (c InstantiationClient) Instantiate(p string, ca string, v string, di strin
 			deleteAppContext(context)
 			return pkgerrors.Wrap(err, "Unable to get the intents for app")
 		}
+
 		// listOfClusters shall have both mandatoryClusters and optionalClusters where the app needs to be installed.
 		listOfClusters, err := gpic.IntentResolver(specData.Intent)
 		if err != nil {
@@ -408,18 +445,24 @@ func (c InstantiationClient) Instantiate(p string, ca string, v string, di strin
 		}
 
 		log.Info(":: listOfClusters ::", log.Fields{"listOfClusters": listOfClusters})
-		if listOfClusters.MandatoryClusters == nil && listOfClusters.ClusterGroups == nil {
+		if listOfClusters.MandatoryClusters == nil && listOfClusters.OptionalClusters == nil {
 			deleteAppContext(context)
 			log.Error("No compatible clusters have been provided to the Deployment Intent Group", log.Fields{"listOfClusters": listOfClusters})
 			return pkgerrors.New("No compatible clusters have been provided to the Deployment Intent Group")
 		}
 
 		// make sure LC can support DIG by validating DIG clusters against LC clusters
-		mandatoryClusters := make([]gpic.ClusterWithName, len(listOfClusters.MandatoryClusters))
-		_ = copy(mandatoryClusters, listOfClusters.MandatoryClusters)
+		var mandatoryClusters []gpic.ClusterWithName
+
+		for _, mc := range listOfClusters.MandatoryClusters {
+			for _, c := range mc.Clusters {
+				mandatoryClusters = append(mandatoryClusters, c)
+			}
+
+		}
 		for _, dcluster := range dcmClusters {
 			for i, cluster := range mandatoryClusters {
-				if cluster.ProviderName == dcluster.Specification.ClusterProvider {
+				if cluster.ProviderName == dcluster.Specification.ClusterProvider && cluster.ClusterName == dcluster.Specification.ClusterName {
 					// remove the cluster from slice since it's part of the LC
 					lastIndex := len(mandatoryClusters) - 1
 					mandatoryClusters[i] = mandatoryClusters[lastIndex]
@@ -451,7 +494,6 @@ func (c InstantiationClient) Instantiate(p string, ca string, v string, di strin
 			deleteAppContext(context)
 			return pkgerrors.Wrap(err, "Error while verifying resources in app: ")
 		}
-
 	}
 
 	jappOrderInstr, err := json.Marshal(appOrderInstr)
@@ -483,21 +525,25 @@ func (c InstantiationClient) Instantiate(p string, ca string, v string, di strin
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error adding getting prioritized controller list")
 	}
-	log.Info("Priority Based List ", log.Fields{"PlacementControllers::": pl.pPlaCont,
-		"ActionControllers::": pl.pActCont, "mapOfControllers::": mapOfControllers})
 
-	err = callGrpcForControllerList(pl.pPlaCont, mapOfControllers, ctxval)
+	log.Info("Orchestrator Instantiate .. Priority Based List ", log.Fields{"PlacementControllers::": pl.pPlaCont,
+		"ActionControllers::": pl.pActCont, "mapOfControllers::": mapOfControllers})
+	// Invoke all Placement Controllers communication interface in loop
+	err = callGrpcForPlacementControllerList(pl.pPlaCont, ctxval)
 	if err != nil {
 		deleteAppContext(context)
-		return pkgerrors.Wrap(err, "Error calling gRPC for placement controller list")
+		log.Error("Orchestrator Instantiate .. Error calling PlacementController gRPC.", log.Fields{"all-placement-controllers": pl.pPlaCont, "err": err})
+		return pkgerrors.Wrap(err, "Error calling PlacementController gRPC")
 	}
 
+	// delete extra clusters from group map
 	err = deleteExtraClusters(allApps, context)
 	if err != nil {
 		deleteAppContext(context)
 		return pkgerrors.Wrap(err, "Error deleting extra clusters")
 	}
 
+	// Invoke all Action Controllers communication interface
 	err = callGrpcForControllerList(pl.pActCont, mapOfControllers, ctxval)
 	log.Warn("", log.Fields{"pl.pActCont::": pl.pActCont})
 	log.Warn("", log.Fields{"mapOfControllers::": mapOfControllers})
@@ -545,7 +591,7 @@ Status takes in projectName, compositeAppName, compositeAppVersion,
 DeploymentIntentName. This method is responsible obtaining the status of
 the deployment, which is made available in the appcontext.
 */
-func (c InstantiationClient) Status(p, ca, v, di, qInstance, qType, qOutput string, qApps, qClusters, qResources []string) (DeploymentStatus, error) {
+func (c InstantiationClient) Status(p, ca, v, di, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (DeploymentStatus, error) {
 
 	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(di, p, ca, v)
 	if err != nil {
@@ -557,17 +603,7 @@ func (c InstantiationClient) Status(p, ca, v, di, qInstance, qType, qOutput stri
 		return DeploymentStatus{}, pkgerrors.Wrap(err, "deploymentIntentGroup state not found: "+di)
 	}
 
-	// Get all apps in this composite app
-	apps, err := NewAppClient().GetApps(p, ca, v)
-	if err != nil {
-		return DeploymentStatus{}, pkgerrors.Wrap(err, "Not finding the apps")
-	}
-	allApps := make([]string, 0)
-	for _, a := range apps {
-		allApps = append(allApps, a.Metadata.Name)
-	}
-
-	statusResponse, err := status.PrepareStatusResult(diState, allApps, qInstance, qType, qOutput, qApps, qClusters, qResources)
+	statusResponse, err := status.PrepareStatusResult(diState, qInstance, qType, qOutput, fApps, fClusters, fResources)
 	if err != nil {
 		return DeploymentStatus{}, err
 	}
@@ -578,6 +614,105 @@ func (c InstantiationClient) Status(p, ca, v, di, qInstance, qType, qOutput stri
 		CompositeAppVersion:  v,
 		CompositeProfileName: dIGrp.Spec.Profile,
 		StatusResult:         statusResponse,
+	}
+
+	return diStatus, nil
+}
+
+/*
+StatusAppsList takes in projectName, compositeAppName, compositeAppVersion,
+DeploymentIntentName. This method returns the list of apps in use for the given instance
+of appcontext of this deployment intent group.
+*/
+func (c InstantiationClient) StatusAppsList(p, ca, v, di, qInstance string) (DeploymentAppsListStatus, error) {
+
+	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(di, p, ca, v)
+	if err != nil {
+		return DeploymentAppsListStatus{}, pkgerrors.Wrap(err, "Not finding the deploymentIntentGroup")
+	}
+
+	diState, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(di, p, ca, v)
+	if err != nil {
+		return DeploymentAppsListStatus{}, pkgerrors.Wrap(err, "deploymentIntentGroup state not found: "+di)
+	}
+
+	statusResponse, err := status.PrepareAppsListStatusResult(diState, qInstance)
+	if err != nil {
+		return DeploymentAppsListStatus{}, err
+	}
+	statusResponse.Name = di
+	diStatus := DeploymentAppsListStatus{
+		Project:              p,
+		CompositeAppName:     ca,
+		CompositeAppVersion:  v,
+		CompositeProfileName: dIGrp.Spec.Profile,
+		AppsListResult:       statusResponse,
+	}
+
+	return diStatus, nil
+}
+
+/*
+StatusClustersByApp takes in projectName, compositeAppName, compositeAppVersion,
+DeploymentIntentName. This method returns the list of apps in use for the given instance
+of appcontext of this deployment intent group.
+*/
+func (c InstantiationClient) StatusClustersByApp(p, ca, v, di, qInstance string, fApps []string) (DeploymentClustersByAppStatus, error) {
+
+	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(di, p, ca, v)
+	if err != nil {
+		return DeploymentClustersByAppStatus{}, pkgerrors.Wrap(err, "Not finding the deploymentIntentGroup")
+	}
+
+	diState, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(di, p, ca, v)
+	if err != nil {
+		return DeploymentClustersByAppStatus{}, pkgerrors.Wrap(err, "deploymentIntentGroup state not found: "+di)
+	}
+
+	statusResponse, err := status.PrepareClustersByAppStatusResult(diState, qInstance, fApps)
+	if err != nil {
+		return DeploymentClustersByAppStatus{}, err
+	}
+	statusResponse.Name = di
+	diStatus := DeploymentClustersByAppStatus{
+		Project:              p,
+		CompositeAppName:     ca,
+		CompositeAppVersion:  v,
+		CompositeProfileName: dIGrp.Spec.Profile,
+		ClustersByAppResult:  statusResponse,
+	}
+
+	return diStatus, nil
+}
+
+/*
+StatusResourcesByApp takes in projectName, compositeAppName, compositeAppVersion,
+DeploymentIntentName. This method returns the list of apps in use for the given instance
+of appcontext of this deployment intent group.
+*/
+func (c InstantiationClient) StatusResourcesByApp(p, ca, v, di, qInstance, qType string, fApps, fClusters []string) (DeploymentResourcesByAppStatus, error) {
+
+	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(di, p, ca, v)
+	if err != nil {
+		return DeploymentResourcesByAppStatus{}, pkgerrors.Wrap(err, "Not finding the deploymentIntentGroup")
+	}
+
+	diState, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(di, p, ca, v)
+	if err != nil {
+		return DeploymentResourcesByAppStatus{}, pkgerrors.Wrap(err, "deploymentIntentGroup state not found: "+di)
+	}
+
+	statusResponse, err := status.PrepareResourcesByAppStatusResult(diState, qInstance, qType, fApps, fClusters)
+	if err != nil {
+		return DeploymentResourcesByAppStatus{}, err
+	}
+	statusResponse.Name = di
+	diStatus := DeploymentResourcesByAppStatus{
+		Project:              p,
+		CompositeAppName:     ca,
+		CompositeAppVersion:  v,
+		CompositeProfileName: dIGrp.Spec.Profile,
+		ResourcesByAppResult: statusResponse,
 	}
 
 	return diStatus, nil
@@ -604,6 +739,28 @@ func (c InstantiationClient) Terminate(p string, ca string, v string, di string)
 	}
 
 	currentCtxId := state.GetLastContextIdFromStateInfo(s)
+
+	var ac appcontext.AppContext
+	_, err = ac.LoadAppContext(currentCtxId)
+	if err != nil {
+		return pkgerrors.Wrapf(err, "Error getting AppContext with Id: %v", currentCtxId)
+	}
+	// Get the composite app meta
+	m, err := ac.GetCompositeAppMeta()
+	if err != nil {
+		return pkgerrors.Wrap(err, "Error getting CompositeAppMeta")
+	}
+	if len(m.ChildContextIDs) > 0 {
+		// Uninstall the resources associated to the child contexts
+		for _, childContextID := range m.ChildContextIDs {
+			err = callRsyncUninstall(childContextID)
+			if err != nil {
+				log.Warn("Unable to uninstall the resources associated to the child context", log.Fields{"childContext": childContextID})
+				continue
+			}
+		}
+	}
+	// Uninstall the resources associated to the parent contexts
 	err = callRsyncUninstall(currentCtxId)
 	if err != nil {
 		return err

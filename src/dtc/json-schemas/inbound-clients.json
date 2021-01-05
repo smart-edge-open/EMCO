@@ -4,22 +4,30 @@
   "properties": {
     "spec": {
       "required": [
-        "application",
-        "servicename",
+        "appName",
+        "appLabel",
+        "serviceName",
         "namespaces",
         "cidrs"
       ],
       "type": "object",
       "description": "Traffic inbound server Intent",
       "properties": {
-        "application": {
+        "appName": {
           "description": "Application Name",
           "type": "string",
           "example": "smartapp",
           "maxLength": 128,
           "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
         },
-        "servicename": {
+        "appLabel": {
+          "description": "Application Label",
+          "type": "string",
+          "example": "app=smartapp",
+          "maxLength": 128,
+          "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.=]*)?[A-Za-z0-9]$"
+        },
+        "serviceName": {
           "description": "Servicename Name",
           "type": "string",
           "example": "echo",

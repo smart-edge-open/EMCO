@@ -12,7 +12,8 @@ global:
 #################################################################
 # application image
 repository:
-image: emco-dcm:latest
+image: emco-dcm
+imageTag:
 pullPolicy: Always
 command: "./dcm"
 args: ""

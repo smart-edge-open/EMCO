@@ -17,13 +17,13 @@
             "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
           },
           "macAddress": {
-            "description": "Name of the network",
+            "description": "mac address of interface",
             "type": "string",
             "example": "x.x.x.x",
             "maxLength": 128
           },
           "ipAddress": {
-            "description": "Name of the network",
+            "description": "ip address of interface",
             "type": "string",
             "example": "0.0.0.0",
             "maxLength": 128

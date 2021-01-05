@@ -7,9 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/open-ness/EMCO/src/dtc/internal/networkpolicy"
+	"github.com/open-ness/EMCO/src/dtc/internal/servicediscovery"
 	contextpb "github.com/open-ness/EMCO/src/orchestrator/pkg/grpc/contextupdate"
 	log "github.com/open-ness/EMCO/src/orchestrator/pkg/infra/logutils"
-	"github.com/open-ness/EMCO/src/dtc/internal/networkpolicy"
 )
 
 type contextupdateServer struct {
@@ -23,6 +24,11 @@ func (cs *contextupdateServer) UpdateAppContext(ctx context.Context, req *contex
 	})
 
 	err := networkpolicy.UpdateAppContext(req.IntentName, req.AppContext)
+	if err != nil {
+		return &contextpb.ContextUpdateResponse{AppContextUpdated: false, AppContextUpdateMessage: err.Error()}, nil
+	}
+
+	err = servicediscovery.CreateAppContext(req.IntentName, req.AppContext)
 	if err != nil {
 		return &contextpb.ContextUpdateResponse{AppContextUpdated: false, AppContextUpdateMessage: err.Error()}, nil
 	}

@@ -1,7 +1,6 @@
 module github.com/open-ness/EMCO/src/orchestrator
 
 require (
-	github.com/etcd-io/etcd v3.3.25+incompatible
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/protobuf v1.4.2
 	github.com/gorilla/handlers v1.3.0
@@ -12,28 +11,32 @@ require (
 	github.com/open-ness/EMCO/src/monitor v0.0.0-00010101000000-000000000000
 	github.com/open-ness/EMCO/src/rsync v0.0.0-00010101000000-000000000000
 	github.com/pkg/errors v0.9.1
-	github.com/sirupsen/logrus v1.6.0
+	github.com/sirupsen/logrus v1.7.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	go.etcd.io/etcd v3.3.25+incompatible
 	go.mongodb.org/mongo-driver v1.4.3
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	google.golang.org/grpc v1.28.0
 	google.golang.org/protobuf v1.24.0
-	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v2 v2.3.0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
-	k8s.io/apimachinery v0.19.4
-	k8s.io/helm v2.14.0+incompatible
+	helm.sh/helm/v3 v3.5.3
+	k8s.io/apimachinery v0.20.2
 
 )
 
 replace (
 	github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.7.0
+	github.com/containerd/containerd => github.com/containerd/containerd v1.4.3
+	github.com/docker/distribution => github.com/docker/distribution v0.0.0-20191216044856-a8371794149d
+	github.com/docker/docker => github.com/moby/moby v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible
 	github.com/open-ness/EMCO/src/clm => ../clm
 	github.com/open-ness/EMCO/src/dcm => ../dcm
 	github.com/open-ness/EMCO/src/monitor => ../monitor
 	github.com/open-ness/EMCO/src/orchestrator => ../orchestrator
 	github.com/open-ness/EMCO/src/rsync => ../rsync
 	go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20200819165624-17cef6e3e9d5 // 17cef6e3e9d5 is the SHA for git tag v3.4.12
+	helm.sh/helm/v3 => helm.sh/helm/v3 v3.5.3
 	k8s.io/api => k8s.io/api v0.19.4
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.19.4
 	k8s.io/apimachinery => k8s.io/apimachinery v0.19.4
@@ -58,4 +61,4 @@ replace (
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.19.4
 )
 
-go 1.13
+go 1.14

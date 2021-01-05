@@ -23,8 +23,9 @@ func isValidClusterToApplyByLabel(cProvider, acName, cLabel, cMode string) (bool
 	if err != nil {
 		return false, err
 	}
+	acName = strings.Split(acName, SEPARATOR)[1]
 	for _, cn := range clusterNamesList {
-		acName = strings.Split(acName, SEPARATOR)[1]
+		
 		if cn == acName && cMode == "allow" {
 			return true, nil
 		}
@@ -39,8 +40,8 @@ func isValidClusterToApplyByName(cProvider, acName, gcName, cMode string) (bool,
 	if err != nil {
 		return false, err
 	}
+	acName = strings.Split(acName, SEPARATOR)[1]
 	for _, cn := range clusterNamesList {
-		acName = strings.Split(acName, SEPARATOR)[1]
 		if cn.Metadata.Name == acName && cMode == "allow" {
 			return true, nil
 		}

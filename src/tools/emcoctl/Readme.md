@@ -88,6 +88,11 @@ For deleting one resource anchor can be provided as an arguement
 
 `$ emcoctl delete projects/testvfw/composite-apps/compositevfw/v1/deployment-intent-groups/vfw_deployment_intent_group`
 
+4. Update Emco Resources
+
+This command will call update (PUT) for the resources in the file.
+
+`$ emcoctl update -f filename.yaml`
 
 ## Using helm charts through emcoctl
 
@@ -251,36 +256,62 @@ be used to modify the output.
 
 The following query parameters are available:
 
-type=<rsync | cluster>
+`type`=< `rsync` | `cluster` >
 * default type is 'rsync'
-* rsync: gathers status based on the rsync resources.
-* cluster: gathers status based on cluster resource information received in the ResourceBundleState CRs received from the cluster(s)
+* `rsync`: gathers status based on the rsync resources.
+* `cluster`: gathers status based on cluster resource information received in the ResourceBundleState CRs received from the cluster(s)
 
-output=<summary | all | detail>
+`output`=< `summary` | `all` | `detail` >
 * default output value is: 'all'
-* summary: will just show the top level EMCO resource state and status along with aggregated resource statuses but no resource detail information
+* `summary`: will just show the top level EMCO resource state and status along with aggregated resource statuses but no resource detail information
   any filters added will affect the aggregated resource status results, although resource details will not be displayed
-* all: will include a list of resources, organized by App and Cluster, showing basic resource identification (Group Version Kind) and resource statuses
-* detail: includes in the resource list the metadata, spec, and status of the resource as received in the ResourceBundleState CR
+* `all`: will include a list of resources, organized by App and Cluster, showing basic resource identification (Group Version Kind) and resource statuses
+* `detail`: includes in the resource list the metadata, spec, and status of the resource as received in the ResourceBundleState CR
 
 
 The following query parameters filter the results returned.  Aggregated status results at the top level are relative to the filter parameters supplied
 These parameters can be supplied multiple times in a given status query.
 
-app=< appname >
+`app`=< `appname` >
 * default is all apps
 * This will filter the results of the query to show results only for the resources of the specified App(s).
 
-cluster=< cluster >
+`cluster=< `cluster` >
 * default is all clusters
 * This will filter the results of the query to show results only for the specified cluster(s)
 
-resource=< resource name >
+`resource`=< `resource name` >
 * default is all resources
 * This will filter the results of the query to show results only for the specified resource(s)
 
+The following query parameters may be included in status queries for `Deployment Intent Groups`.  If one of these parameters is present, then the status
+query will make the corresponding query.  Any other query parameters that are not appropriate will be ignored.
+
+`apps`
+* Return a list of all of the apps for this app context.
+* This parameter takes precedence over `clusters` and `resources` query parameters.
+* The `instance` query parameter may be provided.
+
+`clusters`
+* Returns a list of clusters to which this `Deployment Intent Group` will be deployed
+* This parameter takes precedence over the `resources` query parameter.
+* The `app` query filter may be included to filter the response to just the clusters to which the supplied app(s) are deployed.
+* The `instance` query parameter may be provided.
+
+`resources`
+* Returns a list of resources for this `Deployment Intent Group`,
+* The `app` query filter may be included to filter the response to just the resources for the supplied app(s).
+* The `instance` query parameter may be provided.
+* The `type` parameter may be supplied to return results for either `rsync` or `cluster` resources.
+* If `type`=`cluster` is provided, then the `cluster` query filter may also be provided to filter results for the suppplied cluster(s).
+
+
+Refer to the status query section of  [Resource Lifecycle](../../../docs/user/Resource_Lifecycle.md) to see more examples of the output of various status queries.
+
 #### Status query examples
-Basic status query.  By default, all apps, clusters and resources will be displayed.  The default query type is 'rsync', so the status returned indicates
+This section illustrates how to provide status query parameters to the `emcoctl` tool.
+
+Basic status query.  By default, all apps, clusters and resources will be displayed.  The default query type is `rsync`, so the status returned indicates
 the status of whether or not EMCO has successfully applied or terminated the resources (not the actual resource status in the cluster).
 ```
 emcoctl --config emco-cfg.yaml get projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/status
@@ -293,7 +324,7 @@ emcoctl --config emco-cfg.yaml get projects/proj1/composite-apps/collection-comp
 
 ```
 Query showing the detailed status of two resources in a given cluster.
-Note that the cluster is specified as the 'clusterprovider+cluster'.  The '+' is represented in ascii notation %2B.
+Note that the cluster is specified as the `clusterprovider+cluster`.  The `+` is represented in ascii notation `%2B`.
 ```
 emcoctl --config emco-cfg.yaml get projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/status\?resource=alertmanagers.monitoring.coreos.com\&resource=servicemonitors.monitoring.coreos.com\&output=all\&cluster=provider1\%2Bcluster1\&output=detail
 

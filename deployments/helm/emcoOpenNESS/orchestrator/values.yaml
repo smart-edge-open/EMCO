@@ -12,7 +12,8 @@ global:
 #################################################################
 # application image
 repository:
-image: emco-orch:latest
+image: emco-orch
+imageTag:
 pullPolicy: Always
 args: ""
 command: "./orchestrator"

@@ -62,13 +62,15 @@ func (h instantiationHandler) instantiateHandler(w http.ResponseWriter, r *http.
 			http.Error(w, iErr.Error(), http.StatusConflict)
 		case "Error reading Logical Cloud context":
 			http.Error(w, iErr.Error(), http.StatusInternalServerError)
+		case "No Qualified Clusters to deploy App":
+			http.Error(w, iErr.Error(), http.StatusInternalServerError)
 		default:
 			http.Error(w, iErr.Error(), http.StatusInternalServerError)
 		}
 		return
 	}
+	log.Info("instantiateHandler ... end ", log.Fields{"project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": di, "return-value": iErr})
 	w.WriteHeader(http.StatusAccepted)
-
 }
 
 func (h instantiationHandler) terminateHandler(w http.ResponseWriter, r *http.Request) {
@@ -158,10 +160,31 @@ func (h instantiationHandler) statusHandler(w http.ResponseWriter, r *http.Reque
 		queryOutput = "all" // default output format
 	}
 
-	var queryApps []string
+	var queryApps bool
+	if _, found := qParams["apps"]; found {
+		queryApps = true
+	} else {
+		queryApps = false
+	}
+
+	var queryClusters bool
+	if _, found := qParams["clusters"]; found {
+		queryClusters = true
+	} else {
+		queryClusters = false
+	}
+
+	var queryResources bool
+	if _, found := qParams["resources"]; found {
+		queryResources = true
+	} else {
+		queryResources = false
+	}
+
+	var filterApps []string
 	if a, found := qParams["app"]; found {
-		queryApps = a
-		for _, app := range queryApps {
+		filterApps = a
+		for _, app := range filterApps {
 			errs := validation.IsValidName(app)
 			if len(errs) > 0 {
 				log.Error(errs[len(errs)-1], log.Fields{}) // log the most recently appended msg
@@ -170,13 +193,13 @@ func (h instantiationHandler) statusHandler(w http.ResponseWriter, r *http.Reque
 			}
 		}
 	} else {
-		queryApps = make([]string, 0)
+		filterApps = make([]string, 0)
 	}
 
-	var queryClusters []string
+	var filterClusters []string
 	if c, found := qParams["cluster"]; found {
-		queryClusters = c
-		for _, cl := range queryClusters {
+		filterClusters = c
+		for _, cl := range filterClusters {
 			parts := strings.Split(cl, "+")
 			if len(parts) != 2 {
 				log.Error("Invalid cluster query", log.Fields{})
@@ -193,13 +216,13 @@ func (h instantiationHandler) statusHandler(w http.ResponseWriter, r *http.Reque
 			}
 		}
 	} else {
-		queryClusters = make([]string, 0)
+		filterClusters = make([]string, 0)
 	}
 
-	var queryResources []string
+	var filterResources []string
 	if r, found := qParams["resource"]; found {
-		queryResources = r
-		for _, res := range queryResources {
+		filterResources = r
+		for _, res := range filterResources {
 			errs := validation.IsValidName(res)
 			if len(errs) > 0 {
 				log.Error(errs[len(errs)-1], log.Fields{}) // log the most recently appended msg
@@ -208,10 +231,34 @@ func (h instantiationHandler) statusHandler(w http.ResponseWriter, r *http.Reque
 			}
 		}
 	} else {
-		queryResources = make([]string, 0)
+		filterResources = make([]string, 0)
 	}
 
-	status, iErr := h.client.Status(p, ca, v, di, queryInstance, queryType, queryOutput, queryApps, queryClusters, queryResources)
+	// Different backend status functions are invoked based on which query parameters have been provided.
+	// The query parameters will be handled with the following precedence to determine which status query is
+	// invoked:
+	//   if queryApps ("apps") == true then
+	//		call StatusAppsList()
+	//   if queryClusters ("clusters") == true then
+	//		call StatusClustersByApp()
+	//   if queryResources ("resources") == true then
+	//		call StatusResourcesByApp()
+	//   else
+	//      call Status()
+	//
+	// Supplied query parameters which not appropriate for the select function call are simply ignored.
+	var iErr error
+	var status interface{}
+
+	if queryApps {
+		status, iErr = h.client.StatusAppsList(p, ca, v, di, queryInstance)
+	} else if queryClusters {
+		status, iErr = h.client.StatusClustersByApp(p, ca, v, di, queryInstance, filterApps)
+	} else if queryResources {
+		status, iErr = h.client.StatusResourcesByApp(p, ca, v, di, queryInstance, queryType, filterApps, filterClusters)
+	} else {
+		status, iErr = h.client.Status(p, ca, v, di, queryInstance, queryType, queryOutput, filterApps, filterClusters, filterResources)
+	}
 	if iErr != nil {
 		log.Error(iErr.Error(), log.Fields{})
 		http.Error(w, iErr.Error(), http.StatusInternalServerError)

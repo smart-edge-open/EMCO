@@ -115,10 +115,10 @@ func (h schedulerHandler) statusSchedulerHandler(w http.ResponseWriter, r *http.
 		queryOutput = "all" // default output format
 	}
 
-	var queryApps []string
+	var filterApps []string
 	if a, found := qParams["app"]; found {
-		queryApps = a
-		for _, app := range queryApps {
+		filterApps = a
+		for _, app := range filterApps {
 			errs := validation.IsValidName(app)
 			if len(errs) > 0 {
 				log.Error(":: Invalid network status app query name ::", log.Fields{})
@@ -127,13 +127,13 @@ func (h schedulerHandler) statusSchedulerHandler(w http.ResponseWriter, r *http.
 			}
 		}
 	} else {
-		queryApps = make([]string, 0)
+		filterApps = make([]string, 0)
 	}
 
-	var queryClusters []string
+	var filterClusters []string
 	if c, found := qParams["cluster"]; found {
-		queryClusters = c
-		for _, cl := range queryClusters {
+		filterClusters = c
+		for _, cl := range filterClusters {
 			parts := strings.Split(cl, "+")
 			if len(parts) != 2 {
 				log.Error(":: Invalid network status cluster query format ::", log.Fields{})
@@ -150,13 +150,13 @@ func (h schedulerHandler) statusSchedulerHandler(w http.ResponseWriter, r *http.
 			}
 		}
 	} else {
-		queryClusters = make([]string, 0)
+		filterClusters = make([]string, 0)
 	}
 
-	var queryResources []string
+	var filterResources []string
 	if r, found := qParams["resource"]; found {
-		queryResources = r
-		for _, res := range queryResources {
+		filterResources = r
+		for _, res := range filterResources {
 			errs := validation.IsValidName(res)
 			if len(errs) > 0 {
 				log.Error(":: Invalid network status resource query name ::", log.Fields{"Error": errs})
@@ -165,10 +165,10 @@ func (h schedulerHandler) statusSchedulerHandler(w http.ResponseWriter, r *http.
 			}
 		}
 	} else {
-		queryResources = make([]string, 0)
+		filterResources = make([]string, 0)
 	}
 
-	status, iErr := h.client.NetworkIntentsStatus(provider, cluster, queryInstance, queryType, queryOutput, queryApps, queryClusters, queryResources)
+	status, iErr := h.client.NetworkIntentsStatus(provider, cluster, queryInstance, queryType, queryOutput, filterApps, filterClusters, filterResources)
 	if iErr != nil {
 		log.Error(":: Error getting network intent status ::", log.Fields{"Error": iErr})
 		http.Error(w, iErr.Error(), http.StatusInternalServerError)

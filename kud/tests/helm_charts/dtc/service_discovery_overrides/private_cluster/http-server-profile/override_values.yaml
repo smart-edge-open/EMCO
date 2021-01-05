@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2021 Intel Corporation
+
+image:
+    repository: amr-registry.caas.intel.com/ngs-5g-dcc/my-custom-httptest-server
+    tag: "1.4"
+    pullPolicy: Always
+
+service:
+    name: http-service
+    type: NodePort
+    tcpPort: 30080
+    nameOfPort: webPort
+    annotations: {}
+    labels: {}
+    clusterIP: ""
+
+resources:
+    limits:
+        cpu: 100m
+        memory: 128Mi
+    requests:
+        cpu: 100m
+        memory: 128Mi

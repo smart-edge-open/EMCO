@@ -22,7 +22,7 @@ spec:
           image: {{ .Values.registryPrefix }}emco-monitor:{{ .Values.tag }}
           command:
           - /opt/emco/monitor/monitor
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           env:
             - name: NO_PROXY
               value: {{ .Values.noProxyHosts }}

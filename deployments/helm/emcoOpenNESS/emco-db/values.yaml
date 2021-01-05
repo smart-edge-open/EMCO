@@ -25,13 +25,19 @@ mongo:
     enabled: true
   disableNfsProvisioner: true
 
-#etcd chart overrides for k8splugin
+# etcd chart overrides for emco
 etcd:
-  nameOverride: emco-etcd
-  service:
-    name: emco-etcd
+  fullnameOverride: emco-etcd
   persistence:
+    enabled: true
+    accessModes:
+      - ReadWriteMany
+    size: 1Gi
+    mountPath: /dockerdata-nfs
     mountSubPath: emco/etcd/data
+    volumeReclaimPolicy: Retain
+
+  volumePermissions:
     enabled: true
 
 # Configure resource requests and limits

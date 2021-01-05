@@ -9,18 +9,22 @@ import (
 
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/appcontext"
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/infra/db"
+	log "github.com/open-ness/EMCO/src/orchestrator/pkg/infra/logutils"
 	mtypes "github.com/open-ness/EMCO/src/orchestrator/pkg/module/types"
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/state"
 	rsync "github.com/open-ness/EMCO/src/rsync/pkg/db"
-
 	pkgerrors "github.com/pkg/errors"
+
+	clmController "github.com/open-ness/EMCO/src/clm/pkg/controller"
+	clmcontrollerpb "github.com/open-ness/EMCO/src/clm/pkg/grpc/controller-eventchannel"
+
+	clmcontrollereventchannelclient "github.com/open-ness/EMCO/src/clm/pkg/grpc/controllereventchannelclient"
 )
 
 type clientDbInfo struct {
 	storeName string // name of the mongodb collection to use for client documents
 	tagMeta   string // attribute key name for the json data of a client document
-	// tagContent string // attribute key name for the file data of a client document
-	tagState string // attribute key name for StateInfo object in the cluster
+	tagState  string // attribute key name for StateInfo object in the cluster
 }
 
 // ClusterProvider contains the parameters needed for ClusterProviders
@@ -86,7 +90,7 @@ const CONTEXT_CLUSTER_RESOURCE = "network-intents"
 
 // ClusterManager is an interface exposes the Cluster functionality
 type ClusterManager interface {
-	CreateClusterProvider(pr ClusterProvider) (ClusterProvider, error)
+	CreateClusterProvider(pr ClusterProvider, exists bool) (ClusterProvider, error)
 	GetClusterProvider(name string) (ClusterProvider, error)
 	GetClusterProviders() ([]ClusterProvider, error)
 	DeleteClusterProvider(name string) error
@@ -97,12 +101,13 @@ type ClusterManager interface {
 	GetClusters(provider string) ([]Cluster, error)
 	GetClustersWithLabel(provider, label string) ([]string, error)
 	DeleteCluster(provider, name string) error
-	CreateClusterLabel(provider, cluster string, pr ClusterLabel) (ClusterLabel, error)
+	CreateClusterLabel(provider, cluster string, pr ClusterLabel, exists bool) (ClusterLabel, error)
 	GetClusterLabel(provider, cluster, label string) (ClusterLabel, error)
 	GetClusterLabels(provider, cluster string) ([]ClusterLabel, error)
 	DeleteClusterLabel(provider, cluster, label string) error
-	CreateClusterKvPairs(provider, cluster string, pr ClusterKvPairs) (ClusterKvPairs, error)
+	CreateClusterKvPairs(provider, cluster string, pr ClusterKvPairs, exists bool) (ClusterKvPairs, error)
 	GetClusterKvPairs(provider, cluster, kvpair string) (ClusterKvPairs, error)
+	GetClusterKvPairsValue(provider, cluster, kvpair, kvkey string) (interface{}, error)
 	GetAllClusterKvPairs(provider, cluster string) ([]ClusterKvPairs, error)
 	DeleteClusterKvPairs(provider, cluster, kvpair string) error
 }
@@ -120,14 +125,13 @@ func NewClusterClient() *ClusterClient {
 		db: clientDbInfo{
 			storeName: "cluster",
 			tagMeta:   "clustermetadata",
-			// tagContent: "clustercontent",
-			tagState: "stateInfo",
+			tagState:  "stateInfo",
 		},
 	}
 }
 
 // CreateClusterProvider - create a new Cluster Provider
-func (v *ClusterClient) CreateClusterProvider(p ClusterProvider) (ClusterProvider, error) {
+func (v *ClusterClient) CreateClusterProvider(p ClusterProvider, exists bool) (ClusterProvider, error) {
 
 	//Construct key and tag to select the entry
 	key := ClusterProviderKey{
@@ -136,7 +140,7 @@ func (v *ClusterClient) CreateClusterProvider(p ClusterProvider) (ClusterProvide
 
 	//Check if this ClusterProvider already exists
 	_, err := v.GetClusterProvider(p.Metadata.Name)
-	if err == nil {
+	if err == nil && !exists {
 		return ClusterProvider{}, pkgerrors.New("ClusterProvider already exists")
 	}
 
@@ -159,6 +163,8 @@ func (v *ClusterClient) GetClusterProvider(name string) (ClusterProvider, error)
 	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return ClusterProvider{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(value) == 0 {
+		return ClusterProvider{}, pkgerrors.New("Cluster provider not found")
 	}
 
 	//value is a byte array
@@ -182,12 +188,12 @@ func (v *ClusterClient) GetClusterProviders() ([]ClusterProvider, error) {
 		ClusterProviderName: "",
 	}
 
-	var resp []ClusterProvider
 	values, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return []ClusterProvider{}, pkgerrors.Wrap(err, "db Find error")
 	}
 
+	resp := make([]ClusterProvider, 0)
 	for _, value := range values {
 		cp := ClusterProvider{}
 		err = db.DBconn.Unmarshal(value, &cp)
@@ -247,11 +253,6 @@ func (v *ClusterClient) CreateCluster(provider string, p Cluster, q ClusterConte
 	if err != nil {
 		return Cluster{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
-	// The following code and related structs shall be removed in the next release
-	// err = db.DBconn.Insert(v.db.storeName, key, nil, v.db.tagContent, q)
-	// if err != nil {
-	// 	return Cluster{}, pkgerrors.Wrap(err, "Creating DB Entry")
-	// }
 
 	// Add the stateInfo record
 	s := state.StateInfo{}
@@ -274,6 +275,18 @@ func (v *ClusterClient) CreateCluster(provider string, p Cluster, q ClusterConte
 		return Cluster{}, pkgerrors.Wrap(err, "Error creating cloud config")
 	}
 
+	// Loop through CLM controllers and publish CLUSTER_CREATE event
+	client := clmController.NewControllerClient()
+	ctrls, _ := client.GetControllers()
+	for _, c := range ctrls {
+		log.Info("CLM CreateController .. controller info.", log.Fields{"provider-name": provider, "cluster-name": p.Metadata.Name, "Controller": c})
+		err = clmcontrollereventchannelclient.SendControllerEvent(provider, p.Metadata.Name, clmcontrollerpb.ClmControllerEventType_CLUSTER_CREATED, c)
+		if err != nil {
+			log.Error("CLM CreateController .. Failed publishing event to clm-controller.", log.Fields{"provider-name": provider, "cluster-name": p.Metadata.Name, "Controller": c})
+			return Cluster{}, pkgerrors.Wrapf(err, "CLM failed publishing event to clm-controller[%v]", c.Metadata.Name)
+		}
+	}
+
 	return p, nil
 }
 
@@ -288,6 +301,8 @@ func (v *ClusterClient) GetCluster(provider, name string) (Cluster, error) {
 	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return Cluster{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(value) == 0 {
+		return Cluster{}, pkgerrors.New("Cluster not found")
 	}
 
 	//value is a byte array
@@ -335,6 +350,8 @@ func (v *ClusterClient) GetClusterState(provider, name string) (state.StateInfo,
 	result, err := db.DBconn.Find(v.db.storeName, key, v.db.tagState)
 	if err != nil {
 		return state.StateInfo{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(result) == 0 {
+		return state.StateInfo{}, pkgerrors.New("Cluster StateInfo not found")
 	}
 
 	if result != nil {
@@ -357,13 +374,18 @@ func (v *ClusterClient) GetClusters(provider string) ([]Cluster, error) {
 		ClusterName:         "",
 	}
 
+	//Verify Cluster provider exists
+	_, err := v.GetClusterProvider(provider)
+	if err != nil {
+		return []Cluster{}, err
+	}
+
 	values, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return []Cluster{}, pkgerrors.Wrap(err, "db Find error")
 	}
 
-	var resp []Cluster
-
+	resp := make([]Cluster, 0)
 	for _, value := range values {
 		cp := Cluster{}
 		err = db.DBconn.Unmarshal(value, &cp)
@@ -385,12 +407,18 @@ func (v *ClusterClient) GetClustersWithLabel(provider, label string) ([]string, 
 		ClusterLabelName:    label,
 	}
 
+	//Verify Cluster provider exists
+	_, err := v.GetClusterProvider(provider)
+	if err != nil {
+		return []string{}, err
+	}
+
 	values, err := db.DBconn.Find(v.db.storeName, key, "cluster")
 	if err != nil {
 		return []string{}, pkgerrors.Wrap(err, "db Find error")
 	}
-	var resp []string
 
+	resp := make([]string, 0)
 	for _, value := range values {
 		cp := string(value)
 		resp = append(resp, cp)
@@ -466,11 +494,22 @@ func (v *ClusterClient) DeleteCluster(provider, name string) error {
 		return pkgerrors.Wrap(err, "Error deleting cloud config")
 	}
 
+	// Loop through CLM controllers and publish CLUSTER_DELETE event
+	client := clmController.NewControllerClient()
+	vals, _ := client.GetControllers()
+	for _, v := range vals {
+		log.Info("DeleteCluster .. controller info.", log.Fields{"provider-name": provider, "cluster-name": name, "Controller": v})
+		err = clmcontrollereventchannelclient.SendControllerEvent(provider, name, clmcontrollerpb.ClmControllerEventType_CLUSTER_DELETED, v)
+		if err != nil {
+			log.Error("DeleteCluster .. Failed publishing event to controller.", log.Fields{"provider-name": provider, "cluster-name": name, "Controller": v})
+		}
+	}
+
 	return nil
 }
 
 // CreateClusterLabel - create a new Cluster Label mongo document for a cluster-provider/cluster
-func (v *ClusterClient) CreateClusterLabel(provider string, cluster string, p ClusterLabel) (ClusterLabel, error) {
+func (v *ClusterClient) CreateClusterLabel(provider string, cluster string, p ClusterLabel, exists bool) (ClusterLabel, error) {
 	//Construct key and tag to select the entry
 	key := ClusterLabelKey{
 		ClusterProviderName: provider,
@@ -486,7 +525,7 @@ func (v *ClusterClient) CreateClusterLabel(provider string, cluster string, p Cl
 
 	//Check if this ClusterLabel already exists
 	_, err = v.GetClusterLabel(provider, cluster, p.LabelName)
-	if err == nil {
+	if err == nil && !exists {
 		return ClusterLabel{}, pkgerrors.New("Cluster Label already exists")
 	}
 
@@ -510,6 +549,8 @@ func (v *ClusterClient) GetClusterLabel(provider, cluster, label string) (Cluste
 	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return ClusterLabel{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(value) == 0 {
+		return ClusterLabel{}, pkgerrors.New("Cluster label not found")
 	}
 
 	//value is a byte array
@@ -534,13 +575,18 @@ func (v *ClusterClient) GetClusterLabels(provider, cluster string) ([]ClusterLab
 		ClusterLabelName:    "",
 	}
 
+	//Verify Cluster already exists
+	_, err := v.GetCluster(provider, cluster)
+	if err != nil {
+		return []ClusterLabel{}, err
+	}
+
 	values, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return []ClusterLabel{}, pkgerrors.Wrap(err, "db Find error")
 	}
 
-	var resp []ClusterLabel
-
+	resp := make([]ClusterLabel, 0)
 	for _, value := range values {
 		cp := ClusterLabel{}
 		err = db.DBconn.Unmarshal(value, &cp)
@@ -553,7 +599,7 @@ func (v *ClusterClient) GetClusterLabels(provider, cluster string) ([]ClusterLab
 	return resp, nil
 }
 
-// Delete the Cluster Label from database
+// DeleteClusterLabel ... Delete the Cluster Label from database
 func (v *ClusterClient) DeleteClusterLabel(provider, cluster, label string) error {
 	//Construct key and tag to select the entry
 	key := ClusterLabelKey{
@@ -577,7 +623,7 @@ func (v *ClusterClient) DeleteClusterLabel(provider, cluster, label string) erro
 }
 
 // CreateClusterKvPairs - Create a New Cluster KV pairs document
-func (v *ClusterClient) CreateClusterKvPairs(provider string, cluster string, p ClusterKvPairs) (ClusterKvPairs, error) {
+func (v *ClusterClient) CreateClusterKvPairs(provider string, cluster string, p ClusterKvPairs, exists bool) (ClusterKvPairs, error) {
 	key := ClusterKvPairsKey{
 		ClusterProviderName: provider,
 		ClusterName:         cluster,
@@ -592,7 +638,7 @@ func (v *ClusterClient) CreateClusterKvPairs(provider string, cluster string, p 
 
 	//Check if this ClusterKvPairs already exists
 	_, err = v.GetClusterKvPairs(provider, cluster, p.Metadata.Name)
-	if err == nil {
+	if err == nil && !exists {
 		return ClusterKvPairs{}, pkgerrors.New("Cluster KV Pair already exists")
 	}
 
@@ -616,6 +662,8 @@ func (v *ClusterClient) GetClusterKvPairs(provider, cluster, kvpair string) (Clu
 	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return ClusterKvPairs{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(value) == 0 {
+		return ClusterKvPairs{}, pkgerrors.New("Cluster key value pair not found")
 	}
 
 	//value is a byte array
@@ -628,7 +676,44 @@ func (v *ClusterClient) GetClusterKvPairs(provider, cluster, kvpair string) (Clu
 		return ckvp, nil
 	}
 
-	return ClusterKvPairs{}, pkgerrors.New("Error getting Cluster")
+	return ClusterKvPairs{}, pkgerrors.New("Error getting Cluster KV pairs")
+}
+
+// GetClusterKvPairsValue returns the value of the key from the corresponding provider, cluster and KV pair name
+func (v *ClusterClient) GetClusterKvPairsValue(provider, cluster, kvpair, kvkey string) (interface{}, error) {
+	//Construct key and tag to select entry
+	key := ClusterKvPairsKey{
+		ClusterProviderName: provider,
+		ClusterName:         cluster,
+		ClusterKvPairsName:  kvpair,
+	}
+
+	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
+	if err != nil {
+		return ClusterKvPairs{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(value) == 0 {
+		return Cluster{}, pkgerrors.New("Cluster key value pair not found")
+	}
+
+	//value is a byte array
+	if value != nil {
+		ckvp := ClusterKvPairs{}
+		err = db.DBconn.Unmarshal(value[0], &ckvp)
+		if err != nil {
+			return nil, pkgerrors.Wrap(err, "Unmarshalling Value")
+		}
+
+		for _, kvmap := range ckvp.Spec.Kv {
+			if val, ok := kvmap[kvkey]; ok {
+				return struct {
+					Value interface{} `json:"value"`
+				}{Value: val}, nil
+			}
+		}
+		return nil, pkgerrors.New("Cluster KV pair key value not found")
+	}
+
+	return nil, pkgerrors.New("Error getting Cluster KV pair")
 }
 
 // GetAllClusterKvPairs returns the Cluster Kv Pairs for corresponding provider and cluster
@@ -640,13 +725,18 @@ func (v *ClusterClient) GetAllClusterKvPairs(provider, cluster string) ([]Cluste
 		ClusterKvPairsName:  "",
 	}
 
+	// Verify Cluster exists
+	_, err := v.GetCluster(provider, cluster)
+	if err != nil {
+		return []ClusterKvPairs{}, err
+	}
+
 	values, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return []ClusterKvPairs{}, pkgerrors.Wrap(err, "db Find error")
 	}
 
-	var resp []ClusterKvPairs
-
+	resp := make([]ClusterKvPairs, 0)
 	for _, value := range values {
 		cp := ClusterKvPairs{}
 		err = db.DBconn.Unmarshal(value, &cp)

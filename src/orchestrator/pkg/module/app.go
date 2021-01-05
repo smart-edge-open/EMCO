@@ -50,7 +50,7 @@ func (aK AppKey) String() string {
 
 // AppManager is an interface exposes the App functionality
 type AppManager interface {
-	CreateApp(a App, ac AppContent, p string, cN string, cV string) (App, error)
+	CreateApp(a App, ac AppContent, p string, cN string, cV string, exists bool) (App, error)
 	GetApp(name string, p string, cN string, cV string) (App, error)
 	GetAppContent(name string, p string, cN string, cV string) (AppContent, error)
 	GetApps(p string, cN string, cV string) ([]App, error)
@@ -75,7 +75,7 @@ func NewAppClient() *AppClient {
 }
 
 // CreateApp creates a new collection based on the App
-func (v *AppClient) CreateApp(a App, ac AppContent, p string, cN string, cV string) (App, error) {
+func (v *AppClient) CreateApp(a App, ac AppContent, p string, cN string, cV string, exists bool) (App, error) {
 
 	//Construct the composite key to select the entry
 	key := AppKey{
@@ -87,7 +87,7 @@ func (v *AppClient) CreateApp(a App, ac AppContent, p string, cN string, cV stri
 
 	//Check if this App already exists
 	_, err := v.GetApp(a.Metadata.Name, p, cN, cV)
-	if err == nil {
+	if err == nil && !exists{
 		return App{}, pkgerrors.New("App already exists")
 	}
 
@@ -129,6 +129,8 @@ func (v *AppClient) GetApp(name string, p string, cN string, cV string) (App, er
 	value, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
 	if err != nil {
 		return App{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(value) == 0 {
+		return App{}, pkgerrors.New("App not found")
 	}
 
 	//value is a byte array
@@ -157,6 +159,8 @@ func (v *AppClient) GetAppContent(name string, p string, cN string, cV string) (
 	value, err := db.DBconn.Find(v.storeName, key, v.tagContent)
 	if err != nil {
 		return AppContent{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(value) == 0 {
+		return AppContent{}, pkgerrors.New("AppContent not found")
 	}
 
 	//value is a byte array
@@ -186,6 +190,8 @@ func (v *AppClient) GetApps(project, compositeApp, compositeAppVersion string) (
 	values, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
 	if err != nil {
 		return []App{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(values) == 0 {
+		return []App{}, pkgerrors.New("Apps not found")
 	}
 
 	for _, value := range values {

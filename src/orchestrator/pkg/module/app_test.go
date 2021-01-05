@@ -52,28 +52,30 @@ func TestCreateApp(t *testing.T) {
 			},
 			expectedError: "",
 			mockdb: &db.MockDB{
-				Items: map[string]map[string][]byte{
-					ProjectKey{ProjectName: "testProject"}.String(): {
-						"projectmetadata": []byte(
-							"{" +
-								"\"metadata\": {" +
-								"\"Name\": \"testProject\"," +
-								"\"Description\": \"Test project for unit testing\"," +
-								"\"UserData1\": \"userData1\"," +
-								"\"UserData2\": \"userData2\"}" +
-								"}"),
-					},
-					CompositeAppKey{CompositeAppName: "testCompositeApp", Version: "v1", Project: "testProject"}.String(): {
-						"compositeappmetadata": []byte(
-							"{" +
-								"\"metadata\":{" +
-								"\"Name\":\"testCompositeApp\"," +
-								"\"Description\":\"Test CompositeApp for unit testing\"," +
-								"\"UserData1\":\"userData1\"," +
-								"\"UserData2\":\"userData2\"}," +
-								"\"spec\":{" +
-								"\"Version\":\"v1\"}" +
-								"}"),
+				Items: []map[string]map[string][]byte{
+					{
+						ProjectKey{ProjectName: "testProject"}.String(): {
+							"projectmetadata": []byte(
+								"{" +
+									"\"metadata\": {" +
+									"\"Name\": \"testProject\"," +
+									"\"Description\": \"Test project for unit testing\"," +
+									"\"UserData1\": \"userData1\"," +
+									"\"UserData2\": \"userData2\"}" +
+									"}"),
+						},
+						CompositeAppKey{CompositeAppName: "testCompositeApp", Version: "v1", Project: "testProject"}.String(): {
+							"compositeappmetadata": []byte(
+								"{" +
+									"\"metadata\":{" +
+									"\"Name\":\"testCompositeApp\"," +
+									"\"Description\":\"Test CompositeApp for unit testing\"," +
+									"\"UserData1\":\"userData1\"," +
+									"\"UserData2\":\"userData2\"}," +
+									"\"spec\":{" +
+									"\"Version\":\"v1\"}" +
+									"}"),
+						},
 					},
 				},
 			},
@@ -84,7 +86,7 @@ func TestCreateApp(t *testing.T) {
 		t.Run(testCase.label, func(t *testing.T) {
 			db.DBconn = testCase.mockdb
 			impl := NewAppClient()
-			got, err := impl.CreateApp(testCase.inpApp, testCase.inpAppContent, testCase.inpProject, testCase.inpCompositeAppName, testCase.inpCompositeAppVersion)
+			got, err := impl.CreateApp(testCase.inpApp, testCase.inpAppContent, testCase.inpProject, testCase.inpCompositeAppName, testCase.inpCompositeAppVersion, false)
 			if err != nil {
 				if testCase.expectedError == "" {
 					t.Fatalf("Create returned an unexpected error %s", err)
@@ -130,20 +132,22 @@ func TestGetApp(t *testing.T) {
 			},
 			expectedError: "",
 			mockdb: &db.MockDB{
-				Items: map[string]map[string][]byte{
-					AppKey{App: "testApp", Project: "testProject", CompositeApp: "testCompositeApp", CompositeAppVersion: "v1"}.String(): {
-						"appmetadata": []byte(
-							"{" +
-								"\"metadata\": {" +
-								"\"Name\": \"testApp\"," +
-								"\"Description\": \"Test App for unit testing\"," +
-								"\"UserData1\": \"userData1\"," +
-								"\"UserData2\": \"userData2\"}" +
-								"}"),
-						"appcontent": []byte(
-							"{" +
-								"\"FileContent\": \"sample file content\"" +
-								"}"),
+				Items: []map[string]map[string][]byte{
+					{
+						AppKey{App: "testApp", Project: "testProject", CompositeApp: "testCompositeApp", CompositeAppVersion: "v1"}.String(): {
+							"appmetadata": []byte(
+								"{" +
+									"\"metadata\": {" +
+									"\"Name\": \"testApp\"," +
+									"\"Description\": \"Test App for unit testing\"," +
+									"\"UserData1\": \"userData1\"," +
+									"\"UserData2\": \"userData2\"}" +
+									"}"),
+							"appcontent": []byte(
+								"{" +
+									"\"FileContent\": \"sample file content\"" +
+									"}"),
+						},
 					},
 				},
 			},
@@ -202,20 +206,22 @@ func TestGetAppContent(t *testing.T) {
 			},
 			expectedError: "",
 			mockdb: &db.MockDB{
-				Items: map[string]map[string][]byte{
-					AppKey{App: "testApp", Project: "testProject", CompositeApp: "testCompositeApp", CompositeAppVersion: "v1"}.String(): {
-						"appmetadata": []byte(
-							"{" +
-								"\"metadata\": {" +
-								"\"Name\": \"testApp\"," +
-								"\"Description\": \"Test App for unit testing\"," +
-								"\"UserData1\": \"userData1\"," +
-								"\"UserData2\": \"userData2\"}" +
-								"}"),
-						"appcontent": []byte(
-							"{" +
-								"\"FileContent\": \"Samplefilecontent\"" +
-								"}"),
+				Items: []map[string]map[string][]byte{
+					{
+						AppKey{App: "testApp", Project: "testProject", CompositeApp: "testCompositeApp", CompositeAppVersion: "v1"}.String(): {
+							"appmetadata": []byte(
+								"{" +
+									"\"metadata\": {" +
+									"\"Name\": \"testApp\"," +
+									"\"Description\": \"Test App for unit testing\"," +
+									"\"UserData1\": \"userData1\"," +
+									"\"UserData2\": \"userData2\"}" +
+									"}"),
+							"appcontent": []byte(
+								"{" +
+									"\"FileContent\": \"Samplefilecontent\"" +
+									"}"),
+						},
 					},
 				},
 			},
@@ -269,20 +275,22 @@ func TestDeleteApp(t *testing.T) {
 			inpCompositeAppName:    "testCompositeApp",
 			inpCompositeAppVersion: "v1",
 			mockdb: &db.MockDB{
-				Items: map[string]map[string][]byte{
-					AppKey{App: "testApp", Project: "testProject", CompositeApp: "testCompositeApp", CompositeAppVersion: "v1"}.String(): {
-						"appmetadata": []byte(
-							"{" +
-								"\"metadata\": {" +
-								"\"Name\": \"testApp\"," +
-								"\"Description\": \"Test App for unit testing\"," +
-								"\"UserData1\": \"userData1\"," +
-								"\"UserData2\": \"userData2\"}" +
-								"}"),
-						"appcontent": []byte(
-							"{" +
-								"\"FileContent\": \"Samplefilecontent\"" +
-								"}"),
+				Items: []map[string]map[string][]byte{
+					{
+						AppKey{App: "testApp", Project: "testProject", CompositeApp: "testCompositeApp", CompositeAppVersion: "v1"}.String(): {
+							"appmetadata": []byte(
+								"{" +
+									"\"metadata\": {" +
+									"\"Name\": \"testApp\"," +
+									"\"Description\": \"Test App for unit testing\"," +
+									"\"UserData1\": \"userData1\"," +
+									"\"UserData2\": \"userData2\"}" +
+									"}"),
+							"appcontent": []byte(
+								"{" +
+									"\"FileContent\": \"Samplefilecontent\"" +
+									"}"),
+						},
 					},
 				},
 			},

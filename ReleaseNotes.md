@@ -1,14 +1,28 @@
 ```
 SPDX-License-Identifier: Apache-2.0
-Copyright (c) 2019-2020 Intel Corporation
+Copyright (c) 2019-2021 Intel Corporation
 ```
 # Release Notes
-This document provides high level features, issues and limitation for the Edge Multi-Cluster Orchestration (EMCO) project.
+This document provides high level features, fixes, and known issues and limitations for the Edge Multi-Cluster Orchestration (EMCO) project.
 
 # Release History
+
+1. EMCO - 21.03
 1. EMCO - 20.12
+
 # Features for Release
-1. <b>EMCO - 20.12 </b>
+
+1. **EMCO - 21.03**
+	- Support for Helm v3 charts in composite applications.
+	- Service Discovery for Deployment Intent Groups. See [Service Discovery Design](docs/developer/service-discovery-design.md).
+	- `Put` support added to the `emcoctl` tool.
+	- Simple EMCO deployment Helm charts have been replaced with fuller function Helm charts with sub-charts per EMCO microservice.
+	- The Cluster Manager ( `clm` ) has been extended to support the invocation of registered plugin controllers when clusters are created or deleted.
+	- Ability for `rsync` microservice to read (get) Kubernetes resources has been added.
+	- Additional query parameters added to the Deployment Intent Group status query to allow for querying the list of apps, the clusters by app and resources by app.  See the status query section of [Resource Lifecycle](docs/user/Resource_Lifecycle.md).
+
+
+1. **EMCO - 20.12**
 	- This is the first release of the Edge Multi-Cluster Orchestration (EMCO) project.  EMCO supports the automated deployment of  geo-distributed applications to multiple clusters via an intent driven API.
 	-   EMCO is composed of a number of central microservices:
 		-   Cluster Manager (clm) : onboard clusters into EMCO
@@ -26,7 +40,27 @@ This document provides high level features, issues and limitation for the Edge M
 	-   EMCO provides a CLI tool (emcoctl) which may be used to interact with the EMCO REST APIs.
 	-   Authorization and Authentication may be provided for EMCO by utilizing Istio. See [Emco Integrity Access Management](docs/user/Emco_Integrity_Access_Management.md) for more details.
 
+# Fixes for Release
+
+1. **EMCO - 21.03**
+
+	- Emcoctl get with token has been fixed.
+	- Fixes in many microservices to align the data, REST API return codes with the EMCO OpenAPI documentation.
+	- REST PUT support added for many of the EMCO APIs.
+	- Additional unit test coverage in many packages has been added.
+	- Format of the cluster network intent status query response has been simplified to remove inapplicable and redundant `apps` and `clusters` lists.
+
 # Known Issues and Limitations
+
+- **EMCO 21.03**
+	- If the `monitor` pod is restarted on an edge cluster, the `rsync` connection will fail because it continues to listen on the previous (now removed) connection.
+	- Username / password authentication is enabled by default for EMCO mongo and etcd services.  If persistence is also enabled, then the same passwords should be used across install cycles.
+          Installation via the `emco-openness-helm-install.sh` script disables persistence by default.  Installation using the default Helm charts and values ( `deployments/helm/emcoOpenNESS` ) has persistence enabled by default.
+		- Refer to [Helm Tutorial](docs/user/Tutorial_Helm.md) and the [Helm Chart README](deployments/helm/emcoOpenNESS/README.md) for more information.
+	- REST PUT (update) is not yet supported for `Cluster` resources  and `Deployment Intent Group` resources or sub-resources (i.e. intents) managed by the `orchestrator` microservice.
+	- A REST GET of a composite application app or app profile without specifying an appropriate Accept header causes the `orchestrator` microservice to panic.
+	- REST GETs of various intent resources of the Traffic Controller microservice `dtc` return incorrect HTTP return codes (something other than 404) when the parent resources in the URI do not exist.
+
 - **EMCO 20.12**
 	- EMCO provides a simple Helm chart to deploy EMCO microservices under `deployments/helm/emcoCI`.   This Helm chart supports limited scoped user authentication to the EMCO Mongo and etcd databases.  The comprehensive Helm charts under `deployments/helm/emcoOpenNESS` are still a work in progress and will include the authentication and full integration with EMCO microservices in a future release.
 	- Many of the EMCO microservice REST APIs do not support the PUT API for providing modifications to resources after initial creation.
@@ -38,4 +72,9 @@ This document provides high level features, issues and limitation for the Edge M
 	- Emcoctl get with token doesn't work. That is because of a bug in the code. Solution to the issue is to remove line 25 from the EMCO/src/emcoctl/cmd/get.go and rebuild emcoctl code.
 
 # Software Compatibility
-EMCO has been tested with Kubernetes v1.18.9 and v1.19.
+
+- **EMCO 21.03**
+	- EMCO has been tested with Kubernetes v1.16.8, v1.18.9, v1.19 and v1.20.0
+
+- **EMCO 20.12**
+	- EMCO has been tested with Kubernetes v1.18.9 and v1.19.

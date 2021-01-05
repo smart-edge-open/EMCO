@@ -4,7 +4,7 @@ SPDX-License-Identifier: Apache-2.0
 Copyright (c) 2019-2020 Intel Corporation
 ```
 
-**NOTE**: The helmcharts for CI are located in the `deployments/helm/emcoCI` folder and only this version is referenced in the top-level Makefile. The helmcharts in the `deployments/helm/emcoOpenNESS` folder are not actively maintained and are included for legacy purposes.
+**NOTE**: The helmcharts for CI are located in the `deployments/helm/emcoOpenNESS` folder and only this version is referenced in the top-level Makefile. The helmcharts in the `deployments/helm/emcoCI` folder are not actively maintained and are included for legacy purposes.
 
 # Getting Started
 This document describes how to efficiently get started with EMCO install using Helm Package.
@@ -36,7 +36,7 @@ update-ca-certificates
 # Restart Docker - this will stop all containers
 service docker restart
 ```
-## Set proxy and docker registry
+## Set proxy, docker registry and log level
 Set Docker registry parameter before creating helm package
 ```
 export EMCODOCKERREPO=${container_registry_url}/
@@ -48,26 +48,47 @@ Run `make deploy` from root EMCO folder to create the helmchart tar package unde
 ## Installing EMCO on the cluster
 EMCO can be installed and deployed using the provided Helm chart included in the build artifacts to a Kubernetes cluster.
 
-To install EMCO , navigate to the ```EMCO/bin/helm``` directory. The ```emco-helm-install.sh``` script is used to deploy EMCO to the target cluster.
+To install EMCO , navigate to the ```EMCO/bin/helm``` directory. The ```emco-openness-helm-install.sh``` script is used to deploy EMCO to the target cluster.
 
 ```
-   ./emco-helm-install.sh <optional: -s parameter=value> <optional: -k <path to kubeconfig file>> [install | uninstall]
+   ./emco-openness-helm-install.sh <optional: -k <path to kubeconfig file>> <optional: -p [enable | disable]> [install | uninstall]
 
 ```
+The -p option enables or disables persistence for the etcd and mongo storage.  The default value is `disable`.
+
 The -s option with a parameter and value may be supplied multiple times to override multiple Helm values.
 
 In the example below, we install to a Kubernetes cluster using the kube-config associated with that cluster.
-Note that by default, authentication for the EMCO Mongo and Etcd databases is enabled, so values for passwords must be provided.
 
 ```
-./emco-helm-install.sh -s db.rootPassword=<pw> -s db.emcoPassword=<pw> -s contextdb.rootPassword=<pw> -s contextdb.emcoPassword=<pw> -k /home/test/EMCO/deployments/kubernetes/config_north install
+./emco-openness-helm-install.sh -k /home/test/EMCO/deployments/kubernetes/config_north install
 Creating namespace emco
 namespace/emco created
-Installing EMCO. Please wait...
+Installing EMCO DB. Please wait...
 WARNING: Kubernetes configuration file is group-readable. This is insecure. Location: /home/test/EMCO/deployments/kubernetes/config_north
 WARNING: Kubernetes configuration file is world-readable. This is insecure. Location: /home/test/EMCO/deployments/kubernetes/config_north
-NAME: emco
-LAST DEPLOYED: Fri Oct  2 12:42:23 2020
+NAME: emco-db
+LAST DEPLOYED: Thu Feb  4 17:05:12 2021
+NAMESPACE: emco
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+Done
+Installing EMCO Services. Please wait...
+WARNING: Kubernetes configuration file is group-readable. This is insecure. Location: /home/test/EMCO/deployments/kubernetes/config_north
+WARNING: Kubernetes configuration file is world-readable. This is insecure. Location: /home/test/EMCO/deployments/kubernetes/config_north
+NAME: emco-services
+LAST DEPLOYED: Thu Feb  4 17:05:30 2021
+NAMESPACE: emco
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+Done
+Installing EMCO Tools. Please wait...
+WARNING: Kubernetes configuration file is group-readable. This is insecure. Location: /home/test/EMCO/deployments/kubernetes/config_north
+WARNING: Kubernetes configuration file is world-readable. This is insecure. Location: /home/test/EMCO/deployments/kubernetes/config_north
+NAME: emco-tools
+LAST DEPLOYED: Thu Feb  4 17:06:28 2021
 NAMESPACE: emco
 STATUS: deployed
 REVISION: 1
@@ -80,55 +101,135 @@ EMCO is installed into the ```emco``` namespace. To verify that all the services
 
 ```
 [root@nb-cluster7-dccf1 ~]# kubectl get all -n emco
-NAME                               READY   STATUS    RESTARTS   AGE
-pod/clm-6c8dd6966b-7xf27           1/1     Running   0          7m48s
-pod/dcm-79b7877dff-hvmqm           1/1     Running   0          7m48s
-pod/dtc-86bf678fdb-ds7x8           1/1     Running   0          7m48s
-pod/etcd-ff4bc67d8-g8k92           1/1     Running   0          7m48s
-pod/gac-74955676fb-s8tq2           1/1     Running   0          7m48s
-pod/mongo-646d44db67-p9fv2         1/1     Running   0          7m48s
-pod/ncm-6cf6647cf6-pfmmb           1/1     Running   0          7m48s
-pod/orchestrator-8df787485-b9scr   1/1     Running   0          7m48s
-pod/ovnaction-6dc486b44d-mgljs     1/1     Running   0          7m48s
-pod/rsync-84f5f6c876-4tqgl         1/1     Running   0          7m48s
+NAME                                              READY   STATUS    RESTARTS   AGE
+pod/emco-db-emco-etcd-0                           1/1     Running   0          3m25s
+pod/emco-db-emco-mongo-0                          1/1     Running   0          3m25s
+pod/emco-services-clm-5654d875b8-cdxb8            1/1     Running   0          3m8s
+pod/emco-services-dcm-79c5847bf-krq2r             1/1     Running   0          3m8s
+pod/emco-services-dtc-688768587-77899             1/1     Running   0          3m8s
+pod/emco-services-gac-57cb4f59b8-rlbxm            1/1     Running   0          3m8s
+pod/emco-services-ncm-8459494874-c2lsr            1/1     Running   0          3m8s
+pod/emco-services-orchestrator-5c586d7d49-2qq88   1/1     Running   0          3m8s
+pod/emco-services-ovnaction-d9d5bb5cb-clpml       1/1     Running   0          3m8s
+pod/emco-services-rsync-c94fdbd74-99f9w           1/1     Running   0          3m8s
+pod/emco-tools-fluentd-0                          1/1     Running   0          2m10s
+pod/emco-tools-fluentd-ddsv7                      1/1     Running   1          2m10s
+pod/emco-tools-fluentd-k8hks                      1/1     Running   2          2m10s
 
-NAME                   TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                         AGE
-service/clm            NodePort    10.233.2.191    <none>        9061:31856/TCP                  7m48s
-service/dcm            NodePort    10.233.13.243   <none>        9077:31877/TCP                  7m48s
-service/dtc            NodePort    10.233.52.127   <none>        9053:32656/TCP,9018:31182/TCP   7m48s
-service/etcd           ClusterIP   10.233.62.178   <none>        2379/TCP,2380/TCP               7m48s
-service/gac            NodePort    10.233.15.19    <none>        9021:30907/TCP,9020:31280/TCP   7m48s
-service/mongo          ClusterIP   10.233.45.165   <none>        27017/TCP                       7m48s
-service/ncm            NodePort    10.233.55.75    <none>        9081:32737/TCP                  7m48s
-service/orchestrator   NodePort    10.233.1.14     <none>        9015:31298/TCP                  7m48s
-service/ovnaction      NodePort    10.233.2.185    <none>        9032:31307/TCP,9051:31181/TCP   7m48s
-service/rsync          NodePort    10.233.42.242   <none>        9031:32651/TCP                  7m48s
+NAME                                    TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                         AGE
+service/clm                             NodePort    10.233.36.44    <none>        9061:30461/TCP                  3m8s
+service/dcm                             NodePort    10.233.53.3     <none>        9077:30477/TCP                  3m8s
+service/dtc                             NodePort    10.233.36.32    <none>        9048:30483/TCP,9018:30481/TCP   3m8s
+service/emco-etcd                       ClusterIP   None            <none>        2380/TCP,2379/TCP               3m25s
+service/emco-mongo                      ClusterIP   None            <none>        27017/TCP                       3m25s
+service/emco-mongo-read                 ClusterIP   10.233.45.231   <none>        27017/TCP                       3m25s
+service/emco-tools-fluentd-aggregator   ClusterIP   10.233.14.213   <none>        24224/TCP                       2m11s
+service/emco-tools-fluentd-forwarder    ClusterIP   10.233.21.81    <none>        9880/TCP                        2m11s
+service/emco-tools-fluentd-headless     ClusterIP   None            <none>        24224/TCP                       2m11s
+service/gac                             NodePort    10.233.16.181   <none>        9033:30493/TCP,9020:30491/TCP   3m8s
+service/ncm                             NodePort    10.233.11.199   <none>        9081:30431/TCP                  3m8s
+service/orchestrator                    NodePort    10.233.54.64    <none>        9015:30415/TCP                  3m8s
+service/ovnaction                       NodePort    10.233.42.62    <none>        9053:30473/TCP,9051:30471/TCP   3m8s
+service/rsync                           NodePort    10.233.5.126    <none>        9031:30441/TCP                  3m8s
 
-NAME                           READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/clm            1/1     1            1           7m48s
-deployment.apps/dcm            1/1     1            1           7m48s
-deployment.apps/dtc            1/1     1            1           7m48s
-deployment.apps/etcd           1/1     1            1           7m48s
-deployment.apps/gac            1/1     1            1           7m48s
-deployment.apps/mongo          1/1     1            1           7m48s
-deployment.apps/ncm            1/1     1            1           7m48s
-deployment.apps/orchestrator   1/1     1            1           7m48s
-deployment.apps/ovnaction      1/1     1            1           7m48s
-deployment.apps/rsync          1/1     1            1           7m48s
+NAME                                DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+daemonset.apps/emco-tools-fluentd   2         2         2       2            2           <none>          2m11s
 
-NAME                                     DESIRED   CURRENT   READY   AGE
-replicaset.apps/clm-6c8dd6966b           1         1         1       7m48s
-replicaset.apps/dcm-79b7877dff           1         1         1       7m48s
-replicaset.apps/dtc-86bf678fdb           1         1         1       7m48s
-replicaset.apps/etcd-ff4bc67d8           1         1         1       7m48s
-replicaset.apps/gac-74955676fb           1         1         1       7m48s
-replicaset.apps/mongo-646d44db67         1         1         1       7m48s
-replicaset.apps/ncm-6cf6647cf6           1         1         1       7m48s
-replicaset.apps/orchestrator-8df787485   1         1         1       7m48s
-replicaset.apps/ovnaction-6dc486b44d     1         1         1       7m48s
-replicaset.apps/rsync-84f5f6c876         1         1         1       7m48s
+NAME                                         READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/emco-services-clm            1/1     1            1           3m8s
+deployment.apps/emco-services-dcm            1/1     1            1           3m8s
+deployment.apps/emco-services-dtc            1/1     1            1           3m8s
+deployment.apps/emco-services-gac            1/1     1            1           3m8s
+deployment.apps/emco-services-ncm            1/1     1            1           3m8s
+deployment.apps/emco-services-orchestrator   1/1     1            1           3m8s
+deployment.apps/emco-services-ovnaction      1/1     1            1           3m8s
+deployment.apps/emco-services-rsync          1/1     1            1           3m8s
+
+NAME                                                    DESIRED   CURRENT   READY   AGE
+replicaset.apps/emco-services-clm-5654d875b8            1         1         1       3m8s
+replicaset.apps/emco-services-dcm-79c5847bf             1         1         1       3m8s
+replicaset.apps/emco-services-dtc-688768587             1         1         1       3m8s
+replicaset.apps/emco-services-gac-57cb4f59b8            1         1         1       3m8s
+replicaset.apps/emco-services-ncm-8459494874            1         1         1       3m8s
+replicaset.apps/emco-services-orchestrator-5c586d7d49   1         1         1       3m8s
+replicaset.apps/emco-services-ovnaction-d9d5bb5cb       1         1         1       3m8s
+replicaset.apps/emco-services-rsync-c94fdbd74           1         1         1       3m8s
+
+NAME                                  READY   AGE
+statefulset.apps/emco-db-emco-etcd    1/1     3m26s
+statefulset.apps/emco-db-emco-mongo   1/1     3m26s
+statefulset.apps/emco-tools-fluentd   1/1     2m11s
+```
+
+### Database Authentication
+
+When the EMCO databases `etcd` and `mongo` are deployed, username / password authentication is enabled by default.  The
+EMCO services will be configured with the credentials to access the databases.
+
+If password values are not overridden during installation, the helm install process will create random passwords.
+The passwords are stored in the secrets:
 
 ```
+$ kubectl -n emco get secret
+NAME                            TYPE                                  DATA   AGE
+emco-etcd                       Opaque                                1      3s
+emco-mongo                      Opaque                                2      3s
+```
+
+The following values can be provided on installation to override values:
+
+- `global.db.rootPassword` - set to override mongo root password (default is random password)
+- `global.db.emcoPassword` - set to override mongo user password (default is random password)
+- `global.contextdb.rootPassword` - set to override etcd password (default is random password)
+- `global.disableDbAuth` - set to `true` to not use database authentication (default is `false`)
+
+Note: that the previous EMCO release (20.12) provided the following values.  The `emco-openness-helm-install.sh`
+script will convert these legacy value names to the new value names to provide backward compatibility.
+- `db.rootPassword` - set to override mongo root password (default is random password)
+- `db.emcoPassword` - set to override mongo user password (default is random password)
+- `contextdb.rootPassword` - set to override etcd password (default is random password)
+- `enableDbAuth` - set to `true` to enable database authentication (default is `true`)
+
+Note: the current release only uses `contextdb.rootPassword` for the `contextdb` (i.e. `etcd`).
+
+#### Installation examples with various database authentication options:
+
+Install EMCO with database authentication and default (random) passwords, persistence is disabled:
+
+`./emco-openness-helm-install.sh -k <path to kubeconfig file> install`
+
+Install EMCO with database authentication and override password values, persistence is disabled:
+
+`./emco-openness-helm-install.sh -s global.db.rootPassword=abc -s global.db.emcoPassword=def -s global.contextdb.rootPassword=xyz -k <path to kubeconfig file> install`
+
+Install EMCO with database authentication enabled and override password values using legacy password value names, persistence is disabled:
+
+`./emco-openness-helm-install.sh -s db.rootPassword=abc -s db.emcoPassword=def -s contextdb.rootPassword=xyz -k <path to kubeconfig file> install`
+
+Another example using legacy password value names, persistence is disabled:
+
+`./emco-openness-helm-install.sh -s 'enableDbAuth=true --timeout=30m --set db.rootPassword=abc --set db.emcoPassword=def --set contextdb.rootPassword=xyz --set contextdb.emcoPassword=xyz' -k <path to kubeconfig file> install`
+
+Install EMCO with database authentication and override password values, enable persistence:
+
+`./emco-openness-helm-install.sh -s global.db.rootPassword=abc -s global.db.emcoPassword=def -s global.contextdb.rootPassword=xyz -p enable -k <path to kubeconfig file> install`
+
+#### Known issues with database authentication and persistence enabled
+
+If persistence is enabled, then care needs to be taken with the database authentication passwords.  If a new install of EMCO re-uses persistent data from a previous installation and the database authentication configuration
+has changed - e.g. authentication enabled/disabled, or the passwords have changed - then the EMCO services may fail to start up successfully.
+
+Workarounds:
+
+- Uninstall EMCO and then remove the host storage directories for the persistent volumes and then reinstall:
+
+```
+    - `sudo rm -r /dockerdata-nfs/emco-db/emco/mongo/data`
+    - `sudo rm -r /dockerdata-nfs/emco-db/emco/etcd/data-0`
+```
+
+- Or, disable database persistence on installation:
+    - Remove the `-p enable` option from installation, or set `-p disable`
 
 ### Deploying an Application
 The release artifacts includes a sample promethues and collectd applications that can be deployed. In this section we will demonstrate how to deploy the application.
@@ -160,6 +261,12 @@ test@R90H99AZ:~/EMCO/kud/tests$ tar -czf prometheus-operator_profile.tar.gz -C .
   dcm:
     host: 10.23.208.71
     port: 42877
+  gac:
+    host: 10.23.208.71
+    port: 42887
+  dtc:
+    host: 10.23.208.71
+    port: 42897
 
 ```
 
@@ -184,7 +291,10 @@ Status should look like this
 
 ```
 Using config file: ../../src/tools/emcoctl/examples/emco-cfg-remote.yaml
-http://10.23.208.71:42298/v2URL: projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/status Response Code: 200 Response: {"project":"proj1","composite-app-name":"collection-composite-app","composite-app-version":"v1","composite-profile-name":"collection-composite-profile","name":"collection-deployment-intent-group","states":{"actions":[{"state":"Created","instance":"","time":"2020-11-05T22:50:04.83Z"},{"state":"Approved","instance":"","time":"2020-11-05T22:50:04.853Z"},{"state":"Instantiated","instance":"2214358778903857349","time":"2020-11-05T22:50:06.306Z"}]},"status":"Instantiated","rsync-status":{"Applied":97},"apps":[{"name":"prometheus-operator","clusters":[{"cluster-provider":"provider1","cluster":"cluster1","resources":[{"GVK":{"Group":"apiextensions.k8s.io","Version":"v1beta1","Kind":"CustomResourceDefinition"},"name":"alertmanagers.monitoring.coreos.com","rsync-status":"Applied"},{"GVK":{"Group":"apiextensions.k8s.io","Version":"v1beta1","Kind":"CustomResourceDefinition"},"name":"podmonitors.monitoring.coreos.com","rsync-status":"Applied"},{"GVK":{"Group":"apiextensions.k8s.io","Version":"v1beta1","Kind":"CustomResourceDefinition"},"name":"prometheuses.monitoring.coreos.com","rsync-status":"Applied"},{"GVK":{"Group":"apiextensions.k8s.io","Version":"v1beta1","Kind":"CustomResourceDefinition"},"name":"prometheusrules.monitoring.coreos.com","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-grafana","rsync-status":"Applied"},{"GVK":{"Group":"apps","Version":"v1","Kind":"Deployment"},"name":"r1-grafana","rsync-status":"Applied"},{"GVK":{"Group":"policy","Version":"v1beta1","Kind":"PodSecurityPolicy"},"name":"r1-grafana","rsync-status":"Applied"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1beta1","Kind":"Role"},"name":"r1-grafana","rsync-status":"Applied"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1beta1","Kind":"RoleBinding"},"name":"r1-grafana","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"Secret"},"name":"r1-grafana","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"Service"},"name":"r1-grafana","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ServiceAccount"},"name":"r1-grafana","rsync-status":"Applied"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRole"},"name":"r1-grafana-clusterrole","rsync-status":"Applied"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRoleBinding"},"name":"r1-grafana-clusterrolebinding","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-grafana-config-dashboards","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-alertmanager.rules","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-apiserver","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"r1-prometheus-operator-apiserver","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-cluster-total","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-controller-manager","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"Service"},"name":"r1-prometheus-operator-coredns","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"r1-prometheus-operator-coredns","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-etcd","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-etcd","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-general.rules","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-grafana-datasource","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-k8s-coredns","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-k8s-resources-cluster","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-k8s-resources-namespace","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-k8s-resources-node","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-k8s-resources-pod","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-k8s-resources-workload","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-k8s-resources-workloads-namespace","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-k8s.rules","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-kube-apiserver.rules","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"Service"},"name":"r1-prometheus-operator-kube-controller-manager","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"r1-prometheus-operator-kube-controller-manager","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"Service"},"name":"r1-prometheus-operator-kube-etcd","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"r1-prometheus-operator-kube-etcd","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-kube-prometheus-general.rules","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-kube-prometheus-node-recording.rules","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"Service"},"name":"r1-prometheus-operator-kube-proxy","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"r1-prometheus-operator-kube-proxy","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"Service"},"name":"r1-prometheus-operator-kube-scheduler","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"r1-prometheus-operator-kube-scheduler","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-kube-scheduler.rules","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-kube-state-metrics","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-kubelet","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"r1-prometheus-operator-kubelet","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-kubelet.rules","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-kubernetes-resources","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-kubernetes-storage","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-kubernetes-system","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-kubernetes-system-apiserver","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-kubernetes-system-controller-manager","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-kubernetes-system-kubelet","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-kubernetes-system-scheduler","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-namespace-by-pod","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-namespace-by-workload","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-node-network","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-nodes","rsync-status":"Applied"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRole"},"name":"r1-prometheus-operator-operator","rsync-status":"Applied"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRoleBinding"},"name":"r1-prometheus-operator-operator","rsync-status":"Applied"},{"GVK":{"Group":"apps","Version":"v1","Kind":"Deployment"},"name":"r1-prometheus-operator-operator","rsync-status":"Applied"},{"GVK":{"Group":"policy","Version":"v1beta1","Kind":"PodSecurityPolicy"},"name":"r1-prometheus-operator-operator","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"Service"},"name":"r1-prometheus-operator-operator","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ServiceAccount"},"name":"r1-prometheus-operator-operator","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"r1-prometheus-operator-operator","rsync-status":"Applied"},{"GVK":{"Group":"batch","Version":"v1","Kind":"Job"},"name":"r1-prometheus-operator-operator-cleanup","rsync-status":"Applied"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRole"},"name":"r1-prometheus-operator-operator-psp","rsync-status":"Applied"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRoleBinding"},"name":"r1-prometheus-operator-operator-psp","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-persistentvolumesusage","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-pod-total","rsync-status":"Applied"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRole"},"name":"r1-prometheus-operator-prometheus","rsync-status":"Applied"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRoleBinding"},"name":"r1-prometheus-operator-prometheus","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-prometheus","rsync-status":"Applied"},{"GVK":{"Group":"policy","Version":"v1beta1","Kind":"PodSecurityPolicy"},"name":"r1-prometheus-operator-prometheus","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"Prometheus"},"name":"r1-prometheus-operator-prometheus","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-prometheus","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"Service"},"name":"r1-prometheus-operator-prometheus","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ServiceAccount"},"name":"r1-prometheus-operator-prometheus","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"r1-prometheus-operator-prometheus","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"PrometheusRule"},"name":"r1-prometheus-operator-prometheus-operator","rsync-status":"Applied"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRole"},"name":"r1-prometheus-operator-prometheus-psp","rsync-status":"Applied"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRoleBinding"},"name":"r1-prometheus-operator-prometheus-psp","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-prometheus-remote-write","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"Secret"},"name":"r1-prometheus-operator-prometheus-scrape-confg","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-proxy","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-scheduler","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-statefulset","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-workload-total","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"service-monitor-collectd","rsync-status":"Applied"},{"GVK":{"Group":"apiextensions.k8s.io","Version":"v1beta1","Kind":"CustomResourceDefinition"},"name":"servicemonitors.monitoring.coreos.com","rsync-status":"Applied"},{"GVK":{"Group":"apiextensions.k8s.io","Version":"v1beta1","Kind":"CustomResourceDefinition"},"name":"thanosrulers.monitoring.coreos.com","rsync-status":"Applied"}]}]},{"name":"collectd","clusters":[{"cluster-provider":"provider1","cluster":"cluster1","resources":[{"GVK":{"Group":"","Version":"v1","Kind":"Service"},"name":"collectd","rsync-status":"Applied"},{"GVK":{"Group":"apps","Version":"v1","Kind":"DaemonSet"},"name":"r1-collectd","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-collectd-config","rsync-status":"Applied"}]}]}]}
+---
+GET  --> URL: http://10.23.208.71:49006/v2/projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/status
+Response Code: 200
+Response: {"project":"proj1","composite-app-name":"collection-composite-app","composite-app-version":"v1","composite-profile-name":"collection-composite-profile","name":"collection-deployment-intent-group","states":{"actions":[{"state":"Created","instance":"","time":"2021-01-31T02:23:42.361Z"},{"state":"Approved","instance":"","time":"2021-01-31T02:23:42.383Z"},{"state":"Instantiated","instance":"1408427859572459654","time":"2021-01-31T02:23:44.255Z"}]},"status":"Instantiating","rsync-status":{"Applied":18,"Pending":36},"apps":[{"name":"collectd","clusters":[{"cluster-provider":"provider1","cluster":"cluster1","resources":[{"GVK":{"Group":"","Version":"v1","Kind":"Service"},"name":"collectd","rsync-status":"Applied"},{"GVK":{"Group":"apps","Version":"v1","Kind":"DaemonSet"},"name":"r1-collectd","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-collectd-config","rsync-status":"Applied"}]}]},{"name":"prometheus-operator","clusters":[{"cluster-provider":"provider1","cluster":"cluster1","resources":[{"GVK":{"Group":"apiextensions.k8s.io","Version":"v1beta1","Kind":"CustomResourceDefinition"},"name":"alertmanagers.monitoring.coreos.com","rsync-status":"Applied"},{"GVK":{"Group":"apiextensions.k8s.io","Version":"v1beta1","Kind":"CustomResourceDefinition"},"name":"podmonitors.monitoring.coreos.com","rsync-status":"Applied"},{"GVK":{"Group":"apiextensions.k8s.io","Version":"v1beta1","Kind":"CustomResourceDefinition"},"name":"prometheuses.monitoring.coreos.com","rsync-status":"Applied"},{"GVK":{"Group":"apiextensions.k8s.io","Version":"v1beta1","Kind":"CustomResourceDefinition"},"name":"prometheusrules.monitoring.coreos.com","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-grafana","rsync-status":"Applied"},{"GVK":{"Group":"apps","Version":"v1","Kind":"Deployment"},"name":"r1-grafana","rsync-status":"Pending"},{"GVK":{"Group":"policy","Version":"v1beta1","Kind":"PodSecurityPolicy"},"name":"r1-grafana","rsync-status":"Pending"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1beta1","Kind":"Role"},"name":"r1-grafana","rsync-status":"Pending"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1beta1","Kind":"RoleBinding"},"name":"r1-grafana","rsync-status":"Pending"},{"GVK":{"Group":"","Version":"v1","Kind":"Secret"},"name":"r1-grafana","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"Service"},"name":"r1-grafana","rsync-status":"Pending"},{"GVK":{"Group":"","Version":"v1","Kind":"ServiceAccount"},"name":"r1-grafana","rsync-status":"Applied"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRole"},"name":"r1-grafana-clusterrole","rsync-status":"Applied"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRoleBinding"},"name":"r1-grafana-clusterrolebinding","rsync-status":"Pending"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-grafana-config-dashboards","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"r1-prometheus-operator-apiserver","rsync-status":"Pending"},{"GVK":{"Group":"","Version":"v1","Kind":"Service"},"name":"r1-prometheus-operator-coredns","rsync-status":"Pending"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"r1-prometheus-operator-coredns","rsync-status":"Pending"},{"GVK":{"Group":"","Version":"v1","Kind":"ConfigMap"},"name":"r1-prometheus-operator-grafana-datasource","rsync-status":"Applied"},{"GVK":{"Group":"","Version":"v1","Kind":"Service"},"name":"r1-prometheus-operator-kube-controller-manager","rsync-status":"Pending"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"r1-prometheus-operator-kube-controller-manager","rsync-status":"Pending"},{"GVK":{"Group":"","Version":"v1","Kind":"Service"},"name":"r1-prometheus-operator-kube-etcd","rsync-status":"Pending"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"r1-prometheus-operator-kube-etcd","rsync-status":"Pending"},{"GVK":{"Group":"","Version":"v1","Kind":"Service"},"name":"r1-prometheus-operator-kube-proxy","rsync-status":"Pending"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"r1-prometheus-operator-kube-proxy","rsync-status":"Pending"},{"GVK":{"Group":"","Version":"v1","Kind":"Service"},"name":"r1-prometheus-operator-kube-scheduler","rsync-status":"Pending"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"r1-prometheus-operator-kube-scheduler","rsync-status":"Pending"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"r1-prometheus-operator-kubelet","rsync-status":"Pending"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRole"},"name":"r1-prometheus-operator-operator","rsync-status":"Pending"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRoleBinding"},"name":"r1-prometheus-operator-operator","rsync-status":"Pending"},{"GVK":{"Group":"apps","Version":"v1","Kind":"Deployment"},"name":"r1-prometheus-operator-operator","rsync-status":"Pending"},{"GVK":{"Group":"policy","Version":"v1beta1","Kind":"PodSecurityPolicy"},"name":"r1-prometheus-operator-operator","rsync-status":"Pending"},{"GVK":{"Group":"","Version":"v1","Kind":"Service"},"name":"r1-prometheus-operator-operator","rsync-status":"Pending"},{"GVK":{"Group":"","Version":"v1","Kind":"ServiceAccount"},"name":"r1-prometheus-operator-operator","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"r1-prometheus-operator-operator","rsync-status":"Pending"},{"GVK":{"Group":"batch","Version":"v1","Kind":"Job"},"name":"r1-prometheus-operator-operator-cleanup","rsync-status":"Pending"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRole"},"name":"r1-prometheus-operator-operator-psp","rsync-status":"Pending"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRoleBinding"},"name":"r1-prometheus-operator-operator-psp","rsync-status":"Pending"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRole"},"name":"r1-prometheus-operator-prometheus","rsync-status":"Pending"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRoleBinding"},"name":"r1-prometheus-operator-prometheus","rsync-status":"Pending"},{"GVK":{"Group":"policy","Version":"v1beta1","Kind":"PodSecurityPolicy"},"name":"r1-prometheus-operator-prometheus","rsync-status":"Pending"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"Prometheus"},"name":"r1-prometheus-operator-prometheus","rsync-status":"Pending"},{"GVK":{"Group":"","Version":"v1","Kind":"Service"},"name":"r1-prometheus-operator-prometheus","rsync-status":"Pending"},{"GVK":{"Group":"","Version":"v1","Kind":"ServiceAccount"},"name":"r1-prometheus-operator-prometheus","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"r1-prometheus-operator-prometheus","rsync-status":"Pending"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRole"},"name":"r1-prometheus-operator-prometheus-psp","rsync-status":"Pending"},{"GVK":{"Group":"rbac.authorization.k8s.io","Version":"v1","Kind":"ClusterRoleBinding"},"name":"r1-prometheus-operator-prometheus-psp","rsync-status":"Pending"},{"GVK":{"Group":"","Version":"v1","Kind":"Secret"},"name":"r1-prometheus-operator-prometheus-scrape-confg","rsync-status":"Applied"},{"GVK":{"Group":"monitoring.coreos.com","Version":"v1","Kind":"ServiceMonitor"},"name":"service-monitor-collectd","rsync-status":"Pending"},{"GVK":{"Group":"apiextensions.k8s.io","Version":"v1beta1","Kind":"CustomResourceDefinition"},"name":"servicemonitors.monitoring.coreos.com","rsync-status":"Applied"},{"GVK":{"Group":"apiextensions.k8s.io","Version":"v1beta1","Kind":"CustomResourceDefinition"},"name":"thanosrulers.monitoring.coreos.com","rsync-status":"Applied"}]}]}]}
 ```
 
 * Check the status on kubernetes cluster
@@ -202,13 +312,13 @@ default       daemonset.apps/r1-collectd    2         2         2       2       
 ### Cleanup
 To uninstall EMCO use the same script and execute the following command.
 ```
-./emco-helm-install.sh -k /home/test/EMCO/deployments/kubernetes/config_north uninstall
+./emco-openness-helm-install.sh -k /home/test/EMCO/deployments/kubernetes/config_north uninstall
 Removing EMCO...
-WARNING: Kubernetes configuration file is group-readable. This is insecure. Location: /home/test/EMCO/deployments/kubernetes/config_north
-WARNING: Kubernetes configuration file is world-readable. This is insecure. Location: /home/test/EMCO/deployments/kubernetes/config_north
-release "emco" uninstalled
 Deleting namespace emco
 namespace "emco" deleted
+Deleting emco persistent volumes
+persistentvolume "emco-db-emco-etcd-data-0" deleted
+persistentvolume "emco-db-emco-mongo-data" deleted
 Done
 ```
 
@@ -217,4 +327,5 @@ It is often required to use developer tags for locally built EMCO images, push t
 
 To enable these features, run `export BUILD_CAUSE=DEV_TEST` prior to running `make deploy`. This will tag locally built images as `<username>-latest`, push to Harbor and reference these images in the generated helmcharts.
 
-Developers can then use the ```emco-helm-install.sh``` script from the above sections to install these custom images on their cluster.
+Developers can then use the ```emco-openness-helm-install.sh``` script from the above sections to install these custom images on their cluster.
+

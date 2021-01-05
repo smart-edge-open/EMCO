@@ -9,5 +9,5 @@ dependencies:
     version: ~4.x-0
     repository: 'file://../mongo'
   - name: etcd
-    version: ~3.x-0
+    version: ~5.x-0
     repository: 'file://../etcd'

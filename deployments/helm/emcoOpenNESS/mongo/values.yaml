@@ -15,11 +15,15 @@
 #################################################################
 # Global configuration defaults.
 #################################################################
+
 global:
   nodePortPrefix: 302
   persistence: {}
   readinessRepository: oomk8s
   readinessImage: readiness-check:2.2.2
+  db:
+    emcoPassword:
+    rootPassword:
 
 
 #################################################################
@@ -32,7 +36,7 @@ pullPolicy: Always
 
 # application configuration
 config:
-  dbName: mongo
+  dbName: mco
 # default number of instances
 replicaCount: 1
 
@@ -55,7 +59,7 @@ readiness:
   initialDelaySeconds: 5
   periodSeconds: 10
 
-## Persist data to a persitent volume
+## Persist data to a persistent volume
 persistence:
   enabled: false
   volumeReclaimPolicy: Retain

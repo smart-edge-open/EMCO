@@ -12,7 +12,8 @@ global:
 #################################################################
 # application image
 repository:
-image: emco-dtc:latest
+image: emco-dtc
+imageTag:
 pullPolicy: Always
 command: "./dtc"
 args: ""

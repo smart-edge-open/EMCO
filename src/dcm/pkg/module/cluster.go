@@ -10,6 +10,7 @@ import (
 
 	rb "github.com/open-ness/EMCO/src/monitor/pkg/apis/k8splugin/v1alpha1"
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/appcontext"
+	"github.com/open-ness/EMCO/src/orchestrator/pkg/infra/db"
 	log "github.com/open-ness/EMCO/src/orchestrator/pkg/infra/logutils"
 	rsync "github.com/open-ness/EMCO/src/rsync/pkg/db"
 	pkgerrors "github.com/pkg/errors"
@@ -100,17 +101,14 @@ type ClusterManager interface {
 type ClusterClient struct {
 	storeName string
 	tagMeta   string
-	util      Utility
 }
 
 // ClusterClient returns an instance of the ClusterClient
 // which implements the ClusterManager
 func NewClusterClient() *ClusterClient {
-	service := DBService{}
 	return &ClusterClient{
 		storeName: "orchestrator",
 		tagMeta:   "cluster",
-		util:      service,
 	}
 }
 
@@ -125,12 +123,12 @@ func (v *ClusterClient) CreateCluster(project, logicalCloud string, c Cluster) (
 	}
 
 	//Check if project exists
-	err := v.util.CheckProject(project)
+	err := CheckProject(project)
 	if err != nil {
 		return Cluster{}, pkgerrors.New("Unable to find the project")
 	}
 	//check if logical cloud exists
-	err = v.util.CheckLogicalCloud(project, logicalCloud)
+	err = CheckLogicalCloud(project, logicalCloud)
 	if err != nil {
 		return Cluster{}, pkgerrors.New("Unable to find the logical cloud")
 	}
@@ -140,11 +138,11 @@ func (v *ClusterClient) CreateCluster(project, logicalCloud string, c Cluster) (
 		Project:          project,
 		LogicalCloudName: logicalCloud,
 	}
-	context, _, err := lcClient.util.GetLogicalCloudContext(lcClient.storeName, lckey, lcClient.tagContext, project, logicalCloud)
+	context, _, err := GetLogicalCloudContext(lcClient.storeName, lckey, lcClient.tagContext, project, logicalCloud)
 	if err == nil {
 		// since there's a context associated, if the logical cloud isn't fully Terminated then prevent
 		// clusters from being added since this is a functional scenario not currently supported
-		acStatus, err := v.util.GetAppContextStatus(context)
+		acStatus, err := GetAppContextStatus(context)
 		if err != nil {
 			return Cluster{}, err
 		}
@@ -162,7 +160,7 @@ func (v *ClusterClient) CreateCluster(project, logicalCloud string, c Cluster) (
 		return Cluster{}, pkgerrors.New("Cluster reference already exists")
 	}
 
-	err = v.util.DBInsert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return Cluster{}, pkgerrors.Wrap(err, "Creating DB Entry")
 	}
@@ -180,7 +178,7 @@ func (v *ClusterClient) GetCluster(project, logicalCloud, clusterReference strin
 		ClusterReference: clusterReference,
 	}
 
-	value, err := v.util.DBFind(v.storeName, key, v.tagMeta)
+	value, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
 	if err != nil {
 		return Cluster{}, pkgerrors.Wrap(err, "Error getting Cluster reference")
 	}
@@ -188,7 +186,7 @@ func (v *ClusterClient) GetCluster(project, logicalCloud, clusterReference strin
 	//value is a byte array
 	if value != nil {
 		cl := Cluster{}
-		err = v.util.DBUnmarshal(value[0], &cl)
+		err = db.DBconn.Unmarshal(value[0], &cl)
 		if err != nil {
 			return Cluster{}, pkgerrors.Wrap(err, "Unmarshaling value")
 		}
@@ -207,7 +205,7 @@ func (v *ClusterClient) GetAllClusters(project, logicalCloud string) ([]Cluster,
 		ClusterReference: "",
 	}
 	var resp []Cluster
-	values, err := v.util.DBFind(v.storeName, key, v.tagMeta)
+	values, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
 	if err != nil {
 		return []Cluster{}, pkgerrors.Wrap(err, "Error getting all Cluster References")
 	}
@@ -217,7 +215,7 @@ func (v *ClusterClient) GetAllClusters(project, logicalCloud string) ([]Cluster,
 
 	for _, value := range values {
 		cl := Cluster{}
-		err = v.util.DBUnmarshal(value, &cl)
+		err = db.DBconn.Unmarshal(value, &cl)
 		if err != nil {
 			return []Cluster{}, pkgerrors.Wrap(err, "Unmarshaling values")
 		}
@@ -241,10 +239,10 @@ func (v *ClusterClient) DeleteCluster(project, logicalCloud, clusterReference st
 		Project:          project,
 		LogicalCloudName: logicalCloud,
 	}
-	context, _, err := lcClient.util.GetLogicalCloudContext(lcClient.storeName, lckey, lcClient.tagContext, project, logicalCloud)
+	context, _, err := GetLogicalCloudContext(lcClient.storeName, lckey, lcClient.tagContext, project, logicalCloud)
 	if err != nil {
 		// Just go ahead and delete the reference if there is no logical cloud context yet
-		err := v.util.DBRemove(v.storeName, key)
+		err := db.DBconn.Remove(v.storeName, key)
 		if err != nil {
 			return pkgerrors.Wrap(err, "Failed deleting Cluster Reference")
 		}
@@ -253,7 +251,7 @@ func (v *ClusterClient) DeleteCluster(project, logicalCloud, clusterReference st
 
 	// Make sure rsync status for this logical cloud is Terminated,
 	// otherwise prevent the clusters from being removed
-	acStatus, err := v.util.GetAppContextStatus(context)
+	acStatus, err := GetAppContextStatus(context)
 	if err != nil {
 		return err
 	}
@@ -275,7 +273,7 @@ func (v *ClusterClient) DeleteCluster(project, logicalCloud, clusterReference st
 		// try to delete anyway since termination failed
 		fallthrough
 	case appcontext.AppContextStatusEnum.Terminated:
-		err := v.util.DBRemove(v.storeName, key)
+		err := db.DBconn.Remove(v.storeName, key)
 		if err != nil {
 			return pkgerrors.Wrap(err, "Error deleting Cluster Reference")
 		}
@@ -305,7 +303,7 @@ func (v *ClusterClient) UpdateCluster(project, logicalCloud, clusterReference st
 	if err != nil {
 		return Cluster{}, pkgerrors.New("Cluster Reference does not exist")
 	}
-	err = v.util.DBInsert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return Cluster{}, pkgerrors.Wrap(err, "Updating DB Entry")
 	}
@@ -319,7 +317,7 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 		Project:          project,
 		LogicalCloudName: logicalCloud,
 	}
-	context, ctxVal, err := lcClient.util.GetLogicalCloudContext(lcClient.storeName, lckey, lcClient.tagContext, project, logicalCloud)
+	context, ctxVal, err := GetLogicalCloudContext(lcClient.storeName, lckey, lcClient.tagContext, project, logicalCloud)
 	if err != nil {
 		return "", pkgerrors.Wrap(err, "Error getting logical cloud context.")
 	}
@@ -333,7 +331,7 @@ func (v *ClusterClient) GetClusterConfig(project, logicalCloud, clusterReference
 		return "", pkgerrors.Wrap(err, "Failed getting logical cloud")
 	}
 	// get user's private key
-	privateKeyData, err := v.util.DBFind(v.storeName, lckey, "privatekey")
+	privateKeyData, err := db.DBconn.Find(v.storeName, lckey, "privatekey")
 	if err != nil {
 		return "", pkgerrors.Wrap(err, "Failed getting private key from logical cloud")
 	}

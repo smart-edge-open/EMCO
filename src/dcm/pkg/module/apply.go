@@ -346,11 +346,11 @@ func Instantiate(project string, logicalcloud LogicalCloud, clusterList []Cluste
 	}
 
 	// Check if there was a previous context for this logical cloud
-	ac, cid, err := lcclient.util.GetLogicalCloudContext(lcclient.storeName, lckey, lcclient.tagContext, project, logicalCloudName)
+	ac, cid, err := GetLogicalCloudContext(lcclient.storeName, lckey, lcclient.tagContext, project, logicalCloudName)
 	if cid != "" {
 		// Make sure rsync status for this logical cloud is Terminated,
 		// otherwise we can't re-instantiate logical cloud yet
-		acStatus, err := lcclient.util.GetAppContextStatus(ac)
+		acStatus, err := GetAppContextStatus(ac)
 		if err != nil {
 			return err
 		}
@@ -425,7 +425,7 @@ func Instantiate(project string, logicalcloud LogicalCloud, clusterList []Cluste
 		// at this point we know what namespace name to give to the logical cloud
 		logicalcloud.Specification.NameSpace = l0ns
 		// the following is an update operation:
-		err = lcclient.util.DBInsert(lcclient.storeName, lckey, nil, lcclient.tagMeta, logicalcloud)
+		err = db.DBconn.Insert(lcclient.storeName, lckey, nil, lcclient.tagMeta, logicalcloud)
 		if err != nil {
 			log.Error("Failed to update L0 logical cloud with a namespace name", log.Fields{"logicalcloud": logicalCloudName, "namespace": l0ns})
 			return pkgerrors.Wrap(err, "Failed to update L0 logical cloud with a namespace name")
@@ -688,7 +688,7 @@ func Terminate(project string, logicalcloud LogicalCloud, clusterList []Cluster,
 		Project:          project,
 	}
 
-	ac, cid, err := lcclient.util.GetLogicalCloudContext(lcclient.storeName, lckey, lcclient.tagContext, project, logicalCloudName)
+	ac, cid, err := GetLogicalCloudContext(lcclient.storeName, lckey, lcclient.tagContext, project, logicalCloudName)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Logical Cloud is not instantiated")
 	}
@@ -697,7 +697,7 @@ func Terminate(project string, logicalcloud LogicalCloud, clusterList []Cluster,
 	if cid != "" {
 		// Make sure rsync status for this logical cloud is Terminated,
 		// otherwise we can't re-instantiate logical cloud yet
-		acStatus, err := lcclient.util.GetAppContextStatus(ac)
+		acStatus, err := GetAppContextStatus(ac)
 		if err != nil {
 			return err
 		}
@@ -762,14 +762,14 @@ func Stop(project string, logicalcloud LogicalCloud) error {
 		Project:          project,
 	}
 
-	ac, cid, err := lcclient.util.GetLogicalCloudContext(lcclient.storeName, lckey, lcclient.tagContext, project, logicalCloudName)
+	ac, cid, err := GetLogicalCloudContext(lcclient.storeName, lckey, lcclient.tagContext, project, logicalCloudName)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Logical Cloud doesn't seem instantiated: %v", logicalCloudName)
 	}
 
 	// Check if there was a previous context for this logical cloud
 	if cid != "" {
-		acStatus, err := lcclient.util.GetAppContextStatus(ac)
+		acStatus, err := GetAppContextStatus(ac)
 		if err != nil {
 			return err
 		}

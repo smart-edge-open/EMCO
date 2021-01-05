@@ -12,7 +12,8 @@ global:
 #################################################################
 # application image
 repository:
-image: emco-gac:latest
+image: emco-gac
+imageTag:
 pullPolicy: Always
 command: "./genericactioncontroller"
 args: ""

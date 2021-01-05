@@ -20,6 +20,7 @@ type EmcoConfigurations struct {
 	OvnAction    ControllerConfigurations
 	Gac          ControllerConfigurations
 	Dtc          ControllerConfigurations
+	HpaPlacement ControllerConfigurations
 }
 
 // ControllerConfigurations exported
@@ -49,6 +50,8 @@ func SetDefaultConfiguration() {
 	Configurations.Dtc.Port = 0
 	Configurations.Gac.Host = "localhost"
 	Configurations.Gac.Port = 0
+	Configurations.HpaPlacement.Host = "localhost"
+	Configurations.HpaPlacement.Port = 9091
 }
 
 // GetIngressURL Url for Ingress
@@ -155,4 +158,18 @@ func GetGacURL() string {
 		os.Exit(1)
 	}
 	return urlPrefix + Configurations.Gac.Host + ":" + strconv.Itoa(Configurations.Gac.Port) + "/" + urlVersion
+}
+
+// GetHpaPlacementURL Url for Hpa Placement controller
+func GetHpaPlacementURL() string {
+	// If Ingress is available use that url
+	if s := GetIngressURL(); s != "" {
+		return s
+	}
+	if Configurations.HpaPlacement.Host == "" || Configurations.HpaPlacement.Port == 0 {
+		fmt.Println("Fatal: No HPA Placement Information in Config File")
+		// Exit executing
+		os.Exit(1)
+	}
+	return urlPrefix + Configurations.HpaPlacement.Host + ":" + strconv.Itoa(Configurations.HpaPlacement.Port) + "/" + urlVersion
 }

@@ -4,6 +4,7 @@ package module
 // Copyright (c) 2020 Intel Corporation
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/infra/db"
@@ -70,6 +71,16 @@ type CustomizationClientDbInfo struct {
 // CustomizationClient consists of CustomizationClientDbInfo
 type CustomizationClient struct {
 	db CustomizationClientDbInfo
+}
+
+// We will use json marshalling to convert to string to
+// preserve the underlying structure.
+func (ck CustomizationKey) String() string {
+	out, err := json.Marshal(ck)
+	if err != nil {
+		return ""
+	}
+	return string(out)
 }
 
 // NewCustomizationClient returns an instance of the CustomizationClient
@@ -232,6 +243,5 @@ func (cc *CustomizationClient) DeleteCustomization(c, p, ca, cv, dig, gi, rs str
 			return pkgerrors.Wrap(err, "db Remove error - general")
 		}
 	}
-
 	return nil
 }

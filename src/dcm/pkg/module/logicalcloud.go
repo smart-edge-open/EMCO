@@ -71,40 +71,21 @@ type LogicalCloudManager interface {
 	Update(project, name string, c LogicalCloud) (LogicalCloud, error)
 }
 
-// Interface facilitates unit testing by mocking functions
-type Utility interface {
-	DBInsert(storeName string, key db.Key, query interface{}, meta string, c interface{}) error
-	DBFind(storeName string, key db.Key, meta string) ([][]byte, error)
-	DBUnmarshal(value []byte, out interface{}) error
-	DBRemove(storeName string, key db.Key) error
-	CheckProject(project string) error
-	CheckLogicalCloud(project, logicalCloud string) error
-	GetLogicalCloudContext(storeName string, key db.Key, meta string, project string, name string) (appcontext.AppContext, string, error)
-	GetLogicalCloudFromContext(storeName string, appContextId string) (string, string, error)
-	GetAppContextStatus(ac appcontext.AppContext) (*appcontext.AppContextStatus, error)
-}
-
 // LogicalCloudClient implements the LogicalCloudManager
 // It will also be used to maintain some localized state
 type LogicalCloudClient struct {
 	storeName  string
 	tagMeta    string
 	tagContext string
-	util       Utility
 }
-
-// Added for unit testing; implements Utility interface
-type DBService struct{}
 
 // LogicalCloudClient returns an instance of the LogicalCloudClient
 // which implements the LogicalCloudManager
 func NewLogicalCloudClient() *LogicalCloudClient {
-	service := DBService{}
 	return &LogicalCloudClient{
 		storeName:  "orchestrator",
 		tagMeta:    "logicalcloud",
 		tagContext: "lccontext",
-		util:       service,
 	}
 }
 
@@ -118,7 +99,7 @@ func (v *LogicalCloudClient) Create(project string, c LogicalCloud) (LogicalClou
 	}
 
 	//Check if project exists
-	err := v.util.CheckProject(project)
+	err := CheckProject(project)
 	if err != nil {
 		return LogicalCloud{}, pkgerrors.Wrap(err, "Unable to find the project")
 	}
@@ -134,7 +115,7 @@ func (v *LogicalCloudClient) Create(project string, c LogicalCloud) (LogicalClou
 		c.Specification.Level = "1"
 	}
 
-	err = v.util.DBInsert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return LogicalCloud{}, pkgerrors.Wrap(err, "Error creating DB Entry")
 	}
@@ -150,7 +131,7 @@ func (v *LogicalCloudClient) Get(project, logicalCloudName string) (LogicalCloud
 		Project:          project,
 		LogicalCloudName: logicalCloudName,
 	}
-	value, err := v.util.DBFind(v.storeName, key, v.tagMeta)
+	value, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
 	if err != nil {
 		return LogicalCloud{}, pkgerrors.Wrap(err, "Error getting Logical Cloud")
 	}
@@ -158,7 +139,7 @@ func (v *LogicalCloudClient) Get(project, logicalCloudName string) (LogicalCloud
 	//value is a byte array
 	if value != nil {
 		lc := LogicalCloud{}
-		err = v.util.DBUnmarshal(value[0], &lc)
+		err = db.DBconn.Unmarshal(value[0], &lc)
 		if err != nil {
 			return LogicalCloud{}, pkgerrors.Wrap(err, "Error unmarshaling value")
 		}
@@ -178,14 +159,14 @@ func (v *LogicalCloudClient) GetAll(project string) ([]LogicalCloud, error) {
 	}
 
 	var resp []LogicalCloud
-	values, err := v.util.DBFind(v.storeName, key, v.tagMeta)
+	values, err := db.DBconn.Find(v.storeName, key, v.tagMeta)
 	if err != nil {
 		return []LogicalCloud{}, pkgerrors.Wrap(err, "Error getting Logical Clouds")
 	}
 
 	for _, value := range values {
 		lc := LogicalCloud{}
-		err = v.util.DBUnmarshal(value, &lc)
+		err = db.DBconn.Unmarshal(value, &lc)
 		if err != nil {
 			return []LogicalCloud{}, pkgerrors.Wrap(err, "Unmarshaling values")
 		}
@@ -209,10 +190,10 @@ func (v *LogicalCloudClient) Delete(project, logicalCloudName string) error {
 		return pkgerrors.New("Logical Cloud does not exist")
 	}
 
-	context, _, err := v.util.GetLogicalCloudContext(v.storeName, key, v.tagContext, project, logicalCloudName)
+	context, _, err := GetLogicalCloudContext(v.storeName, key, v.tagContext, project, logicalCloudName)
 	// If there's no context for Logical Cloud, just go ahead and delete it now
 	if err != nil {
-		err = v.util.DBRemove(v.storeName, key)
+		err = db.DBconn.Remove(v.storeName, key)
 		if err != nil {
 			return pkgerrors.Wrap(err, "Error when deleting Logical Cloud (scenario with no context)")
 		}
@@ -221,7 +202,7 @@ func (v *LogicalCloudClient) Delete(project, logicalCloudName string) error {
 
 	// Make sure rsync status for this logical cloud is Terminated,
 	// otherwise we can't remove appcontext yet
-	acStatus, err := v.util.GetAppContextStatus(context)
+	acStatus, err := GetAppContextStatus(context)
 	if err != nil {
 		return err
 	}
@@ -250,7 +231,7 @@ func (v *LogicalCloudClient) Delete(project, logicalCloudName string) error {
 			return pkgerrors.Wrap(err, "Error deleting AppContext CompositeApp Logical Cloud")
 		}
 
-		err = v.util.DBRemove(v.storeName, key)
+		err = db.DBconn.Remove(v.storeName, key)
 		if err != nil {
 			log.Error("Error when deleting Logical Cloud (scenario with Terminated status)", log.Fields{"logicalcloud": logicalCloudName})
 			return pkgerrors.Wrap(err, "Error when deleting Logical Cloud (scenario with Terminated status)")
@@ -279,7 +260,7 @@ func (v *LogicalCloudClient) Update(project, logicalCloudName string, c LogicalC
 	if err != nil {
 		return LogicalCloud{}, pkgerrors.New("Logical Cloud does not exist")
 	}
-	err = v.util.DBInsert(v.storeName, key, nil, v.tagMeta, c)
+	err = db.DBconn.Insert(v.storeName, key, nil, v.tagMeta, c)
 	if err != nil {
 		return LogicalCloud{}, pkgerrors.Wrap(err, "Updating DB Entry")
 	}
@@ -287,9 +268,9 @@ func (v *LogicalCloudClient) Update(project, logicalCloudName string, c LogicalC
 }
 
 // GetLogicalCloudContext returns the AppContext for corresponding provider and name
-func (d DBService) GetLogicalCloudContext(storeName string, key db.Key, meta string, project string, name string) (appcontext.AppContext, string, error) {
+func GetLogicalCloudContext(storeName string, key db.Key, meta string, project string, name string) (appcontext.AppContext, string, error) {
 
-	value, err := d.DBFind(storeName, key, meta)
+	value, err := db.DBconn.Find(storeName, key, meta)
 	if err != nil {
 		return appcontext.AppContext{}, "", pkgerrors.Wrap(err, "Get Logical Cloud Context")
 	}
@@ -308,14 +289,14 @@ func (d DBService) GetLogicalCloudContext(storeName string, key db.Key, meta str
 	return appcontext.AppContext{}, "", pkgerrors.New("Error getting Logical Cloud AppContext")
 }
 
-// GetLogicalCloudFromContext returns the pair (project, logical cloud name) for a given AppContext ID
-func (d DBService) GetLogicalCloudFromContext(storeName string, appContextId string) (string, string, error) {
+// GetLogicalCloudFromContext returns the pair (project, logical cloud name) for a given AppContext
+func GetLogicalCloudFromContext(storeName string, appContextID string) (string, string, error) {
 	key := AppContextKey{
-		LCContext: appContextId,
+		LCContext: appContextID,
 	}
-	log.Info("GetLogicalCloudFromContext", log.Fields{"appContextId": appContextId})
+	log.Info("GetLogicalCloudFromContext", log.Fields{"appContextID": appContextID})
 
-	values, err := d.DBFind(storeName, key, "logical-cloud-name")
+	values, err := db.DBconn.Find(storeName, key, "logical-cloud-name")
 	if err != nil {
 		log.Error("Couldn't fetch logical cloud", log.Fields{"err": err})
 		return "", "", pkgerrors.Wrap(err, "Couldn't fetch logical cloud")
@@ -323,7 +304,7 @@ func (d DBService) GetLogicalCloudFromContext(storeName string, appContextId str
 	logicalCloudName := string(values[0])
 	log.Info("", log.Fields{"logicalCloudName": logicalCloudName})
 
-	values, err = d.DBFind(storeName, key, "project")
+	values, err = db.DBconn.Find(storeName, key, "project")
 	if err != nil {
 		log.Error("Couldn't fetch project", log.Fields{"err": err})
 		return "", "", pkgerrors.Wrap(err, "Couldn't fetch project")
@@ -334,48 +315,8 @@ func (d DBService) GetLogicalCloudFromContext(storeName string, appContextId str
 	return project, logicalCloudName, nil
 }
 
-func (d DBService) DBInsert(storeName string, key db.Key, query interface{}, meta string, c interface{}) error {
-
-	err := db.DBconn.Insert(storeName, key, nil, meta, c)
-	if err != nil {
-		return pkgerrors.Wrap(err, "Creating DB Entry")
-	}
-
-	return nil
-}
-
-func (d DBService) DBFind(storeName string, key db.Key, meta string) ([][]byte, error) {
-
-	value, err := db.DBconn.Find(storeName, key, meta)
-	if err != nil {
-		return [][]byte{}, pkgerrors.Wrap(err, "Get Resource")
-	}
-
-	return value, nil
-}
-
-func (d DBService) DBUnmarshal(value []byte, out interface{}) error {
-
-	err := db.DBconn.Unmarshal(value, out)
-	if err != nil {
-		return pkgerrors.Wrap(err, "Unmarshaling Value")
-	}
-
-	return nil
-}
-
-func (d DBService) DBRemove(storeName string, key db.Key) error {
-
-	err := db.DBconn.Remove(storeName, key)
-	if err != nil {
-		return pkgerrors.Wrap(err, "Delete Resource")
-	}
-
-	return nil
-}
-
-func (d DBService) CheckProject(project string) error {
-	// Check if project exists
+// CheckProject if the project exists
+func CheckProject(project string) error {
 	_, err := module.NewProjectClient().GetProject(project)
 	if err != nil {
 		return pkgerrors.New("Unable to find the project")
@@ -384,8 +325,8 @@ func (d DBService) CheckProject(project string) error {
 	return nil
 }
 
-func (d DBService) CheckLogicalCloud(project, logicalCloud string) error {
-	// Check if logical cloud exists
+// CheckLogicalCloud checks if logical cloud exists
+func CheckLogicalCloud(project, logicalCloud string) error {
 	_, err := NewLogicalCloudClient().Get(project, logicalCloud)
 	if err != nil {
 		return pkgerrors.New("Unable to find the logical cloud")
@@ -394,7 +335,8 @@ func (d DBService) CheckLogicalCloud(project, logicalCloud string) error {
 	return nil
 }
 
-func (d DBService) GetAppContextStatus(ac appcontext.AppContext) (*appcontext.AppContextStatus, error) {
+// GetAppContextStatus returns the Status for a particular AppContext
+func GetAppContextStatus(ac appcontext.AppContext) (*appcontext.AppContextStatus, error) {
 
 	h, err := ac.GetCompositeAppHandle()
 	if err != nil {
@@ -413,5 +355,4 @@ func (d DBService) GetAppContextStatus(ac appcontext.AppContext) (*appcontext.Ap
 	json.Unmarshal(js, &acStatus)
 
 	return &acStatus, nil
-
 }

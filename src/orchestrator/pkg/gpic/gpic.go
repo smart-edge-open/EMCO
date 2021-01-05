@@ -15,16 +15,16 @@ import (
 	"strconv"
 )
 
-// ClusterList consists of mandatoryClusters and clusterGroups
+// ClusterList consists of mandatoryClusters and OptionalClusters
 type ClusterList struct {
-	MandatoryClusters []ClusterWithName
-	ClusterGroups     []ClusterGroup
+	MandatoryClusters []ClusterGroup
+	OptionalClusters  []ClusterGroup
 }
 
-//ClusterGroup consists of a list of optionalClusters and a groupNumber. All the clusters under the optional clusters belong to same groupNumber
+//ClusterGroup consists of Clusters and GroupNumber. All the clusters under the same clusterGroup belong to the same groupNumber
 type ClusterGroup struct {
-	OptionalClusters []ClusterWithName
-	GroupNumber      string
+	Clusters    []ClusterWithName
+	GroupNumber string
 }
 
 // ClusterWithName has two fields - ProviderName and ClusterName
@@ -86,14 +86,23 @@ func intentResolverHelper(pn, cn, cln string, clustersWithName []ClusterWithName
 // IntentResolver shall help to resolve the given intent into 2 lists of clusters where the app need to be deployed.
 func IntentResolver(intent IntentStruc) (ClusterList, error) {
 	var mc []ClusterWithName
+	var mClusters []ClusterGroup
 	var err error
-	var cg []ClusterGroup
+	var oClusters []ClusterGroup
 	index := 0
 	for _, eachAllOf := range intent.AllOfArray {
-		mc, err = intentResolverHelper(eachAllOf.ProviderName, eachAllOf.ClusterName, eachAllOf.ClusterLabelName, mc)
+		mc, err := intentResolverHelper(eachAllOf.ProviderName, eachAllOf.ClusterName, eachAllOf.ClusterLabelName, mc)
 		if err != nil {
 			return ClusterList{}, pkgerrors.Wrap(err, "intentResolverHelper error")
 		}
+		for _, eachMC := range mc {
+			index++
+			var arrCname []ClusterWithName
+			arrCname = append(arrCname, eachMC)
+			eachMandatoryCluster := ClusterGroup{Clusters: arrCname, GroupNumber: strconv.Itoa(index)}
+			mClusters = append(mClusters, eachMandatoryCluster)
+		}
+
 		if len(eachAllOf.AnyOfArray) > 0 {
 			for _, eachAnyOf := range eachAllOf.AnyOfArray {
 				var opc []ClusterWithName
@@ -102,8 +111,8 @@ func IntentResolver(intent IntentStruc) (ClusterList, error) {
 				if err != nil {
 					return ClusterList{}, pkgerrors.Wrap(err, "intentResolverHelper error")
 				}
-				eachClustergroup := ClusterGroup{OptionalClusters: opc, GroupNumber: strconv.Itoa(index)}
-				cg = append(cg, eachClustergroup)
+				eachOptionalCluster := ClusterGroup{Clusters: opc, GroupNumber: strconv.Itoa(index)}
+				oClusters = append(oClusters, eachOptionalCluster)
 			}
 		}
 	}
@@ -115,10 +124,10 @@ func IntentResolver(intent IntentStruc) (ClusterList, error) {
 			if err != nil {
 				return ClusterList{}, pkgerrors.Wrap(err, "intentResolverHelper error")
 			}
-			eachClustergroup := ClusterGroup{OptionalClusters: opc, GroupNumber: strconv.Itoa(index)}
-			cg = append(cg, eachClustergroup)
+			eachOptionalCluster := ClusterGroup{Clusters: opc, GroupNumber: strconv.Itoa(index)}
+			oClusters = append(oClusters, eachOptionalCluster)
 		}
 	}
-	clusterList := ClusterList{MandatoryClusters: mc, ClusterGroups: cg}
+	clusterList := ClusterList{MandatoryClusters: mClusters, OptionalClusters: oClusters}
 	return clusterList, nil
 }

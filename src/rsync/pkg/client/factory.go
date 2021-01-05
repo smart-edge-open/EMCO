@@ -4,9 +4,8 @@
 package client
 
 import (
-	"path/filepath"
+	"os"
 	"regexp"
-	"strings"
 	"sync"
 	"time"
 
@@ -25,7 +24,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 	"k8s.io/kubectl/pkg/util/openapi"
 	openapivalidation "k8s.io/kubectl/pkg/util/openapi/validation"
 	"k8s.io/kubectl/pkg/validation"
@@ -33,7 +31,7 @@ import (
 
 // factory implements the kubectl Factory interface which also requieres to
 // implement the genericclioptions.RESTClientGetter interface.
-// The Factory inerface provides abstractions that allow the Kubectl command to
+// The Factory interface provides abstractions that allow the Kubectl command to
 // be extended across multiple types of resources and different API sets.
 type factory struct {
 	KubeConfig            string
@@ -135,17 +133,8 @@ func (f *factory) ToDiscoveryClient() (discovery.CachedDiscoveryInterface, error
 		return nil, err
 	}
 	factory.Burst = 100
-	defaultHTTPCacheDir := filepath.Join(homedir.HomeDir(), ".kube", "http-cache")
 
-	// takes the parentDir and the host and comes up with a "usually non-colliding" name for the discoveryCacheDir
-	parentDir := filepath.Join(homedir.HomeDir(), ".kube", "cache", "discovery")
-	// strip the optional scheme from host if its there:
-	schemelessHost := strings.Replace(strings.Replace(factory.Host, "https://", "", 1), "http://", "", 1)
-	// now do a simple collapse of non-AZ09 characters.  Collisions are possible but unlikely.  Even if we do collide the problem is short lived
-	safeHost := overlyCautiousIllegalFileCharacters.ReplaceAllString(schemelessHost, "_")
-	discoveryCacheDir := filepath.Join(parentDir, safeHost)
-
-	return diskcached.NewCachedDiscoveryClientForConfig(factory, discoveryCacheDir, defaultHTTPCacheDir, time.Duration(10*time.Minute))
+	return diskcached.NewCachedDiscoveryClientForConfig(factory, os.TempDir(), "", time.Duration(10*time.Minute))
 }
 
 // ToRESTMapper returns a mapper
@@ -158,8 +147,7 @@ func (f *factory) ToRESTMapper() (meta.RESTMapper, error) {
 	}
 
 	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
-	expander := restmapper.NewShortcutExpander(mapper, discoveryClient)
-	return expander, nil
+	return mapper, nil
 }
 
 // KubernetesClientSet creates a kubernetes clientset from the configuration

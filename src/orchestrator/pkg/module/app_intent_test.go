@@ -14,16 +14,16 @@ import (
 
 func TestCreateAppIntent(t *testing.T) {
 	testCases := []struct {
-		label                       string
-		inputAppIntent              AppIntent
-		inputProject                string
-		inputCompositeApp           string
-		inputCompositeAppVersion    string
-		inputGenericPlacementIntent string
+		label                        string
+		inputAppIntent               AppIntent
+		inputProject                 string
+		inputCompositeApp            string
+		inputCompositeAppVersion     string
+		inputGenericPlacementIntent  string
 		inputDeploymentIntentGrpName string
-		expectedError               string
-		mockdb                      *db.MockDB
-		expected                    AppIntent
+		expectedError                string
+		mockdb                       *db.MockDB
+		expected                     AppIntent
 	}{
 		{
 			label: "Create AppIntent",
@@ -65,10 +65,10 @@ func TestCreateAppIntent(t *testing.T) {
 				},
 			},
 
-			inputProject:                "testProject",
-			inputCompositeApp:           "testCompositeApp",
-			inputCompositeAppVersion:    "testCompositeAppVersion",
-			inputGenericPlacementIntent: "testIntent",
+			inputProject:                 "testProject",
+			inputCompositeApp:            "testCompositeApp",
+			inputCompositeAppVersion:     "testCompositeAppVersion",
+			inputGenericPlacementIntent:  "testIntent",
 			inputDeploymentIntentGrpName: "testDeploymentIntentGroup",
 			expected: AppIntent{
 				MetaData: MetaData{
@@ -108,70 +108,72 @@ func TestCreateAppIntent(t *testing.T) {
 			},
 			expectedError: "",
 			mockdb: &db.MockDB{
-				Items: map[string]map[string][]byte{
-					ProjectKey{ProjectName: "testProject"}.String(): {
-						"projectmetadata": []byte(
-							"{\"project-name\":\"testProject\"," +
-								"\"description\":\"Test project for unit testing\"}"),
-					},
-					CompositeAppKey{CompositeAppName: "testCompositeApp",
-						Version: "testCompositeAppVersion", Project: "testProject"}.String(): {
-						"compositeappmetadata": []byte(
-							"{\"metadata\":{" +
-								"\"name\":\"testCompositeApp\"," +
-								"\"description\":\"description\"," +
-								"\"userData1\":\"user data\"," +
-								"\"userData2\":\"user data\"" +
-								"}," +
-								"\"spec\":{" +
-								"\"version\":\"version of the composite app\"}}"),
-					},
-					GenericPlacementIntentKey{
-						Name:         "testIntent",
-						Project:      "testProject",
-						CompositeApp: "testCompositeApp",
-						Version:      "testCompositeAppVersion",
-						DigName: "testDeploymentIntentGroup",
-					}.String(): {
-						"genericplacementintentmetadata": []byte(
-							"{\"metadata\":{\"Name\":\"testIntent\"," +
-								"\"Description\":\"A sample intent for testing\"," +
-								"\"UserData1\": \"userData1\"," +
-								"\"UserData2\": \"userData2\"}," +
-								"\"spec\":{\"Logical-Cloud\": \"logicalCloud1\"}}"),
-					},
-					DeploymentIntentGroupKey{
-						Name:         "testDeploymentIntentGroup",
-						Project:      "testProject",
-						CompositeApp: "testCompositeApp",
-						Version:      "testCompositeAppVersion",
-					}.String(): {
-						"deploymentintentgroupmetadata": []byte(
-							"{\"metadata\":{\"name\":\"testDeploymentIntentGroup\"," +
-								"\"description\":\"DescriptionTestDeploymentIntentGroup\"," +
-								"\"userData1\": \"userData1\"," +
-								"\"userData2\": \"userData2\"}," +
-								"\"spec\":{\"profile\": \"Testprofile\"," +
-								"\"version\": \"version of deployment\"," +
-								"\"override-values\":[" +
-								"{" +
-								"\"app-name\": \"TestAppName\"," +
-								"\"values\": " +
-								"{" +
-								"\"imageRepository\":\"registry.hub.docker.com\"" +
-								"}" +
-								"}," +
-								"{" +
-								"\"app-name\": \"TestAppName\"," +
-								"\"values\": " +
-								"{" +
-								"\"imageRepository\":\"registry.hub.docker.com\"" +
-								"}" +
-								"}" +
-								"]," +
-								"\"logical-cloud\": \"cloud1\"" +
-								"}"+
-								"}"),
+				Items: []map[string]map[string][]byte{
+					{
+						ProjectKey{ProjectName: "testProject"}.String(): {
+							"projectmetadata": []byte(
+								"{\"project-name\":\"testProject\"," +
+									"\"description\":\"Test project for unit testing\"}"),
+						},
+						CompositeAppKey{CompositeAppName: "testCompositeApp",
+							Version: "testCompositeAppVersion", Project: "testProject"}.String(): {
+							"compositeappmetadata": []byte(
+								"{\"metadata\":{" +
+									"\"name\":\"testCompositeApp\"," +
+									"\"description\":\"description\"," +
+									"\"userData1\":\"user data\"," +
+									"\"userData2\":\"user data\"" +
+									"}," +
+									"\"spec\":{" +
+									"\"version\":\"version of the composite app\"}}"),
+						},
+						GenericPlacementIntentKey{
+							Name:         "testIntent",
+							Project:      "testProject",
+							CompositeApp: "testCompositeApp",
+							Version:      "testCompositeAppVersion",
+							DigName:      "testDeploymentIntentGroup",
+						}.String(): {
+							"genericplacementintentmetadata": []byte(
+								"{\"metadata\":{\"Name\":\"testIntent\"," +
+									"\"Description\":\"A sample intent for testing\"," +
+									"\"UserData1\": \"userData1\"," +
+									"\"UserData2\": \"userData2\"}," +
+									"\"spec\":{\"Logical-Cloud\": \"logicalCloud1\"}}"),
+						},
+						DeploymentIntentGroupKey{
+							Name:         "testDeploymentIntentGroup",
+							Project:      "testProject",
+							CompositeApp: "testCompositeApp",
+							Version:      "testCompositeAppVersion",
+						}.String(): {
+							"deploymentintentgroupmetadata": []byte(
+								"{\"metadata\":{\"name\":\"testDeploymentIntentGroup\"," +
+									"\"description\":\"DescriptionTestDeploymentIntentGroup\"," +
+									"\"userData1\": \"userData1\"," +
+									"\"userData2\": \"userData2\"}," +
+									"\"spec\":{\"profile\": \"Testprofile\"," +
+									"\"version\": \"version of deployment\"," +
+									"\"override-values\":[" +
+									"{" +
+									"\"app-name\": \"TestAppName\"," +
+									"\"values\": " +
+									"{" +
+									"\"imageRepository\":\"registry.hub.docker.com\"" +
+									"}" +
+									"}," +
+									"{" +
+									"\"app-name\": \"TestAppName\"," +
+									"\"values\": " +
+									"{" +
+									"\"imageRepository\":\"registry.hub.docker.com\"" +
+									"}" +
+									"}" +
+									"]," +
+									"\"logical-cloud\": \"cloud1\"" +
+									"}" +
+									"}"),
+						},
 					},
 				},
 			},
@@ -200,24 +202,24 @@ func TestCreateAppIntent(t *testing.T) {
 
 func TestGetAppIntent(t *testing.T) {
 	testCases := []struct {
-		label                  string
-		expectedError          string
-		expected               AppIntent
-		mockdb                 *db.MockDB
-		appIntentName          string
-		projectName            string
-		compositeAppName       string
-		compositeAppVersion    string
-		genericPlacementIntent string
+		label                   string
+		expectedError           string
+		expected                AppIntent
+		mockdb                  *db.MockDB
+		appIntentName           string
+		projectName             string
+		compositeAppName        string
+		compositeAppVersion     string
+		genericPlacementIntent  string
 		deploymentIntentgrpName string
 	}{
 		{
-			label:                  "Get Intent",
-			appIntentName:          "testAppIntent",
-			projectName:            "testProject",
-			compositeAppName:       "testCompositeApp",
-			compositeAppVersion:    "testCompositeAppVersion",
-			genericPlacementIntent: "testIntent",
+			label:                   "Get Intent",
+			appIntentName:           "testAppIntent",
+			projectName:             "testProject",
+			compositeAppName:        "testCompositeApp",
+			compositeAppVersion:     "testCompositeAppVersion",
+			genericPlacementIntent:  "testIntent",
 			deploymentIntentgrpName: "testDeploymentIntentGroup",
 			expected: AppIntent{
 				MetaData: MetaData{
@@ -252,39 +254,41 @@ func TestGetAppIntent(t *testing.T) {
 			},
 			expectedError: "",
 			mockdb: &db.MockDB{
-				Items: map[string]map[string][]byte{
-					AppIntentKey{
-						Name:         "testAppIntent",
-						Project:      "testProject",
-						CompositeApp: "testCompositeApp",
-						Version:      "testCompositeAppVersion",
-						Intent:       "testIntent",
-						DeploymentIntentGroupName: "testDeploymentIntentGroup",
-					}.String(): {
-						"appintentmetadata": []byte(
-							"{\"metadata\":{\"Name\":\"testAppIntent\"," +
-								"\"Description\":\"testAppIntent\"," +
-								"\"UserData1\": \"userData1\"," +
-								"\"UserData2\": \"userData2\"}," +
-								"\"spec\":{\"app-name\": \"SampleApp\"," +
-								"\"intent\": {" +
-								"\"allOf\":[" +
-								"{" +
-								"\"provider-name\":\"aws\"," +
-								"\"cluster-name\":\"edge1\"}," +
-								"{" +
-								"\"provider-name\":\"aws\"," +
-								"\"cluster-name\":\"edge2\"}," +
-								"{" +
-								"\"anyOf\":[" +
-								"{" +
-								"\"provider-name\":\"aws\"," +
-								"\"cluster-label-name\":\"east-us1\"}," +
-								"{" +
-								"\"provider-name\":\"aws\"," +
-								"\"cluster-label-name\":\"east-us2\"}" +
-								"]}]" +
-								"}}}"),
+				Items: []map[string]map[string][]byte{
+					{
+						AppIntentKey{
+							Name:                      "testAppIntent",
+							Project:                   "testProject",
+							CompositeApp:              "testCompositeApp",
+							Version:                   "testCompositeAppVersion",
+							Intent:                    "testIntent",
+							DeploymentIntentGroupName: "testDeploymentIntentGroup",
+						}.String(): {
+							"appintentmetadata": []byte(
+								"{\"metadata\":{\"Name\":\"testAppIntent\"," +
+									"\"Description\":\"testAppIntent\"," +
+									"\"UserData1\": \"userData1\"," +
+									"\"UserData2\": \"userData2\"}," +
+									"\"spec\":{\"app-name\": \"SampleApp\"," +
+									"\"intent\": {" +
+									"\"allOf\":[" +
+									"{" +
+									"\"provider-name\":\"aws\"," +
+									"\"cluster-name\":\"edge1\"}," +
+									"{" +
+									"\"provider-name\":\"aws\"," +
+									"\"cluster-name\":\"edge2\"}," +
+									"{" +
+									"\"anyOf\":[" +
+									"{" +
+									"\"provider-name\":\"aws\"," +
+									"\"cluster-label-name\":\"east-us1\"}," +
+									"{" +
+									"\"provider-name\":\"aws\"," +
+									"\"cluster-label-name\":\"east-us2\"}" +
+									"]}]" +
+									"}}}"),
+						},
 					},
 				},
 			},

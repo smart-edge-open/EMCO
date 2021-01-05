@@ -4,6 +4,7 @@ package module
 // Copyright (c) 2020 Intel Corporation
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/infra/db"
@@ -63,6 +64,16 @@ type clientDbInfo struct {
 // ResourceClient implements the resourceManager
 type ResourceClient struct {
 	db clientDbInfo
+}
+
+// We will use json marshalling to convert to string to
+// preserve the underlying structure.
+func (rk ResourceKey) String() string {
+	out, err := json.Marshal(rk)
+	if err != nil {
+		return ""
+	}
+	return string(out)
 }
 
 // NewResourceClient returns an instance of the resourceClient

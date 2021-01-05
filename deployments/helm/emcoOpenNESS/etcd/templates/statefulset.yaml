@@ -1,225 +1,320 @@
-# SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2020 Intel Corporation
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{ include "common.fullname" .  }}
-  labels:
-    heritage: "{{ .Release.Service }}"
-    release: "{{ .Release.Name }}"
-    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-    app: {{ include "common.name" . }}
+  name: {{ include "etcd.fullname" . }}
+  labels: {{- include "etcd.labels" . | nindent 4 }}
+    {{- if .Values.statefulsetLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.statefulsetLabels "context" $) | nindent 4 }}
+    {{- end }}
 spec:
-  serviceName: {{ include "common.servicename" .}}
-  replicas: {{ .Values.replicaCount }}
   selector:
-    matchLabels:
-      release: "{{ .Release.Name }}"
-      app: {{ include "common.name" . }}
+    matchLabels: {{- include "etcd.matchLabels" . | nindent 6 }}
+  serviceName: {{ include "etcd.fullname" . }}-headless
+  podManagementPolicy: {{ .Values.statefulset.podManagementPolicy }}
+  replicas: {{ .Values.statefulset.replicaCount }}
+  updateStrategy:
+    type: {{ .Values.statefulset.updateStrategy }}
+    {{- if (eq "Recreate" .Values.statefulset.updateStrategy) }}
+    rollingUpdate: null
+    {{- else if .Values.statefulset.rollingUpdatePartition }}
+    rollingUpdate:
+      partition: {{ .Values.statefulset.rollingUpdatePartition }}
+    {{- end }}
   template:
     metadata:
-      labels:
-        release: "{{ .Release.Name }}"
-        app: {{ include "common.name" . }}
+      labels: {{- include "etcd.labels" . | nindent 8 }}
+        {{- if .Values.podLabels }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.podLabels "context" $) | nindent 8 }}
+        {{- end }}
+      {{- if or .Values.podAnnotations (and .Values.metrics.enabled .Values.metrics.podAnnotations (not .Values.metrics.serviceMonitor.enabled)) }}
+      annotations:
+        {{- if .Values.podAnnotations }}
+        {{- include "etcd.tplValue" ( dict "value" .Values.podAnnotations "context" $) | nindent 8 }}
+        {{- end }}
+        {{- if and .Values.metrics.enabled .Values.metrics.podAnnotations (not .Values.metrics.serviceMonitor.enabled) }}
+        {{- include "etcd.tplValue" ( dict "value" .Values.metrics.podAnnotations "context" $) | nindent 8 }}
+        {{- end }}
+      {{- end }}
     spec:
-{{- if .Values.affinity }}
+      {{- include "etcd.imagePullSecrets" . | nindent 6 }}
+      {{- if .Values.hostAliases }}
+      hostAliases: {{- include "common.tplvalues.render" (dict "value" .Values.hostAliases "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.affinity }}
+      affinity: {{- include "etcd.tplValue" (dict "value" .Values.affinity "context" $) | nindent 8 }}
+      {{- else }}
       affinity:
-{{ toYaml .Values.affinity | indent 8 }}
-{{- end }}
-{{- if .Values.nodeSelector }}
-      nodeSelector:
-{{ toYaml .Values.nodeSelector | indent 8 }}
-{{- end }}
-{{- if .Values.tolerations }}
-      tolerations:
-{{ toYaml .Values.tolerations | indent 8 }}
-{{- end }}
+        podAffinity: {{- include "common.affinities.pods" (dict "type" .Values.podAffinityPreset "context" $) | nindent 10 }}
+        podAntiAffinity: {{- include "common.affinities.pods" (dict "type" .Values.podAntiAffinityPreset "context" $) | nindent 10 }}
+        nodeAffinity: {{- include "common.affinities.nodes" (dict "type" .Values.nodeAffinityPreset.type "key" .Values.nodeAffinityPreset.key "values" .Values.nodeAffinityPreset.values) | nindent 10 }}
+      {{- end }}
+      {{- if .Values.nodeSelector }}
+      nodeSelector: {{- include "etcd.tplValue" (dict "value" .Values.nodeSelector "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.tolerations }}
+      tolerations: {{- include "etcd.tplValue" (dict "value" .Values.tolerations "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
+      {{- if .Values.securityContext.enabled }}
+      securityContext:
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+      {{- end }}
+      {{- if and .Values.volumePermissions.enabled .Values.persistence.enabled }}
+      initContainers:
+        - name: volume-permissions
+          image: {{ include "etcd.volumePermissions.image" . }}
+          imagePullPolicy: {{ .Values.volumePermissions.image.pullPolicy | quote }}
+          command:
+            - /bin/bash
+            - -ec
+            - |
+              chown -R {{ .Values.securityContext.runAsUser }}:{{ .Values.securityContext.fsGroup }} /bitnami/etcd
+          securityContext:
+            runAsUser: 0
+          {{- if .Values.volumePermissions.resources }}
+          resources: {{- toYaml .Values.volumePermissions.resources | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /bitnami/etcd
+      {{- end }}
       containers:
-      - name: {{ include "common.fullname" .  }}
-        image: "{{ .Values.repository }}/{{ .Values.image }}"
-        imagePullPolicy: "{{ .Values.pullPolicy }}"
-        ports:
-        - containerPort: {{ .Values.service.peerInternalPort }}
-          name: {{ .Values.service.peerPortName }}
-        - containerPort: {{ .Values.service.clientInternalPort }}
-          name: {{ .Values.service.clientPortName }}
-        {{- if eq .Values.liveness.enabled true }}
-        livenessProbe:
-          tcpSocket:
-            port: {{ .Values.service.clientInternalPort }}
-          initialDelaySeconds: {{ .Values.liveness.initialDelaySeconds }}
-          periodSeconds: {{ .Values.liveness.periodSeconds }}
-          timeoutSeconds: {{ .Values.liveness.timeoutSeconds }}
-        {{ end }}
-        resources:
-{{ include "common.resources" . | indent 10 }}
-        env:
-        - name: INITIAL_CLUSTER_SIZE
-          value: {{ .Values.replicaCount | quote }}
-        - name: SET_NAME
-          value: {{ include "common.fullname" . }}
-        - name: SERVICE_NAME
-          value: {{ include "common.servicename" . }}
-{{- if .Values.extraEnv }}
-{{ toYaml .Values.extraEnv | indent 8 }}
-{{- end }}
-        lifecycle:
-          preStop:
+        # Variables to populate static cluster
+        {{- $replicaCount := int .Values.statefulset.replicaCount }}
+        {{- $clientPort := int .Values.service.port }}
+        {{- $peerPort := int .Values.service.peerPort }}
+        {{- $etcdFullname := include "etcd.fullname" . }}
+        {{- $releaseNamespace := .Release.Namespace }}
+        {{- $etcdHeadlessServiceName := printf "%s-%s" $etcdFullname "headless" }}
+        {{- $clusterDomain := .Values.clusterDomain }}
+        {{- $etcdPeerProtocol := include "etcd.peerProtocol" . }}
+        {{- $etcdClientProtocol := include "etcd.clientProtocol" . }}
+        - name: etcd
+          image: {{ include "etcd.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          command:
+            - /scripts/setup.sh
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /scripts/prestop-hook.sh
+          {{- if .Values.resources }}
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          {{- end }}
+          {{- if .Values.envVarsConfigMap }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "etcd.envVarsCM" . }}
+          {{- end }}
+          env:
+            - name: BITNAMI_DEBUG
+              value: {{ ternary "true" "false" .Values.image.debug | quote }}
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: ETCDCTL_API
+              value: "3"
+            - name: ETCD_NAME
+              value: "$(MY_POD_NAME)"
+            - name: ETCD_DATA_DIR
+              value: /bitnami/etcd/data
+            - name: ETCD_ADVERTISE_CLIENT_URLS
+              value: "{{ $etcdClientProtocol }}://$(MY_POD_NAME).{{ $etcdHeadlessServiceName }}.{{ .Release.Namespace }}.svc.{{ $clusterDomain }}:{{ .Values.service.port }}"
+            - name: ETCD_LISTEN_CLIENT_URLS
+              value: "{{ $etcdClientProtocol }}://0.0.0.0:{{ .Values.service.port }}"
+            - name: ETCD_INITIAL_ADVERTISE_PEER_URLS
+              value: "{{ $etcdPeerProtocol }}://$(MY_POD_NAME).{{ $etcdHeadlessServiceName }}.{{ .Release.Namespace }}.svc.{{ $clusterDomain }}:{{ .Values.service.peerPort }}"
+            - name: ETCD_LISTEN_PEER_URLS
+              value: "{{ $etcdPeerProtocol }}://0.0.0.0:{{ .Values.service.peerPort }}"
+            {{- if .Values.maxProcs }}
+            - name: GOMAXPROCS
+              value: {{ .Values.maxProcs }}
+            {{- end }}
+            {{- if gt $replicaCount 1 }}
+            - name: ETCD_INITIAL_CLUSTER_TOKEN
+              value: "etcd-cluster-k8s"
+            - name: ETCD_INITIAL_CLUSTER_STATE
+            {{- if not (empty .Values.etcd.initialClusterState) }}
+              value: {{ .Values.etcd.initialClusterState | quote }}
+            {{- else if .Release.IsInstall }}
+              value: "new"
+            {{- else }}
+              value: "existing"
+            {{- end }}
+            {{- $initialCluster := list }}
+            {{- range $e, $i := until $replicaCount }}
+            {{- $initialCluster = append $initialCluster (printf "%s-%d=%s://%s-%d.%s.%s.svc.%s:%d" $etcdFullname $i $etcdPeerProtocol $etcdFullname $i $etcdHeadlessServiceName $releaseNamespace $clusterDomain $peerPort) }}
+            {{- end }}
+            - name: ETCD_INITIAL_CLUSTER
+              value: {{ join "," $initialCluster | quote }}
+            {{- end }}
+            - name: ALLOW_NONE_AUTHENTICATION
+              value: {{ ternary "yes" "no" (or (and (empty .Values.global.disableDbAuth) .Values.auth.rbac.enabled) .Values.allowNoneAuthentication) | quote }}
+            {{- if and (empty .Values.global.disableDbAuth) .Values.auth.rbac.enabled }}
+            - name: ETCD_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.auth.rbac.existingSecret }}{{ .Values.auth.rbac.existingSecret }}{{ else }}{{ include "etcd.fullname" . }}{{ end }}
+                  key: etcd-root-password
+            {{- end }}
+            {{- if and .Values.auth.client.secureTransport .Values.auth.client.useAutoTLS }}
+            - name: ETCD_AUTO_TLS
+              value: "true"
+            {{- else if .Values.auth.client.secureTransport }}
+            - name: ETCD_CERT_FILE
+              value: "/opt/bitnami/etcd/certs/client/{{ .Values.auth.client.certFilename }}"
+            - name: ETCD_KEY_FILE
+              value: "/opt/bitnami/etcd/certs/client/{{ .Values.auth.client.certKeyFilename }}"
+            {{- if .Values.auth.client.enableAuthentication }}
+            - name: ETCD_CLIENT_CERT_AUTH
+              value: "true"
+            - name: ETCD_TRUSTED_CA_FILE
+              value: "/opt/bitnami/etcd/certs/client/{{ .Values.auth.client.caFilename | default "ca.crt"}}"
+            {{- else if .Values.auth.client.caFilename }}
+            - name: ETCD_TRUSTED_CA_FILE
+              value: "/opt/bitnami/etcd/certs/client/{{ .Values.auth.client.caFilename | default "ca.crt"}}"
+            {{- end }}
+            {{- end }}
+            {{- if and .Values.auth.peer.secureTransport .Values.auth.peer.useAutoTLS }}
+            - name: ETCD_PEER_AUTO_TLS
+              value: "true"
+            {{- else if .Values.auth.peer.secureTransport }}
+            - name: ETCD_PEER_CERT_FILE
+              value: "/opt/bitnami/etcd/certs/peer/{{ .Values.auth.peer.certFilename }}"
+            - name: ETCD_PEER_KEY_FILE
+              value: "/opt/bitnami/etcd/certs/peer/{{ .Values.auth.peer.certKeyFilename }}"
+            {{- if .Values.auth.peer.enableAuthentication }}
+            - name: ETCD_PEER_CLIENT_CERT_AUTH
+              value: "true"
+            - name: ETCD_PEER_TRUSTED_CA_FILE
+              value: "/opt/bitnami/etcd/certs/peer/{{ .Values.auth.peer.caFilename | default "ca.crt"}}"
+            {{- else if .Values.auth.peer.caFilename }}
+            - name: ETCD_PEER_TRUSTED_CA_FILE
+              value: "/opt/bitnami/etcd/certs/peer/{{ .Values.auth.peer.caFilename | default "ca.crt"}}"
+            {{- end }}
+            {{- end }}
+          ports:
+            - name: client
+              containerPort: 2379
+            - name: peer
+              containerPort: 2380
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
             exec:
               command:
-                - "/bin/sh"
-                - "-ec"
-                - |
-                  EPS=""
-                  for i in $(seq 0 $((${INITIAL_CLUSTER_SIZE} - 1))); do
-                      EPS="${EPS}${EPS:+,}http://${SET_NAME}-${i}.${SERVICE_NAME}:2379"
-                  done
-
-                  HOSTNAME=$(hostname)
-
-                  member_hash() {
-                      etcdctl member list | grep http://${HOSTNAME}.${SERVICE_NAME}:2380 | cut -d':' -f1 | cut -d'[' -f1
-                  }
-
-                  SET_ID=${HOSTNAME##*[^0-9]}
-
-                  if [ "${SET_ID}" -ge ${INITIAL_CLUSTER_SIZE} ]; then
-                      echo "Removing ${HOSTNAME} from etcd cluster"
-                      ETCDCTL_ENDPOINT=${EPS} etcdctl member remove $(member_hash)
-                      if [ $? -eq 0 ]; then
-                          # Remove everything otherwise the cluster will no longer scale-up
-                          rm -rf /var/run/etcd/*
-                      fi
-                  fi
-        command:
-          - "/bin/sh"
-          - "-ec"
-          - |
-            HOSTNAME=$(hostname)
-
-            # store member id into PVC for later member replacement
-            collect_member() {
-                while ! etcdctl member list &>/dev/null; do sleep 1; done
-                etcdctl member list | grep http://${HOSTNAME}.${SERVICE_NAME}:2380 | cut -d':' -f1 | cut -d'[' -f1 > /var/run/etcd/member_id
-                exit 0
-            }
-
-            eps() {
-                EPS=""
-                for i in $(seq 0 $((${INITIAL_CLUSTER_SIZE} - 1))); do
-                    EPS="${EPS}${EPS:+,}http://${SET_NAME}-${i}.${SERVICE_NAME}:2379"
-                done
-                echo ${EPS}
-            }
-
-            member_hash() {
-                etcdctl member list | grep http://${HOSTNAME}.${SERVICE_NAME}:2380 | cut -d':' -f1 | cut -d'[' -f1
-            }
-
-            # we should wait for other pods to be up before trying to join
-            # otherwise we got "no such host" errors when trying to resolve other members
-            for i in $(seq 0 $((${INITIAL_CLUSTER_SIZE} - 1))); do
-                while true; do
-                    echo "Waiting for ${SET_NAME}-${i}.${SERVICE_NAME} to come up"
-                    ping -W 1 -c 1 ${SET_NAME}-${i}.${SERVICE_NAME} > /dev/null && break
-                    sleep 1s
-                done
-            done
-
-            # re-joining after failure?
-            if [[ -e /var/run/etcd/default.etcd && -f /var/run/etcd/member_id ]]; then
-                echo "Re-joining etcd member"
-                member_id=$(cat /var/run/etcd/member_id)
-
-                # re-join member
-                ETCDCTL_ENDPOINT=$(eps) etcdctl member update ${member_id} http://${HOSTNAME}.${SERVICE_NAME}:2380 | true
-                exec etcd --name ${HOSTNAME} \
-                    --listen-peer-urls http://0.0.0.0:2380 \
-                    --listen-client-urls http://0.0.0.0:2379\
-                    --advertise-client-urls http://${HOSTNAME}.${SERVICE_NAME}:2379 \
-                    --data-dir /var/run/etcd/default.etcd
-            fi
-
-            # etcd-SET_ID
-            SET_ID=${HOSTNAME##*[^0-9]}
-
-            # adding a new member to existing cluster (assuming all initial pods are available)
-            if [ "${SET_ID}" -ge ${INITIAL_CLUSTER_SIZE} ]; then
-                export ETCDCTL_ENDPOINT=$(eps)
-
-                # member already added?
-                MEMBER_HASH=$(member_hash)
-                if [ -n "${MEMBER_HASH}" ]; then
-                    # the member hash exists but for some reason etcd failed
-                    # as the datadir has not be created, we can remove the member
-                    # and retrieve new hash
-                    etcdctl member remove ${MEMBER_HASH}
-                fi
-
-                echo "Adding new member"
-                etcdctl member add ${HOSTNAME} http://${HOSTNAME}.${SERVICE_NAME}:2380 | grep "^ETCD_" > /var/run/etcd/new_member_envs
-
-                if [ $? -ne 0 ]; then
-                    echo "Exiting"
-                    rm -f /var/run/etcd/new_member_envs
-                    exit 1
-                fi
-
-                cat /var/run/etcd/new_member_envs
-                source /var/run/etcd/new_member_envs
-
-                collect_member &
-
-                exec etcd --name ${HOSTNAME} \
-                    --listen-peer-urls http://0.0.0.0:2380 \
-                    --listen-client-urls http://0.0.0.0:2379 \
-                    --advertise-client-urls http://${HOSTNAME}.${SERVICE_NAME}:2379 \
-                    --data-dir /var/run/etcd/default.etcd \
-                    --initial-advertise-peer-urls http://${HOSTNAME}.${SERVICE_NAME}:2380 \
-                    --initial-cluster ${ETCD_INITIAL_CLUSTER} \
-                    --initial-cluster-state ${ETCD_INITIAL_CLUSTER_STATE}
-            fi
-
-            PEERS=""
-            for i in $(seq 0 $((${INITIAL_CLUSTER_SIZE} - 1))); do
-                PEERS="${PEERS}${PEERS:+,}${SET_NAME}-${i}=http://${SET_NAME}-${i}.${SERVICE_NAME}:2380"
-            done
-
-            collect_member &
-
-            # join member
-            exec etcd --name ${HOSTNAME} \
-                --initial-advertise-peer-urls http://${HOSTNAME}.${SERVICE_NAME}:2380 \
-                --listen-peer-urls http://0.0.0.0:2380 \
-                --listen-client-urls http://0.0.0.0:2379 \
-                --advertise-client-urls http://${HOSTNAME}.${SERVICE_NAME}:2379 \
-                --initial-cluster-token etcd-cluster-1 \
-                --initial-cluster ${PEERS} \
-                --initial-cluster-state new \
-                --data-dir /var/run/etcd/default.etcd
-        volumeMounts:
-        - name: {{ include "common.fullname" . }}-data
-          mountPath: /var/run/etcd
-  {{- if .Values.persistence.enabled }}
-  volumeClaimTemplates:
-  - metadata:
-      name: {{ include "common.fullname" . }}-data
-    spec:
-      accessModes:
-        - "{{ .Values.persistence.accessMode }}"
-      resources:
-        requests:
-          # upstream recommended max is 700M
-          storage: "{{ .Values.persistence.storage }}"
-      storageClassName: {{ include "common.fullname" . }}-data
-  {{- else }}
+                - /scripts/probes.sh
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            exec:
+              command:
+                - /scripts/probes.sh
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          {{- end }}
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts/setup.sh
+              subPath: setup.sh
+            - name: scripts
+              mountPath: /scripts/prestop-hook.sh
+              subPath: prestop-hook.sh
+            - name: scripts
+              mountPath: /scripts/probes.sh
+              subPath: probes.sh
+            - name: data
+              mountPath: /bitnami/etcd
+            {{- if or (and .Values.startFromSnapshot.enabled (not .Values.disasterRecovery.enabled)) (and .Values.disasterRecovery.enabled .Values.startFromSnapshot.enabled .Values.disasterRecovery.pvc.existingClaim) }}
+            - name: init-snapshot-volume
+              mountPath: /init-snapshot
+            {{- end }}
+            {{- if or .Values.disasterRecovery.enabled (and .Values.disasterRecovery.enabled .Values.startFromSnapshot.enabled) }}
+            - name: snapshot-volume
+              mountPath: /snapshots
+            {{- end }}
+            {{- if .Values.configFileConfigMap }}
+            - name: etcd-config
+              mountPath: /opt/bitnami/etcd/conf/
+            {{- end }}
+            {{- if or .Values.auth.client.enableAuthentication (and .Values.auth.client.secureTransport (not .Values.auth.client.useAutoTLS )) }}
+            - name: etcd-client-certs
+              mountPath: /opt/bitnami/etcd/certs/client/
+              readOnly: true
+            {{- end }}
+            {{- if or .Values.auth.peer.enableAuthentication (and .Values.auth.peer.secureTransport (not .Values.auth.peer.useAutoTLS )) }}
+            - name: etcd-peer-certs
+              mountPath: /opt/bitnami/etcd/certs/peer/
+              readOnly: true
+            {{- end }}
       volumes:
-      - name: {{ include "common.fullname" . }}-data
-      {{- if .Values.memoryMode }}
-        emptyDir:
-          medium: Memory
-      {{- else }}
-        emptyDir: {}
-      {{- end }}
-  {{- end }}
-
+        - name: scripts
+          configMap:
+            name: {{ include "etcd.fullname" . }}-scripts
+            defaultMode: 0755
+        {{- if or (and .Values.startFromSnapshot.enabled (not .Values.disasterRecovery.enabled)) (and .Values.disasterRecovery.enabled .Values.startFromSnapshot.enabled .Values.disasterRecovery.pvc.existingClaim) }}
+        - name: init-snapshot-volume
+          persistentVolumeClaim:
+            claimName: {{ .Values.startFromSnapshot.existingClaim }}
+        {{- end }}
+        {{- if or .Values.disasterRecovery.enabled (and .Values.disasterRecovery.enabled .Values.startFromSnapshot.enabled) }}
+        - name: snapshot-volume
+          persistentVolumeClaim:
+            claimName: {{ include "etcd.disasterRecovery.pvc.name" . }}
+        {{- end }}
+        {{- if .Values.configFileConfigMap }}
+        - name: etcd-config
+          configMap:
+            name: {{ include "etcd.configFileCM" . }}
+        {{- end }}
+        {{- if or .Values.auth.client.enableAuthentication (and .Values.auth.client.secureTransport (not .Values.auth.client.useAutoTLS )) }}
+        - name: etcd-client-certs
+          secret:
+            secretName: {{ required "A secret containinig the client certificates is required" .Values.auth.client.existingSecret }}
+            defaultMode: 256
+        {{- end }}
+        {{- if or .Values.auth.peer.enableAuthentication (and .Values.auth.peer.secureTransport (not .Values.auth.peer.useAutoTLS )) }}
+        - name: etcd-peer-certs
+          secret:
+            secretName: {{ required "A secret containinig the peer certificates is required" .Values.auth.peer.existingSecret }}
+            defaultMode: 256
+        {{- end }}
+{{- if not .Values.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+{{- else }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        {{- if .Values.persistence.annotations }}
+        annotations: {{- include "etcd.tplValue" ( dict "value" .Values.persistence.annotations "context" $) | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+        {{- range .Values.persistence.accessModes }}
+          - {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size | quote }}
+        {{ include "etcd.storageClass" . }}
+        {{- if .Values.persistence.selector }}
+        selector: {{- include "etcd.tplValue" ( dict "value" .Values.persistence.selector "context" $) | nindent 10 }}
+        {{- end }}
+{{- end }}

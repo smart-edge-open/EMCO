@@ -75,23 +75,25 @@ func TestCreateDeploymentIntentGroup(t *testing.T) {
 			},
 			expectedError: "",
 			mockdb: &db.MockDB{
-				Items: map[string]map[string][]byte{
-					ProjectKey{ProjectName: "testProject"}.String(): {
-						"projectmetadata": []byte(
-							"{\"project-name\":\"testProject\"," +
-								"\"description\":\"Test project for unit testing\"}"),
-					},
-					CompositeAppKey{CompositeAppName: "testCompositeApp",
-						Version: "testCompositeAppVersion", Project: "testProject"}.String(): {
-						"compositeappmetadata": []byte(
-							"{\"metadata\":{" +
-								"\"name\":\"testCompositeApp\"," +
-								"\"description\":\"description\"," +
-								"\"userData1\":\"user data\"," +
-								"\"userData2\":\"user data\"" +
-								"}," +
-								"\"spec\":{" +
-								"\"version\":\"version of the composite app\"}}"),
+				Items: []map[string]map[string][]byte{
+					{
+						ProjectKey{ProjectName: "testProject"}.String(): {
+							"projectmetadata": []byte(
+								"{\"project-name\":\"testProject\"," +
+									"\"description\":\"Test project for unit testing\"}"),
+						},
+						CompositeAppKey{CompositeAppName: "testCompositeApp",
+							Version: "testCompositeAppVersion", Project: "testProject"}.String(): {
+							"compositeappmetadata": []byte(
+								"{\"metadata\":{" +
+									"\"name\":\"testCompositeApp\"," +
+									"\"description\":\"description\"," +
+									"\"userData1\":\"user data\"," +
+									"\"userData2\":\"user data\"" +
+									"}," +
+									"\"spec\":{" +
+									"\"version\":\"version of the composite app\"}}"),
+						},
 					},
 				},
 			},
@@ -161,39 +163,41 @@ func TestGetDeploymentIntentGroup(t *testing.T) {
 			},
 			expectedError: "",
 			mockdb: &db.MockDB{
-				Items: map[string]map[string][]byte{
-					DeploymentIntentGroupKey{
-						Name:         "testDeploymentIntentGroup",
-						Project:      "testProject",
-						CompositeApp: "testCompositeApp",
-						Version:      "testCompositeAppVersion",
-					}.String(): {
-						"deploymentintentgroupmetadata": []byte(
-							"{\"metadata\":{\"name\":\"testDeploymentIntentGroup\"," +
-								"\"description\":\"DescriptionTestDeploymentIntentGroup\"," +
-								"\"userData1\": \"userData1\"," +
-								"\"userData2\": \"userData2\"}," +
-								"\"spec\":{\"profile\": \"Testprofile\"," +
-								"\"version\": \"version of deployment\"," +
-								"\"override-values\":[" +
-								"{" +
-								"\"app-name\": \"TestAppName\"," +
-								"\"values\": " +
-								"{" +
-								"\"imageRepository\":\"registry.hub.docker.com\"" +
-								"}" +
-								"}," +
-								"{" +
-								"\"app-name\": \"TestAppName\"," +
-								"\"values\": " +
-								"{" +
-								"\"imageRepository\":\"registry.hub.docker.com\"" +
-								"}" +
-								"}" +
-								"]," +
-								"\"logical-cloud\": \"cloud1\"" +
-								"}"+
-								"}"),
+				Items: []map[string]map[string][]byte{
+					{
+						DeploymentIntentGroupKey{
+							Name:         "testDeploymentIntentGroup",
+							Project:      "testProject",
+							CompositeApp: "testCompositeApp",
+							Version:      "testCompositeAppVersion",
+						}.String(): {
+							"deploymentintentgroupmetadata": []byte(
+								"{\"metadata\":{\"name\":\"testDeploymentIntentGroup\"," +
+									"\"description\":\"DescriptionTestDeploymentIntentGroup\"," +
+									"\"userData1\": \"userData1\"," +
+									"\"userData2\": \"userData2\"}," +
+									"\"spec\":{\"profile\": \"Testprofile\"," +
+									"\"version\": \"version of deployment\"," +
+									"\"override-values\":[" +
+									"{" +
+									"\"app-name\": \"TestAppName\"," +
+									"\"values\": " +
+									"{" +
+									"\"imageRepository\":\"registry.hub.docker.com\"" +
+									"}" +
+									"}," +
+									"{" +
+									"\"app-name\": \"TestAppName\"," +
+									"\"values\": " +
+									"{" +
+									"\"imageRepository\":\"registry.hub.docker.com\"" +
+									"}" +
+									"}" +
+									"]," +
+									"\"logical-cloud\": \"cloud1\"" +
+									"}" +
+									"}"),
+						},
 					},
 				},
 			},

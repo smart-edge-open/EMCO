@@ -12,7 +12,6 @@ import (
 	log "github.com/open-ness/EMCO/src/orchestrator/pkg/infra/logutils"
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/infra/validation"
 	moduleLib "github.com/open-ness/EMCO/src/ovnaction/pkg/module"
-	pkgerrors "github.com/pkg/errors"
 
 	"github.com/gorilla/mux"
 )
@@ -25,31 +24,6 @@ type workloadintentHandler struct {
 	// Interface that implements workload intent operations
 	// We will set this variable with a mock interface for testing
 	client moduleLib.WorkloadIntentManager
-}
-
-// Check for valid format of input parameters
-func validateWorkloadIntentInputs(wi moduleLib.WorkloadIntent) error {
-	// validate metadata
-	err := moduleLib.IsValidMetadata(wi.Metadata)
-	if err != nil {
-		return pkgerrors.Wrap(err, "Invalid network controller intent metadata")
-	}
-
-	errs := validation.IsValidName(wi.Spec.AppName)
-	if len(errs) > 0 {
-		return pkgerrors.Errorf("Invalid application name = [%v], errors: %v", wi.Spec.AppName, errs)
-	}
-
-	errs = validation.IsValidName(wi.Spec.WorkloadResource)
-	if len(errs) > 0 {
-		return pkgerrors.Errorf("Invalid workload resource = [%v], errors: %v", wi.Spec.WorkloadResource, errs)
-	}
-
-	errs = validation.IsValidName(wi.Spec.Type)
-	if len(errs) > 0 {
-		return pkgerrors.Errorf("Invalid workload type = [%v], errors: %v", wi.Spec.Type, errs)
-	}
-	return nil
 }
 
 // Create handles creation of the Network entry in the database
@@ -79,20 +53,6 @@ func (h workloadintentHandler) createHandler(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		log.Error(":: Invalid workload intent POST body ::", log.Fields{"Error": err})
 		http.Error(w, err.Error(), httpError)
-		return
-	}
-
-	// Name is required.
-	if wi.Metadata.Name == "" {
-		log.Error(":: Missing name in workload intent POST request ::", log.Fields{})
-		http.Error(w, "Missing name in POST request", http.StatusBadRequest)
-		return
-	}
-
-	err = validateWorkloadIntentInputs(wi)
-	if err != nil {
-		log.Error(":: Invalid workload intent body inputs ::", log.Fields{"Error": err})
-		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -143,10 +103,10 @@ func (h workloadintentHandler) putHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Name is required.
-	if wi.Metadata.Name == "" {
-		log.Error(":: Missing workload intent name in PUT request ::", log.Fields{})
-		http.Error(w, "Missing name in PUT request", http.StatusBadRequest)
+	err, httpError := validation.ValidateJsonSchemaData(workloadIntJSONFile, wi)
+	if err != nil {
+		log.Error(":: Invalid workload intent PUT body ::", log.Fields{"Error": err})
+		http.Error(w, err.Error(), httpError)
 		return
 	}
 
@@ -154,13 +114,6 @@ func (h workloadintentHandler) putHandler(w http.ResponseWriter, r *http.Request
 	if wi.Metadata.Name != name {
 		log.Error(":: Mismatched network workload intent name in PUT request ::", log.Fields{"URL name": name, "Metadata name": wi.Metadata.Name})
 		http.Error(w, "Mismatched name in PUT request", http.StatusBadRequest)
-		return
-	}
-
-	err = validateWorkloadIntentInputs(wi)
-	if err != nil {
-		log.Error(":: Invalid workload intent inputs ::", log.Fields{"Error": err})
-		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 

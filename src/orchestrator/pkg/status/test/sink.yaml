@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fw0-sink
+  labels:
+    release: fw0
+    app: sink
+    chart: sink
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sink
+      release: fw0
+  template:
+    metadata:
+      labels:
+        app: sink
+        release: fw0
+    spec:
+      containers:
+      - name: sink
+        image: \"rtsood/onap-vfw-demo-sink:0.2.0\"
+        envFrom:
+        - configMapRef:
+            name: sink-configmap
+        imagePullPolicy: IfNotPresent
+        tty: true
+        stdin: true
+        securityContext:
+          privileged: true
+      - name: darkstat
+        image:  \"electrocucaracha/darkstat:latest\"
+        imagePullPolicy: IfNotPresent
+        tty: true
+        stdin: true
+        ports:
+          - containerPort: 667

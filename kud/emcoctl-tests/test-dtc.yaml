@@ -1,0 +1,202 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+---
+#Add label "networkpolicy-supported" "
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster1}}/labels
+label-name: {{.ClusterLabelNetworkPolicy}}
+
+---
+#creating collection composite app entry
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps
+metadata :
+  name: {{.CompositeAppDtc}}
+  description: test
+spec:
+  version: v1
+
+---
+#adding http-client app to the composite app
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppDtc}}/v1/apps
+metadata :
+  name: {{.App4}}
+  description: "description for app"
+file:
+  {{.HelmApp4}}
+
+---
+#adding http-server app to the composite app
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppDtc}}/v1/apps
+metadata :
+  name: {{.App5}}
+  description: "description for app"
+file:
+  {{.HelmApp5}}
+
+---
+#creating collection composite profile entry
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppDtc}}/v1/composite-profiles
+metadata :
+  name: {{.CompositeProfile}}
+  description: test
+
+---
+#adding http-client app profiles to the composite profile
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppDtc}}/v1/composite-profiles/{{.CompositeProfile}}/profiles
+metadata :
+  name: profile1
+  description: test
+spec:
+  app-name: {{.App4}}
+file:
+  {{.ProfileApp4}}
+
+---
+#adding http-server app profiles to the composite profile
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppDtc}}/v1/composite-profiles/{{.CompositeProfile}}/profiles
+metadata :
+  name: profile2
+  description: test
+spec:
+  app-name: {{.App5}}
+file:
+  {{.ProfileApp5}}
+
+---
+#create deployment intent group
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppDtc}}/v1/deployment-intent-groups
+metadata :
+  name: {{.DeploymentIntent}}
+  description: "description"
+spec:
+  profile: {{.CompositeProfile}}
+  version: r6
+  logical-cloud: {{.AdminCloud}}
+  override-values: []
+
+---
+#create intent in deployment intent group
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppDtc}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/intents
+metadata :
+  name: collection-deployment-intent
+  description: "description"
+spec:
+  intent:
+    genericPlacementIntent: {{.GenericPlacementIntent}}
+    dtc: {{.DtcIntent}}
+
+---
+#create the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppDtc}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-placement-intents
+metadata :
+  name: {{.GenericPlacementIntent}}
+  description: "description for app"
+spec:
+  logical-cloud: {{.AdminCloud}}
+
+---
+#add the http-client app placement intent to the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppDtc}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-placement-intents/{{.GenericPlacementIntent}}/app-intents
+metadata:
+  name: http-client-placement-intent
+  description: description of placement_intent
+spec:
+  app-name: {{.App4}}
+  intent:
+    allOf:
+    - provider-name: {{.ClusterProvider}}
+      cluster-label-name: {{.ClusterLabel}}
+
+---
+#add the http-server app placement intent to the generic placement intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppDtc}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-placement-intents/{{.GenericPlacementIntent}}/app-intents
+metadata:
+  name: http-server-placement-intent
+  description: description of placement_intent
+spec:
+  app-name: {{.App5}}
+  intent:
+    allOf:
+    - provider-name: {{.ClusterProvider}}
+      cluster-label-name: {{.ClusterLabel}}
+
+---
+#add the traffic group intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppDtc}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/traffic-group-intents
+metadata:
+  name: {{.DtcIntent}}
+  description: description of traffic intent
+  userData1: user data 1
+  userData2: user data 2
+
+---
+#add the server intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppDtc}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/traffic-group-intents/{{.DtcIntent}}/inbound-intents
+metadata:
+  name: serverin
+  description: description of traffic intent
+  userData1: user data 1
+  userData2: user data 2
+spec:
+  application: {{.App5}}
+  applabel: app=http-server
+  servicename: http-service
+  port: 3333
+  protocol: TCP
+
+---
+#add the client intent
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppDtc}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/traffic-group-intents/{{.DtcIntent}}/inbound-intents/serverin/clients
+metadata:
+  name: client1
+  description: description of traffic intent
+  userData1: user data 1
+  userData2: user data 2
+spec:
+  application: {{.App4}}
+  applabel: app=http-client
+  servicename: {{.App4}}
+  namespaces: []
+  cidrs: []
+
+---
+#Approve
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppDtc}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/approve
+
+---
+#Instantiate
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeAppDtc}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/instantiate
