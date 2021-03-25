@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "firewall.fullname" . }}
+  labels:
+    release: {{ .Release.Name }}
+    app: {{ include "firewall.name" . }}
+    chart: {{ .Chart.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "firewall.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "firewall.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        tty: true
+        stdin: true
+        env:
+          - name: unprotectedPrivateNetCidr
+            value: "{{.Values.networks.unprotectedPrivateNetCidr}}"
+          - name: protectedPrivateNetCidr
+            value: "{{.Values.networks.protectedPrivateNetCidr}}"
+        command: ["/bin/bash", "/opt/vfw_start.sh"]
+        securityContext:
+            privileged: true
+        volumeMounts:
+          - mountPath: /hugepages
+            name: hugepage
+          - name: lib-modules
+            mountPath: /lib/modules
+          - name: src
+            mountPath: /usr/src
+          - name: scripts
+            mountPath: /opt
+        resources:
+          requests:
+            cpu: {{ .Values.resources.cpu }}
+            memory: {{ .Values.resources.memory }}
+            hugepages-2Mi: {{ .Values.resources.hugepage }}
+          limits:
+            cpu: {{ .Values.resources.cpu }}
+            memory: {{ .Values.resources.memory }}
+            hugepages-2Mi: {{ .Values.resources.hugepage }}
+      volumes:
+        - name: hugepage
+          emptyDir:
+            medium: HugePages
+        - name: lib-modules
+          hostPath:
+            path: /lib/modules
+        - name: src
+          hostPath:
+            path: /usr/src
+        - name: scripts
+          configMap:
+            name: {{ .Chart.Name }}-scripts-configmap
+      imagePullSecrets:
+      - name: admin-registry-secret

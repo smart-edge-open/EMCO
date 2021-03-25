@@ -6,11 +6,14 @@ package contextupdateserver
 import (
 	"context"
 	"fmt"
+	"sort"
 
-	"github.com/open-ness/EMCO/src/dtc/internal/networkpolicy"
-	"github.com/open-ness/EMCO/src/dtc/internal/servicediscovery"
 	contextpb "github.com/open-ness/EMCO/src/orchestrator/pkg/grpc/contextupdate"
 	log "github.com/open-ness/EMCO/src/orchestrator/pkg/infra/logutils"
+
+	"github.com/open-ness/EMCO/src/orchestrator/pkg/module/controller"
+	client "github.com/open-ness/EMCO/src/dtc/pkg/grpc/contextupdateclient"
+
 )
 
 type contextupdateServer struct {
@@ -23,14 +26,29 @@ func (cs *contextupdateServer) UpdateAppContext(ctx context.Context, req *contex
 		"IntentName":   req.IntentName,
 	})
 
-	err := networkpolicy.UpdateAppContext(req.IntentName, req.AppContext)
+	cc := controller.NewControllerClient("dtccontroller", "dtccontrollermetadata")
+	clist, err := cc.GetControllers()
 	if err != nil {
-		return &contextpb.ContextUpdateResponse{AppContextUpdated: false, AppContextUpdateMessage: err.Error()}, nil
+                log.Error("Error getting controllers", log.Fields{
+                        "error": err,
+                })
+		return &contextpb.ContextUpdateResponse{AppContextUpdated: false, AppContextUpdateMessage: fmt.Sprintf("Error getting controllers for intent %v and Id: %v", req.IntentName, req.AppContext)}, err
 	}
 
-	err = servicediscovery.CreateAppContext(req.IntentName, req.AppContext)
-	if err != nil {
-		return &contextpb.ContextUpdateResponse{AppContextUpdated: false, AppContextUpdateMessage: err.Error()}, nil
+	// Sort the list based on priority
+	sort.SliceStable(clist, func(i, j int) bool {
+		return clist[i].Spec.Priority > clist[j].Spec.Priority
+
+	})
+
+	for _, c := range clist {
+		err := client.InvokeContextUpdate(c.Metadata.Name, req.IntentName, req.AppContext)
+		if err != nil {
+			log.Error("invoke context update failed for sub controller", log.Fields{
+				"error": err,
+				"Name":  c.Metadata.Name,
+			})
+		}
 	}
 
 	return &contextpb.ContextUpdateResponse{AppContextUpdated: true, AppContextUpdateMessage: fmt.Sprintf("Successful application of intent %v to %v", req.IntentName, req.AppContext)}, nil

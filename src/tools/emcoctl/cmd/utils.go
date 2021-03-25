@@ -106,7 +106,7 @@ func readResources() []Resources {
 			return []Resources{}
 		}
 		valDec := yaml.NewDecoder(v)
-		var mapDoc map[string]string
+		var mapDoc interface{}
 		if valDec.Decode(&mapDoc) != nil {
 			fmt.Println("Values file format incorrect:", "error", err, "filename", valuesFiles[0])
 			return []Resources{}
@@ -214,7 +214,7 @@ func (r RestyClient) RestClientPut(anchor string, body []byte) error {
 	}
 	s := strings.Split(anchor, "/")
 	a := s[len(s)-1]
-	if a == "instantiate" || a == "apply" || a == "approve" || a == "terminate" {
+	if a == "instantiate" || a == "apply" || a == "approve" || a == "terminate" || a == "migrate" || a == "update" || a == "rollback"{
 		// No put for these
 		return nil
 	}
@@ -432,7 +432,7 @@ func (r RestyClient) RestClientGet(anchor string, body []byte) error {
 	}
 	s := strings.Split(anchor, "/")
 	a := s[len(s)-1]
-	if a == "instantiate" || a == "apply" || a == "approve" || a == "terminate" {
+	if a == "instantiate" || a == "apply" || a == "approve" || a == "terminate" || a == "migrate" || a == "update" || a == "rollback"{
 		// No get for these
 		return nil
 	}
@@ -473,8 +473,8 @@ func (r RestyClient) RestClientDelete(anchor string, body []byte) error {
 		s[len(s)-1] = "terminate"
 		anchor = strings.Join(s[:], "/")
 		return r.RestClientPost(anchor, []byte{})
-	} else if a == "approve" || a == "status" {
-		// Approve and status  doesn't have delete
+	} else if a == "approve" || a == "status" || a == "migrate" || a == "update" || a == "rollback" {
+		// No delete required for these
 		return nil
 	}
 	var e emcoBody
@@ -522,9 +522,21 @@ func GetURL(anchor string) (string, error) {
 		baseUrl = GetOrchestratorURL()
 	case "clm-controllers":
 		baseUrl = GetClmURL()
+	case "dtc-controllers":
+		baseUrl = GetDtcURL()
 	case "projects":
 		if len(s) >= 3 && s[2] == "logical-clouds" {
 			baseUrl = GetDcmURL()
+			break
+		}
+		// next two network-chains and sfc-clients must come before the
+		// network-controller-intent
+		if len(s) >= 10 && s[9] == "network-chains" {
+			baseUrl = GetSfcURL()
+			break
+		}
+		if len(s) >= 10 && s[9] == "sfc-clients" {
+			baseUrl = GetSfcClientURL()
 			break
 		}
 		if len(s) >= 8 && s[7] == "network-controller-intent" {

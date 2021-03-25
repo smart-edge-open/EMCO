@@ -57,7 +57,7 @@ func TestCreateController(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
 			db.DBconn = testCase.mockdb
-			impl := NewControllerClient()
+			impl := NewControllerClient("dtccontroller", "dtccontrollermetadata")
 			got, err := impl.CreateController(testCase.inp, false)
 			if err != nil {
 				if testCase.expectedError == "" {
@@ -103,7 +103,7 @@ func TestGetController(t *testing.T) {
 				Items: []map[string]map[string][]byte{
 					{
 						ControllerKey{ControllerName: "testController"}.String(): {
-							"controllermetadata": []byte(
+							"dtccontrollermetadata": []byte(
 								"{\"metadata\":{" +
 									"\"name\":\"testController\"" +
 									"}," +
@@ -127,7 +127,7 @@ func TestGetController(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
 			db.DBconn = testCase.mockdb
-			impl := NewControllerClient()
+			impl := NewControllerClient("dtccontroller", "dtccontrollermetadata")
 			got, err := impl.GetController(testCase.name)
 			if err != nil {
 				if testCase.expectedError == "" {
@@ -171,7 +171,7 @@ func TestDeleteController(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.label, func(t *testing.T) {
 			db.DBconn = testCase.mockdb
-			impl := NewControllerClient()
+			impl := NewControllerClient("dtccontroller", "dtccontrollermetadata")
 			err := impl.DeleteController(testCase.name)
 			if err != nil {
 				if testCase.expectedError == "" {

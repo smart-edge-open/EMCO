@@ -261,7 +261,9 @@ func (h instantiationHandler) statusHandler(w http.ResponseWriter, r *http.Reque
 	}
 	if iErr != nil {
 		log.Error(iErr.Error(), log.Fields{})
-		http.Error(w, iErr.Error(), http.StatusInternalServerError)
+		// Most errors are due to client side errors.
+		// TODO Handle 5xx errors by propagating error type from source of error.
+		http.Error(w, iErr.Error(), http.StatusBadRequest)
 		return
 	}
 

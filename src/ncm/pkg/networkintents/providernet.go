@@ -12,6 +12,7 @@ import (
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/infra/db"
 	mtypes "github.com/open-ness/EMCO/src/orchestrator/pkg/module/types"
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/state"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	pkgerrors "github.com/pkg/errors"
 )
@@ -31,9 +32,10 @@ type ProviderNetSpec struct {
 
 // structure for the Network Custom Resource
 type CrProviderNet struct {
-	ApiVersion  string      `yaml:"apiVersion"`
-	Kind        string      `yaml:"kind"`
-	ProviderNet ProviderNet `yaml:",inline"`
+	ApiVersion      string            `yaml:"apiVersion"`
+	Kind            string            `yaml:"kind"`
+	MetaData        metav1.ObjectMeta `yaml:"metadata"`
+	ProviderNetSpec ProviderNetSpec   `yaml:"spec"`
 }
 
 const PROVIDER_NETWORK_APIVERSION = "k8s.plugin.opnfv.org/v1alpha1"

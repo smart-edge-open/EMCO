@@ -4,7 +4,7 @@
 
 REGISTRY=${EMCODOCKERREPO}
 IMAGE=$1
-TAG=$2
+TAG=${TAG}
 
 push_to_registry() {
     M_IMAGE=$1
@@ -38,7 +38,7 @@ if [ "${BUILD_CAUSE}" == "RELEASE" ]; then
   if [ ! -z ${EMCOSRV_RELEASE_TAG} ]; then
     TAG=${EMCOSRV_RELEASE_TAG}
   else
-    TAG=`git tag --points-at HEAD`
+    TAG=${TAG}
   fi
   if [ -z ${TAG} ]; then
     echo "HEAD has no tag associated with it"
@@ -46,12 +46,9 @@ if [ "${BUILD_CAUSE}" == "RELEASE" ]; then
   fi
 fi
 
-push_to_registry emco-clm ${TAG}
-push_to_registry emco-ncm ${TAG}
-push_to_registry emco-orch ${TAG}
-push_to_registry emco-ovn ${TAG}
-push_to_registry emco-dtc ${TAG}
-push_to_registry emco-rsync ${TAG}
-push_to_registry emco-dcm ${TAG}
-push_to_registry emco-monitor ${TAG}
-push_to_registry emco-gac ${TAG}
+[[ -z "$MODS" ]] && export MODS="clm dcm dtc nps gac monitor ncm orch ovn rsync"
+MODS=$(echo $MODS | sed 's;tools/emcoctl;;')
+
+for m in ${MODS}; do
+  push_to_registry emco-$m ${TAG}
+done

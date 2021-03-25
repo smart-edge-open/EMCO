@@ -36,7 +36,7 @@ type _testvars struct {
 var Testvars _testvars
 
 // InitRsyncClient initializes connctions to the Resource Synchronizer service
-func initRsyncClient() bool {
+func InitRsyncClient() bool {
 	if (RsyncInfo{}) == rsyncInfo {
 		mutex.Lock()
 		defer mutex.Unlock()
@@ -88,7 +88,7 @@ func InvokeInstallApp(appContextId string) error {
 
 	conn := rpc.GetRpcConn(rsyncName)
 	if conn == nil {
-		initRsyncClient()
+		InitRsyncClient()
 		conn = rpc.GetRpcConn(rsyncName)
 	}
 
@@ -130,7 +130,7 @@ func InvokeUninstallApp(appContextId string) error {
 
 	conn := rpc.GetRpcConn(rsyncName)
 	if conn == nil {
-		initRsyncClient()
+		InitRsyncClient()
 		conn = rpc.GetRpcConn(rsyncName)
 	}
 

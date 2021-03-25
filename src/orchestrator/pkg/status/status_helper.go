@@ -12,6 +12,7 @@ import (
 	"github.com/open-ness/EMCO/src/monitor/pkg/generated/clientset/versioned/scheme"
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/appcontext"
 	log "github.com/open-ness/EMCO/src/orchestrator/pkg/infra/logutils"
+	"github.com/open-ness/EMCO/src/orchestrator/pkg/infra/utils"
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/resourcestatus"
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/state"
 	pkgerrors "github.com/pkg/errors"
@@ -262,26 +263,17 @@ func GetAppContextResources(ac appcontext.AppContext, ch interface{}, qOutput st
 		}
 
 		// Get Resource Status from AppContext
+		// Default to "Pending" if this key does not yet exist (or any other error occurs)
+		rstatus := resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Pending}
 		sh, err := ac.GetLevelHandle(h, "status")
-		if err != nil {
-			log.Info(":: No status handle for resource ::", log.Fields{"Handle": h})
-			continue
-		}
-		s, err := ac.GetValue(sh)
-		if err != nil {
-			log.Info(":: Error getting resource status value ::", log.Fields{"Handle": sh})
-			continue
-		}
-		rstatus := resourcestatus.ResourceStatus{}
-		js, err := json.Marshal(s)
-		if err != nil {
-			log.Info(":: Non-JSON status data for resource ::", log.Fields{"Handle": sh, "Value": s})
-			continue
-		}
-		err = json.Unmarshal(js, &rstatus)
-		if err != nil {
-			log.Info(":: Invalid status data for resource ::", log.Fields{"Handle": sh, "Value": s})
-			continue
+		if err == nil {
+			s, err := ac.GetValue(sh)
+			if err == nil {
+				js, err := json.Marshal(s)
+				if err == nil {
+					json.Unmarshal(js, &rstatus)
+				}
+			}
 		}
 
 		// Get the unstructured object
@@ -381,6 +373,12 @@ func PrepareStatusResult(stateInfo state.StateInfo, qInstance, qType, qOutput st
 	return prepareStatusResult(deploymentIntentGroupStatus, stateInfo, qInstance, qType, qOutput, fApps, fClusters, fResources)
 }
 
+// covenience fn that ignores the index returned by GetSliceContains
+func isNameInList(name string, namesList []string) bool {
+	_, ok := utils.GetSliceContains(namesList, name)
+	return ok
+}
+
 // prepareStatusResult takes in a resource stateInfo object, the list of apps and the query parameters.
 // It then fills out the StatusResult structure appropriately from information in the AppContext
 func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance, qType, qOutput string, fApps, fClusters, fResources []string) (StatusResult, error) {
@@ -390,11 +388,16 @@ func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance
 	statusResult.Apps = make([]AppStatus, 0)
 	statusResult.State = stateInfo
 
-	var currentCtxId string
+	var currentCtxId, statusCtxId string
 	if qInstance != "" {
+		// ToDo: Locate the context id that is current. Different in
+		// case update or rollback scenario
 		currentCtxId = qInstance
+		statusCtxId = qInstance
 	} else {
 		currentCtxId = state.GetLastContextIdFromStateInfo(stateInfo)
+		// For App and cluster level status use status AppContext
+		statusCtxId = state.GetStatusContextIdFromStateInfo(stateInfo)
 	}
 
 	// If currentCtxId is still an empty string, an AppContext has not yet been
@@ -432,16 +435,20 @@ func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance
 	}
 
 	statusResult.Status = acStatus.Status
-
+	// For App and cluster level status use status AppContext
+	ac, err = state.GetAppContextFromId(statusCtxId)
+	if err != nil {
+		return StatusResult{}, pkgerrors.Wrap(err, "AppContext for status query not found")
+	}
 	// Get the composite app meta
-	m, err := ac.GetCompositeAppMeta()
+	caMeta, err := ac.GetCompositeAppMeta()
 	if statusType != clusterStatus {
 		if err != nil {
 			return StatusResult{}, pkgerrors.Wrap(err, "Error getting CompositeAppMeta")
 		}
-		if len(m.ChildContextIDs) > 0 {
+		if len(caMeta.ChildContextIDs) > 0 {
 			// Add the child context IDs to status result
-			statusResult.ChildContextIDs = m.ChildContextIDs
+			statusResult.ChildContextIDs = caMeta.ChildContextIDs
 		}
 	}
 
@@ -451,20 +458,21 @@ func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance
 	// Get the list of apps from the app context
 	apps := getListOfApps(currentCtxId)
 
+	// If filter-apps list is provided, ensure that every app to be
+	// filtered is part of this composite app
+	for _, fApp := range fApps {
+		if !isNameInList(fApp, apps) {
+			return StatusResult{},
+				fmt.Errorf("Filter app %s not in list of apps for composite app %s",
+					fApp, caMeta.CompositeApp)
+		}
+	}
+
 	// Loop through each app and get the status data for each cluster in the app
 	for _, app := range apps {
 		appCount := 0
-		if len(fApps) > 0 {
-			found := false
-			for _, a := range fApps {
-				if a == app {
-					found = true
-					break
-				}
-			}
-			if !found {
-				continue
-			}
+		if len(fApps) > 0 && !isNameInList(app, fApps) {
+			continue
 		}
 		// Get the clusters in the appcontext for this app
 		clusters, err := ac.GetClusterNames(app)
@@ -477,23 +485,15 @@ func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance
 
 		for _, cluster := range clusters {
 			clusterCount := 0
-			if len(fClusters) > 0 {
-				found := false
-				for _, c := range fClusters {
-					if c == cluster {
-						found = true
-						break
-					}
-				}
-				if !found {
-					continue
-				}
+			if len(fClusters) > 0 && !isNameInList(cluster, fClusters) {
+				continue
 			}
 
 			var clusterStatus ClusterStatus
 			pc := strings.Split(cluster, "+")
 			clusterStatus.ClusterProvider = pc[0]
 			clusterStatus.Cluster = pc[1]
+			clusterStatus.ReadyStatus = getClusterReadyStatus(ac, app, cluster)
 
 			if qType == "cluster" {
 				csh, err := ac.GetClusterStatusHandle(app, cluster)
@@ -571,7 +571,7 @@ func PrepareAppsListStatusResult(stateInfo state.StateInfo, qInstance string) (A
 	if qInstance != "" {
 		currentCtxId = qInstance
 	} else {
-		currentCtxId = state.GetLastContextIdFromStateInfo(stateInfo)
+		currentCtxId = state.GetStatusContextIdFromStateInfo(stateInfo)
 	}
 
 	// If currentCtxId is still an empty string, an AppContext has not yet been
@@ -598,7 +598,7 @@ func PrepareClustersByAppStatusResult(stateInfo state.StateInfo, qInstance strin
 	if qInstance != "" {
 		currentCtxId = qInstance
 	} else {
-		currentCtxId = state.GetLastContextIdFromStateInfo(stateInfo)
+		currentCtxId = state.GetStatusContextIdFromStateInfo(stateInfo)
 	}
 
 	// If currentCtxId is still an empty string, an AppContext has not yet been
@@ -666,7 +666,7 @@ func PrepareResourcesByAppStatusResult(stateInfo state.StateInfo, qInstance, qTy
 	if qInstance != "" {
 		currentCtxId = qInstance
 	} else {
-		currentCtxId = state.GetLastContextIdFromStateInfo(stateInfo)
+		currentCtxId = state.GetStatusContextIdFromStateInfo(stateInfo)
 	}
 
 	// If currentCtxId is still an empty string, an AppContext has not yet been
@@ -813,4 +813,21 @@ func PrepareResourcesByAppStatusResult(stateInfo state.StateInfo, qInstance, qTy
 	}
 
 	return statusResult, nil
+}
+
+func getClusterReadyStatus(ac appcontext.AppContext, app, cluster string) string {
+	ch, err := ac.GetClusterHandle(app, cluster)
+	if err != nil {
+		return string(appcontext.ClusterReadyStatusEnum.Unknown)
+	}
+	rsh, nil := ac.GetLevelHandle(ch, "readystatus")
+	if rsh != nil {
+		status, err := ac.GetValue(rsh)
+		if err != nil {
+			return string(appcontext.ClusterReadyStatusEnum.Unknown)
+		}
+		return status.(string)
+	}
+
+	return string(appcontext.ClusterReadyStatusEnum.Unknown)
 }

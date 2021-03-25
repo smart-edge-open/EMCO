@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: frontend
+  labels:
+    app: guestbook
+    tier: frontend
+spec:
+  # modify replicas according to your case
+  replicas: 3
+  selector:
+    matchLabels:
+      tier: frontend
+  template:
+    metadata:
+      annotations:
+        k8s.plugin.opnfv.org/nfn-network: '{"CniType":"ovn4nfv","Interface":[{"interface":"eth3","name":"network3"}]}'
+        k8s.v1.cni.cncf.io/networks: '[{"name":"ovn-networkobj","namespace":"abc"},{"name":"def","namespace":"abc","interface":"if1"},{"name":"xyz"},{"name":"qrs","interface":"if2"}]'
+      labels:
+        tier: frontend
+    spec:
+      containers:
+      - name: php-redis
+        image: gcr.io/google_samples/gb-frontend:v3

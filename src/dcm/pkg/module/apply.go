@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/appcontext"
@@ -105,65 +106,111 @@ func createNamespace(logicalcloud LogicalCloud) (string, string, error) {
 	return string(nsData), strings.Join([]string{name, "+Namespace"}, ""), nil
 }
 
-func createRole(logicalcloud LogicalCloud) (string, string, error) {
+func createRoles(logicalcloud LogicalCloud, userpermissions []UserPermission) ([]string, []string, error) {
+	var name string
+	var kind string
+	var datas []string
+	var names []string
 
-	userPermissions := logicalcloud.Specification.User.UserPermissions[0]
-	name := strings.Join([]string{logicalcloud.MetaData.LogicalCloudName, "-role"}, "")
+	roleCount := len(userpermissions)
+	datas = make([]string, roleCount, roleCount)
+	names = make([]string, roleCount, roleCount)
 
-	role := Resource{
-		ApiVersion: "rbac.authorization.k8s.io/v1beta1",
-		Kind:       "Role",
-		MetaData: MetaDatas{
-			Name:      name,
-			Namespace: logicalcloud.Specification.NameSpace,
-		},
-		Rules: []RoleRules{RoleRules{
-			ApiGroups: userPermissions.APIGroups,
-			Resources: userPermissions.Resources,
-			Verbs:     userPermissions.Verbs,
-		},
-		},
+	for i, up := range userpermissions {
+		if up.Specification.Namespace == "" {
+			name = strings.Join([]string{logicalcloud.MetaData.LogicalCloudName, "-clusterRole", strconv.Itoa(i)}, "")
+			kind = "ClusterRole"
+		} else {
+			name = strings.Join([]string{logicalcloud.MetaData.LogicalCloudName, "-role", strconv.Itoa(i)}, "")
+			kind = "Role"
+		}
+
+		role := Resource{
+			ApiVersion: "rbac.authorization.k8s.io/v1beta1",
+			Kind:       kind,
+			MetaData: MetaDatas{
+				Name: name,
+				// Namespace: logicalcloud.Specification.NameSpace,
+			},
+			Rules: []RoleRules{RoleRules{
+				ApiGroups: up.Specification.APIGroups,
+				Resources: up.Specification.Resources,
+				Verbs:     up.Specification.Verbs,
+			},
+			},
+		}
+		if up.Specification.Namespace != "" {
+			role.MetaData.Namespace = up.Specification.Namespace
+		}
+
+		roleData, err := yaml.Marshal(&role)
+		if err != nil {
+			return []string{}, []string{}, err
+		}
+
+		datas[i] = string(roleData)
+		names[i] = strings.Join([]string{name, "+", kind}, "")
 	}
 
-	roleData, err := yaml.Marshal(&role)
-	if err != nil {
-		return "", "", err
-	}
-
-	return string(roleData), strings.Join([]string{name, "+Role"}, ""), nil
+	return datas, names, nil
 }
 
-func createRoleBinding(logicalcloud LogicalCloud) (string, string, error) {
+func createRoleBindings(logicalcloud LogicalCloud, userpermissions []UserPermission) ([]string, []string, error) {
+	var name string
+	var kind string
+	var kindbinding string
+	var datas []string
+	var names []string
 
-	name := strings.Join([]string{logicalcloud.MetaData.LogicalCloudName, "-roleBinding"}, "")
+	roleCount := len(userpermissions)
+	datas = make([]string, roleCount, roleCount)
+	names = make([]string, roleCount, roleCount)
 
-	roleBinding := Resource{
-		ApiVersion: "rbac.authorization.k8s.io/v1beta1",
-		Kind:       "RoleBinding",
-		MetaData: MetaDatas{
-			Name:      name,
-			Namespace: logicalcloud.Specification.NameSpace,
-		},
-		Subjects: []RoleSubjects{RoleSubjects{
-			Kind:     "User",
-			Name:     logicalcloud.Specification.User.UserName,
-			ApiGroup: "",
-		},
-		},
+	for i, up := range userpermissions {
+		if up.Specification.Namespace == "" {
+			name = strings.Join([]string{logicalcloud.MetaData.LogicalCloudName, "-clusterRoleBinding", strconv.Itoa(i)}, "")
+			kind = "ClusterRole"
+			kindbinding = "ClusterRoleBinding"
+		} else {
+			name = strings.Join([]string{logicalcloud.MetaData.LogicalCloudName, "-roleBinding", strconv.Itoa(i)}, "")
+			kind = "Role"
+			kindbinding = "RoleBinding"
+		}
 
-		RoleRefs: RoleRef{
-			Kind:     "Role",
-			Name:     strings.Join([]string{logicalcloud.MetaData.LogicalCloudName, "-role"}, ""),
-			ApiGroup: "",
-		},
+		roleBinding := Resource{
+			ApiVersion: "rbac.authorization.k8s.io/v1beta1",
+			Kind:       kindbinding,
+			MetaData: MetaDatas{
+				Name: name,
+			},
+			Subjects: []RoleSubjects{RoleSubjects{
+				Kind:     "User",
+				Name:     logicalcloud.Specification.User.UserName,
+				ApiGroup: "",
+			},
+			},
+
+			RoleRefs: RoleRef{
+				Kind:     kind,
+				ApiGroup: "",
+			},
+		}
+		if up.Specification.Namespace != "" {
+			roleBinding.MetaData.Namespace = up.Specification.Namespace
+			roleBinding.RoleRefs.Name = strings.Join([]string{logicalcloud.MetaData.LogicalCloudName, "-role", strconv.Itoa(i)}, "")
+		} else {
+			roleBinding.RoleRefs.Name = strings.Join([]string{logicalcloud.MetaData.LogicalCloudName, "-clusterRole", strconv.Itoa(i)}, "")
+		}
+
+		rBData, err := yaml.Marshal(&roleBinding)
+		if err != nil {
+			return []string{}, []string{}, err
+		}
+		datas[i] = string(rBData)
+		names[i] = strings.Join([]string{name, "+", kindbinding}, "")
 	}
 
-	rBData, err := yaml.Marshal(&roleBinding)
-	if err != nil {
-		return "", "", err
-	}
-
-	return string(rBData), strings.Join([]string{name, "+RoleBinding"}, ""), nil
+	return datas, names, nil
 }
 
 func createQuota(quota []Quota, namespace string) (string, string, error) {
@@ -261,7 +308,7 @@ queryDBAndSetRsyncInfo queries the MCO db to find the record the sync controller
 and then sets the RsyncInfo global variable.
 */
 func queryDBAndSetRsyncInfo() (installappclient.RsyncInfo, error) {
-	client := controller.NewControllerClient()
+	client := controller.NewControllerClient("controller", "controllermetadata")
 	vals, _ := client.GetControllers()
 	for _, v := range vals {
 		if v.Metadata.Name == rsyncName {
@@ -333,7 +380,7 @@ func callRsyncUninstall(contextid interface{}) error {
 // Instantiate prepares all yaml resources to be given to the clusters via rsync,
 // then creates an appcontext with such resources and asks rsync to instantiate the logical cloud
 func Instantiate(project string, logicalcloud LogicalCloud, clusterList []Cluster,
-	quotaList []Quota) error {
+	quotaList []Quota, userPermissionList []UserPermission) error {
 
 	APP := "logical-cloud"
 	logicalCloudName := logicalcloud.MetaData.LogicalCloudName
@@ -469,6 +516,7 @@ func Instantiate(project string, logicalcloud LogicalCloud, clusterList []Cluste
 			if err != nil {
 				return cleanupCompositeApp(context, err, "Error adding resource-level order to L0 LC AppContext", details)
 			}
+			// TODO add resource-level dependency as well
 			// app-level order is mandatory too for an empty-shell appcontext
 			appOrder, err := json.Marshal(map[string][]string{"apporder": []string{APP}})
 			if err != nil {
@@ -478,6 +526,8 @@ func Instantiate(project string, logicalcloud LogicalCloud, clusterList []Cluste
 			if err != nil {
 				return cleanupCompositeApp(context, err, "Error adding app-level order to L0 LC AppContext", details)
 			}
+			// TODO add app-level dependency as well
+			// TODO move app-level order/dependency out of loop
 		}
 
 		// save the context in the logicalcloud db record
@@ -497,20 +547,38 @@ func Instantiate(project string, logicalcloud LogicalCloud, clusterList []Cluste
 		return nil
 	}
 
+	if len(userPermissionList) == 0 {
+		return pkgerrors.Wrap(err, "Level-1 Logical Clouds require at least a User Permission assigned to its primary namespace")
+	}
+	primaryUP := false
+	for _, up := range userPermissionList {
+		if up.Specification.Namespace == logicalcloud.Specification.NameSpace {
+			primaryUP = true
+			break
+		}
+	}
+	if !primaryUP {
+		return pkgerrors.Wrap(err, "Level-1 Logical Clouds require a User Permission assigned to its primary namespace")
+	}
+
+	if len(quotaList) == 0 {
+		return pkgerrors.Wrap(err, "Level-1 Logical Clouds require a Quota to be associated first")
+	}
+
 	// Get resources to be added
 	namespace, namespaceName, err := createNamespace(logicalcloud)
 	if err != nil {
 		return pkgerrors.Wrap(err, "Error Creating Namespace YAML for logical cloud")
 	}
 
-	role, roleName, err := createRole(logicalcloud)
+	roles, roleNames, err := createRoles(logicalcloud, userPermissionList)
 	if err != nil {
-		return pkgerrors.Wrap(err, "Error Creating Role YAML for logical cloud")
+		return pkgerrors.Wrap(err, "Error Creating Roles/ClusterRoles YAMLs for logical cloud")
 	}
 
-	roleBinding, roleBindingName, err := createRoleBinding(logicalcloud)
+	roleBindings, roleBindingNames, err := createRoleBindings(logicalcloud, userPermissionList)
 	if err != nil {
-		return pkgerrors.Wrap(err, "Error Creating RoleBinding YAML for logical cloud")
+		return pkgerrors.Wrap(err, "Error Creating RoleBindings/ClusterRoleBindings YAMLs for logical cloud")
 	}
 
 	quota, quotaName, err := createQuota(quotaList, logicalcloud.Specification.NameSpace)
@@ -577,16 +645,20 @@ func Instantiate(project string, logicalcloud LogicalCloud, clusterList []Cluste
 			return cleanupCompositeApp(context, err, "Error adding private key to DB", details)
 		}
 
-		// Add Role resource to each cluster
-		_, err = context.AddResource(clusterHandle, roleName, role)
-		if err != nil {
-			return cleanupCompositeApp(context, err, "Error adding role Resource to AppContext", details)
+		// Add [Cluster]Role resources to each cluster
+		for i, roleName := range roleNames {
+			_, err = context.AddResource(clusterHandle, roleName, roles[i])
+			if err != nil {
+				return cleanupCompositeApp(context, err, "Error adding [Cluster]Role Resource to AppContext", details)
+			}
 		}
 
-		// Add RoleBinding resource to each cluster
-		_, err = context.AddResource(clusterHandle, roleBindingName, roleBinding)
-		if err != nil {
-			return cleanupCompositeApp(context, err, "Error adding roleBinding Resource to AppContext", details)
+		// Add [Cluster]RoleBinding resource to each cluster
+		for i, roleBindingName := range roleBindingNames {
+			_, err = context.AddResource(clusterHandle, roleBindingName, roleBindings[i])
+			if err != nil {
+				return cleanupCompositeApp(context, err, "Error adding [Cluster]RoleBinding Resource to AppContext", details)
+			}
 		}
 
 		// Add quota resource to each cluster
@@ -602,14 +674,27 @@ func Instantiate(project string, logicalcloud LogicalCloud, clusterList []Cluste
 		}
 		subresDependency, err := json.Marshal(map[string]map[string]string{"subresdependency": map[string]string{"approval": "go"}})
 
-		// Add Resource Order and Resource Dependency
-		resOrder, err := json.Marshal(map[string][]string{"resorder": []string{namespaceName, quotaName, csrName, roleName, roleBindingName}})
+		// Add Resource Order
+		resorderList := []string{namespaceName, quotaName, csrName}
+		resorderList = append(resorderList, roleNames...)
+		resorderList = append(resorderList, roleBindingNames...)
+		resOrder, err := json.Marshal(map[string][]string{"resorder": resorderList})
 		if err != nil {
 			return pkgerrors.Wrap(err, "Error creating resource order JSON")
 		}
-		resDependency, err := json.Marshal(map[string]map[string]string{"resdependency": map[string]string{namespaceName: "go",
-			quotaName: strings.Join([]string{"wait on ", namespaceName}, ""), csrName: strings.Join([]string{"wait on ", quotaName}, ""),
-			roleName: strings.Join([]string{"wait on ", csrName}, ""), roleBindingName: strings.Join([]string{"wait on ", roleName}, "")}})
+
+		// Add Resource Dependency
+		resdep := map[string]string{namespaceName: "go",
+			quotaName: strings.Join(
+				[]string{"wait on ", namespaceName}, ""),
+			csrName: strings.Join(
+				[]string{"wait on ", quotaName}, "")}
+		// Add [Cluster]Role and [Cluster]RoleBinding resources to dependency graph
+		for i, roleName := range roleNames {
+			resdep[roleName] = strings.Join([]string{"wait on ", csrName}, "")
+			resdep[roleBindingNames[i]] = strings.Join([]string{"wait on ", roleName}, "")
+		}
+		resDependency, err := json.Marshal(map[string]map[string]string{"resdependency": resdep})
 
 		// Add App Order and App Dependency
 		appOrder, err := json.Marshal(map[string][]string{"apporder": []string{APP}})

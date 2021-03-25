@@ -12,9 +12,10 @@ require (
 	github.com/open-ness/EMCO/src/rsync v0.0.0-00010101000000-000000000000
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.7.0
+	github.com/stretchr/testify v1.7.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	go.etcd.io/etcd v3.3.25+incompatible
-	go.mongodb.org/mongo-driver v1.4.3
+	go.mongodb.org/mongo-driver v1.5.1
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	google.golang.org/grpc v1.28.0
 	google.golang.org/protobuf v1.24.0

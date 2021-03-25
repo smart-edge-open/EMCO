@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-alpha1License-Identifier: Apache-2.0
 // Copyright (c) 2020 Intel Corporation
 package types
 
@@ -30,6 +30,7 @@ type Ipv4Subnet struct {
 
 const VLAN_NODE_ANY = "any"
 const VLAN_NODE_SPECIFIC = "specific"
+const NetLabel = "net"
 
 var VLAN_NODE_SELECTORS = [...]string{VLAN_NODE_ANY, VLAN_NODE_SPECIFIC}
 

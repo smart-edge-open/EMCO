@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sink.fullname" . }}
+  labels:
+    release: {{ .Release.Name }}
+    app: {{ include "sink.name" . }}
+    chart: {{ .Chart.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "sink.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "sink.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          tty: true
+          stdin: true
+          env:
+            - name: unprotectedPrivateNetCidr
+              value: "{{.Values.networks.unprotectedPrivateNetCidr}}"
+            - name: protectedPrivateNetCidr
+              value: "{{.Values.networks.protectedPrivateNetCidr}}"
+            - name: vfwProtectedPrivateNetIp
+              value: "{{.Values.networks.vfwProtectedPrivateNetIp}}"
+          command: ["/bin/bash", "/opt/vsn_start.sh"]
+          securityContext:
+              privileged: true
+          volumeMounts:
+            - name: scripts
+              mountPath: /opt
+          resources:
+            requests:
+              cpu: {{ .Values.resources.cpu }}
+              memory: {{ .Values.resources.memory }}
+            limits:
+              cpu: {{ .Values.resources.cpu }}
+              memory: {{ .Values.resources.memory }}
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ .Chart.Name }}-scripts-configmap
+      imagePullSecrets:
+      - name: admin-registry-secret

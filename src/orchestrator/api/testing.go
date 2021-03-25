@@ -16,3 +16,9 @@ func executeRequest(request *http.Request, router *mux.Router) *http.Response {
 	resp := recorder.Result()
 	return resp
 }
+
+func executeRequestReturnWithBody(request *http.Request, router *mux.Router) *httptest.ResponseRecorder {
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+	return recorder
+}

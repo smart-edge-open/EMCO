@@ -70,7 +70,7 @@ queryDBAndSetRsyncInfo queries the MCO db to find the record the sync controller
 and then sets the RsyncInfo global variable.
 */
 func queryDBAndSetRsyncInfo() (installappclient.RsyncInfo, error) {
-	client := controller.NewControllerClient()
+	client := controller.NewControllerClient("controller", "controllermetadata")
 	vals, _ := client.GetControllers()
 	for _, v := range vals {
 		if v.Metadata.Name == rsyncName {
@@ -242,6 +242,7 @@ func (v *SchedulerClient) ApplyNetworkIntents(clusterProvider, cluster string) e
 		TimeStamp: time.Now(),
 	}
 	s.Actions = append(s.Actions, a)
+	s.StatusContextId = ctxVal.(string)
 
 	err = db.DBconn.Insert(v.db.StoreName, key, nil, v.db.TagState, s)
 	if err != nil {

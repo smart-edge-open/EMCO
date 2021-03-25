@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+  labels:
+    app: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      annotations:
+        k8s.plugin.opnfv.org/nfn-network: '{"CniType":"onap4nfv","Interface":[{"interface":"eth3","name":"network3"}]}'
+        k8s.v1.cni.cncf.io/networks: abc/def@if1, xyz, qrs@if2 
+        blahblah: hahahaha
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80

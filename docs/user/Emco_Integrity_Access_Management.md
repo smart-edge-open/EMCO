@@ -7,11 +7,14 @@ Copyright (c) 2020 Intel Corporation
 
 EMCO uses Istio and other open source solutions to provide Multi-tenancy solution leveraging Istio Authorization and Authentication frameworks. This is achieved without adding any logic in EMCO microservices. Authentication for the EMCO users are done at the Isito Gateway, where all the traffic enters the cluster. Istio along with Authservice (Istio ecosystem project) enables request-level authentication with JSON Web Token (JWT) validation. This can be achieved using a custom authentication provider or any OpenID Connect providers like Keycloak, Auth0 etc.
 
-Authservice is an entity that works alongside with Envoy proxy. It is used to work with external IAM systems (OAUTH2). Many Enterprises have their own OAUTH2 server for authenticating users and provide roles. EMCO along with Istio-ingress and Authservice use single or multiple OAUTH2 servers, one belonging to each project (Enterprise).
+Refer to EMCO whitepaper for details on EMCO architecture and also security architecture:
+https://www.openness.org/docs/doc/building-blocks/emco/openness-emco
+
+Authservice (https://github.com/istio-ecosystem/authservice) is an istio-ecosystem project that works alongside with Envoy proxy. It is used to along with Istio to work with external IAM systems (OAUTH2). Many Enterprises have their own OAUTH2 server for authenticating users and providing roles to users. EMCO along with Istio-ingress and Authservice can use single or multiple OAUTH2 servers, one belonging to each project (Enterprise).
 
 ## Steps for setting up EMCO with Istio
 
-Prerequisite to this setup is setting up an OAUTH2 server like Keycloak. Refer to Keycloak setup section at the end of the document as a reference.
+Prerequisite to this setup is setting up an OAUTH2 server like Keycloak. Refer to Keycloak setup section in this document as a reference.
 
 These steps need to be followed in the Kubernetes Cluster where EMCO is installed.
 
@@ -94,7 +97,7 @@ $ emcoctl get projects
 ```
 
 #### Enable Istio Authentication and Authorization Policy
-Install an Authentication Policy for the Keycloak server being used. After these 2 policies are applied access to EMCO can happen only with an access token retrieved from Keycloak.
+Install an Authentication Policy for the Keycloak server being used. Check this document on how to configure Keycloak. After these 2 policies are applied access to EMCO can happen only with an access token retrieved from Keycloak.
 
 ```shell
 apiVersion: security.istio.io/v1beta1
@@ -190,7 +193,183 @@ spec:
 
 ```
 
-## Steps for setting up EMCO with Istio + Authservice
+## Keycloak setup
+
+Keycloak is an open source software product to allow single sign-on with Identity Management and Access Management. Keycloak is being used here as an example of IAM service to be used with EMCO. Keycloak need to be running and configured to work with Istio and Authservice.
+
+Keycloak deployment file for Kubernetes is available: https://raw.githubusercontent.com/keycloak/keycloak-quickstarts/latest/kubernetes-examples/keycloak.yaml
+
+In a Kubernetes cluster where Keycloak is going to be installed follow these steps to create Keycloak deployment:
+
+```shell
+$ kubectl create ns keycloak
+$ kubectl create -n keycloak secret tls ca-keycloak-certs --key keycloak.key --cert keycloak.crt
+$ kubectl apply -f keycloak.yaml -n keycloak
+```
+
+Example Yaml file that can be used to install Keycloak
+
+```shell
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  - name: https
+    port: 8443
+    targetPort: 8443
+  selector:
+    app: keycloak
+  type: LoadBalancer
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      containers:
+      - name: keycloak
+        image: quay.io/keycloak/keycloak:9.0.2
+        volumeMounts:
+        - name: keycloak-certs
+          mountPath: /etc/x509/https
+          readOnly: false
+        env:
+        - name: KEYCLOAK_USER
+          value: "admin"
+        - name: KEYCLOAK_PASSWORD
+          value: "admin"
+        - name: PROXY_ADDRESS_FORWARDING
+          value: "true"
+        ports:
+        - name: http
+          containerPort: 8080
+        - name: https
+          containerPort: 8443
+        readinessProbe:
+          httpGet:
+            path: /auth/realms/master
+            port: 8080
+      volumes:
+      - name: keycloak-certs
+        secret:
+          secretName: keycloak-certs
+          defaultMode: 420
+          optional: true
+```
+
+#### Example Keycloak Configuration for working with Istio and EMCO
+Create a realm, add users and roles to Keycloak as required to work with Istio and Authservice.
+
+Steps to configure in Keycloak using its web interface:
+- Create a new Realm - ex: enterprise1
+- Add Users (as per customer requirement)
+- Create a new Client under realm  name - ex: emco
+- Under Setting for client
+  - Change assess type for client to confidential
+  - Under Authentication Flow Overrides - Change Direct grant flow to direct grant
+  -  Update Valid Redirect URIs. This needs to be of the format "https://istio-ingress-url/*". Here "istio-ingress-url" is URL for Istio Ingress Gateway.
+- In Roles tab:
+   - Add roles (ex. Admin and User)
+   - Under Users assign roles from emco client to users ( Admin and User). Verify under EMCO Client roles for user are in the role.
+- Add Mappers
+  - Under EMCO Client under mapper tab create a mapper
+  ```
+    Mapper type - User Client role
+    Client-ID: emco
+    Token claim name: role
+    Claim JSON Type: string
+  ```
+For complete documentation of Keycloak refer to these links:
+
+https://www.keycloak.org/getting-started/getting-started-kube
+
+https://developers.redhat.com/blog/2020/01/29/api-login-and-jwt-token-generation-using-keycloak/
+
+## Steps for setting up EMCO with Istio + Authservice (Using authservice-configurator)
+
+To make configuration of authservice easier to work with EMCO, a project called autheservice-configurator(https://github.com/intel/authservice-configurator) is used. This manages configuration for authservice and makes it easier to add and delete chains from authservice. 
+
+1. Follow instructions on this repository to deploy authservice configurator: https://github.com/intel/authservice-configurator#install-configurator-for-authservice
+
+2. Deploy Authservice: With TLS https://github.com/intel/authservice-configurator#authservice-over-tls-connection or without TLS https://github.com/intel/authservice-configurator#deploy-authservice 
+
+3. Deploy Chain CR
+  Example of chain CR: (https://github.com/intel/authservice-configurator/blob/main/config/samples/authcontroller_v1_chain.yaml)
+  Make sure to change the Chain values to correspond to your own OIDC installation. Install the Chains to the namespace where you have your AuthService instance running. After this the ConfigMap which the AuthService needs is dynamically created and AuthService deployment in the same namespace is restarted. 
+
+  Example chain with EMCO:
+
+  ```
+  apiVersion: authcontroller.intel.com/v1
+  kind: Chain
+  metadata:
+    name: chain-sample-1
+    namespace: istio-system
+  spec:
+    authorizationUri: "https://<keycloack-url>/auth/realms/enterprise1/protocol/openid-connect/auth"
+    tokenUri: "https://<keycloack-url>/auth/realms/enterprise1/protocol/openid-connect/token"
+    callbackUri: "https://<istio-ingress-url>/mesh/auth_callback"
+    clientId: "emco"
+    clientSecret: "1f07edc2-8ca3-4529-b91d-8c9ab01f1295"
+    cookieNamePrefix: "service-name"
+    trustedCertificateAuthority: "-----BEGIN CERTIFICATE-----\MZnfqxDBn8jPQ==.............................\n-----END CERTIFICATE-----\n"
+    jwks: '{"keys":[{"kid": .........................}]}'
+    match:
+      header: ":path"
+      prefix: "/v2/projects/enterprise1"
+
+```
+Use multiple chains for different OAUTH Servers. The match section of the Chain CR is used to decide which chain will be used for what url.
+
+```
+match:
+  header: ":path"
+  prefix: "/v2/projects/enterprise1"
+
+```
+
+4. Deploy EnvoyFilter: With TLS https://github.com/intel/authservice-configurator#authservice-over-tls-connection or without TLS https://github.com/intel/authservice-configurator#deploy-authservice 
+
+5. Open a browser and use url https://istio-ingress-url/v2/projects" and you'll be redirected to external OAuth Server for authentication.
+
+## Other security considerations
+
+In addition to the use of Istio for authorization and authentication, the security of the EMCO system depends on setup and configuration of the underlying cluster node operating systems and of the Kubernetes cluster installation.
+
+This section provides some references to find further information for guidance on setting up a secure infrastructure for EMCO.
+
+[Kubernetes Security Concepts] (https://kubernetes.io/docs/concepts/security/)
+
+[Kubernetes Tutorials] (https://kubernetes.io/docs/tutorials/clusters/)
+
+[Istio / Security] (https://istio.io/latest/docs/reference/config/security/)
+
+
+## APPENDIX
+
+## Steps for setting up EMCO with Istio + Authservice (Not recommended, without authservice-configurator)
+
+Before in this document it was explained how authservice can be used with EMCO using authservice-configurator. This section
+goes over how EMCO can be used without authservice-configurator.
 
 Authentication Policy need to be applied as above:
 
@@ -440,127 +619,3 @@ config.json: |
     ]
   }
   ```
-
-### Keycloak setup
-
-Keycloak is an open source software product to allow single sign-on with Identity Management and Access Management. Keycloak is being used here as an example of IAM service to be used with EMCO. Keycloak need to be running and configured to work with Istio and Authservice.
-
-Keycloak deployment file for Kubernetes is available: https://raw.githubusercontent.com/keycloak/keycloak-quickstarts/latest/kubernetes-examples/keycloak.yaml
-
-In a Kubernetes cluster where Keycloak is going to be installed follow these steps to create Keycloak deployment:
-
-```shell
-$ kubectl create ns keycloak
-$ kubectl create -n keycloak secret tls ca-keycloak-certs --key keycloak.key --cert keycloak.crt
-$ kubectl apply -f keycloak.yaml -n keycloak
-```
-
-Example Yaml file that can be used to install Keycloak
-
-```shell
-apiVersion: v1
-kind: Service
-metadata:
-  name: keycloak
-  labels:
-    app: keycloak
-spec:
-  ports:
-  - name: http
-    port: 8080
-    targetPort: 8080
-  - name: https
-    port: 8443
-    targetPort: 8443
-  selector:
-    app: keycloak
-  type: LoadBalancer
----
-
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: keycloak
-  labels:
-    app: keycloak
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: keycloak
-  template:
-    metadata:
-      labels:
-        app: keycloak
-    spec:
-      containers:
-      - name: keycloak
-        image: quay.io/keycloak/keycloak:9.0.2
-        volumeMounts:
-        - name: keycloak-certs
-          mountPath: /etc/x509/https
-          readOnly: false
-        env:
-        - name: KEYCLOAK_USER
-          value: "admin"
-        - name: KEYCLOAK_PASSWORD
-          value: "admin"
-        - name: PROXY_ADDRESS_FORWARDING
-          value: "true"
-        ports:
-        - name: http
-          containerPort: 8080
-        - name: https
-          containerPort: 8443
-        readinessProbe:
-          httpGet:
-            path: /auth/realms/master
-            port: 8080
-      volumes:
-      - name: keycloak-certs
-        secret:
-          secretName: keycloak-certs
-          defaultMode: 420
-          optional: true
-```
-
-#### Example Keycloak Configuration for working with Istio and EMCO
-Create a realm, add users and roles to Keycloak as required to work with Istio and Authservice.
-
-Steps to configure in Keycloak using its web interface:
-- Create a new Realm - ex: enterprise1
-- Add Users (as per customer requirement)
-- Create a new Client under realm  name - ex: emco
-- Under Setting for client
-  - Change assess type for client to confidential
-  - Under Authentication Flow Overrides - Change Direct grant flow to direct grant
-  -  Update Valid Redirect URIs. This needs to be of the format "https://istio-ingress-url/*". Here "istio-ingress-url" is URL for Istio Ingress Gateway.
-- In Roles tab:
-   - Add roles (ex. Admin and User)
-   - Under Users assign roles from emco client to users ( Admin and User). Verify under EMCO Client roles for user are in the role.
-- Add Mappers
-  - Under EMCO Client under mapper tab create a mapper
-  ```
-    Mapper type - User Client role
-    Client-ID: emco
-    Token claim name: role
-    Claim JSON Type: string
-  ```
-For complete documentation of Keycloak refer to these links:
-
-https://www.keycloak.org/getting-started/getting-started-kube
-
-https://developers.redhat.com/blog/2020/01/29/api-login-and-jwt-token-generation-using-keycloak/
-
-
-### Other security considerations
-
-In addition to the use of Istio for authorization and authentication, the security of the EMCO system depends on setup and configuration of the underlying cluster node operating systems and of the Kubernetes cluster installation.
-
-This section provides some references to find further information for guidance on setting up a secure infrastructure for EMCO.
-
-[Kubernetes Security Concepts] (https://kubernetes.io/docs/concepts/security/)
-
-[Kubernetes Tutorials] (https://kubernetes.io/docs/tutorials/clusters/)
-
-[Istio / Security] (https://istio.io/latest/docs/reference/config/security/)

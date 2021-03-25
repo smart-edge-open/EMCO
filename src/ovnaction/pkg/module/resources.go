@@ -23,8 +23,8 @@ import (
 )
 
 type NfnAnnotation struct {
-	CniType   string `json:"type"`
-	Interface []WorkloadIfIntentSpec
+	CniType   string                 `json:"type"`
+	Interface []WorkloadIfIntentSpec `json:"interface"`
 }
 
 const NfnAnnotationKey = "k8s.plugin.opnfv.org/nfn-network"

@@ -15,6 +15,19 @@ import (
 // metaPrefix used for denoting clusterMeta level
 const metaGrpPREFIX = "!@#metaGrp"
 
+// Separator is a constant used to create concatenated names for items like cluster or resource names
+const Separator = "+"
+
+// OrderInstruction type constants
+const OrderInstruction = "order"
+
+// DependencyInstruction type constants
+const DependencyInstruction = "dependency"
+
+// Level constant names
+const ResourceLevel = "resource"
+const AppLevel = "app"
+
 type AppContext struct {
 	initDone bool
 	rtcObj   rtcontext.RunTimeContext
@@ -39,6 +52,10 @@ type statuses struct {
 	Terminated        StatusValue
 	InstantiateFailed StatusValue
 	TerminateFailed   StatusValue
+	Created           StatusValue
+	Updating          StatusValue
+	Updated           StatusValue
+	UpdateFailed      StatusValue
 }
 
 var AppContextStatusEnum = &statuses{
@@ -48,6 +65,22 @@ var AppContextStatusEnum = &statuses{
 	Terminated:        "Terminated",
 	InstantiateFailed: "InstantiateFailed",
 	TerminateFailed:   "TerminateFailed",
+	Created:           "Created",
+	Updating:          "Updating",
+	Updated:           "Updated",
+	UpdateFailed:      "UpdatedFailed",
+}
+
+type clusterStatuses struct {
+	Unknown   StatusValue
+	Available StatusValue
+	Retrying  StatusValue
+}
+
+var ClusterReadyStatusEnum = &clusterStatuses{
+	Unknown:   "Unknown",
+	Available: "Available",
+	Retrying:  "Retrying",
 }
 
 // CompositeAppMeta consists of projectName, CompositeAppName,
@@ -447,7 +480,7 @@ func (ac *AppContext) GetResourceNames(appname string, clustername string) ([]st
 
 //Add instruction under given handle and type
 func (ac *AppContext) AddInstruction(handle interface{}, level string, insttype string, value interface{}) (interface{}, error) {
-	if !(insttype == "order" || insttype == "dependency") {
+	if !(insttype == OrderInstruction || insttype == DependencyInstruction) {
 		log.Error("Not a valid app context instruction type", log.Fields{})
 		return nil, pkgerrors.Errorf("Not a valid app context instruction type")
 	}
@@ -475,7 +508,7 @@ func (ac *AppContext) DeleteInstruction(handle interface{}) error {
 
 //Returns the app instruction for a given instruction type
 func (ac *AppContext) GetAppInstruction(insttype string) (interface{}, error) {
-	if !(insttype == "order" || insttype == "dependency") {
+	if !(insttype == OrderInstruction || insttype == DependencyInstruction) {
 		log.Error("Not a valid app context instruction type", log.Fields{})
 		return nil, pkgerrors.Errorf("Not a valid app context instruction type")
 	}
@@ -502,7 +535,7 @@ func (ac *AppContext) UpdateInstructionValue(handle interface{}, value interface
 
 //Returns the resource instruction for a given instruction type
 func (ac *AppContext) GetResourceInstruction(appname string, clustername string, insttype string) (interface{}, error) {
-	if !(insttype == "order" || insttype == "dependency") {
+	if !(insttype == OrderInstruction || insttype == DependencyInstruction) {
 		log.Error("Not a valid app context instruction type", log.Fields{})
 		return nil, pkgerrors.Errorf("Not a valid app context instruction type")
 	}

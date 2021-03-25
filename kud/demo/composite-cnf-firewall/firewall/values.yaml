@@ -1,0 +1,39 @@
+# Default values for firewall.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: ubuntu
+  tag: 18.04
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+resources:
+  cpu: 3
+  memory: 4Gi
+  hugepage: 256Mi
+
+networks:
+  unprotectedPrivateNetCidr: 192.168.10.0/24
+  unprotectedPrivateNetGw: 192.168.10.1/24
+
+  protectedPrivateNetCidr: 192.168.20.0/24
+  protectedPrivateNetGw: 192.168.20.100/24
+
+  #vFirewall container
+  vfwUnprotectedPrivateNetIp: 192.168.10.3
+  vfwProtectedPrivateNetIp: 192.168.20.2
+  vfwEmcoPrivateIp: 10.10.20.3
+
+  #Packetgen container
+  vpgUnprotectedPrivateNetIp: 192.168.10.2
+  vpgEmcoPrivateIp: 10.10.20.2
+
+  #Sink container
+  vsnProtectedPrivateNetIp: 192.168.20.3
+  vsnEmcoPrivateIp: 10.10.20.4
+

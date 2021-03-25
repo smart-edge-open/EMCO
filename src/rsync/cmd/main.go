@@ -8,18 +8,23 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"os"
+	"os/signal"
 	"strings"
 	"time"
 
 	register "github.com/open-ness/EMCO/src/rsync/pkg/grpc"
 	installpb "github.com/open-ness/EMCO/src/rsync/pkg/grpc/installapp"
+	updatepb "github.com/open-ness/EMCO/src/rsync/pkg/grpc/updateapp"
 	"github.com/open-ness/EMCO/src/rsync/pkg/grpc/installappserver"
+	"github.com/open-ness/EMCO/src/rsync/pkg/grpc/updateappserver"
 	readynotifypb "github.com/open-ness/EMCO/src/rsync/pkg/grpc/readynotify"
 	"github.com/open-ness/EMCO/src/rsync/pkg/grpc/readynotifyserver"
 
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/infra/config"
 	contextDb "github.com/open-ness/EMCO/src/orchestrator/pkg/infra/contextdb"
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/infra/db"
+	"github.com/open-ness/EMCO/src/rsync/pkg/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/testdata"
@@ -60,6 +65,7 @@ func startGrpcServer() error {
 	grpcServer := grpc.NewServer(opts...)
 	installpb.RegisterInstallappServer(grpcServer, installappserver.NewInstallAppServer())
 	readynotifypb.RegisterReadyNotifyServer(grpcServer, readynotifyserver.NewReadyNotifyServer())
+	updatepb.RegisterUpdateappServer(grpcServer, updateappserver.NewUpdateAppServer())
 
 	log.Println("Starting rsync gRPC Server")
 	err = grpcServer.Serve(lis)
@@ -89,8 +95,23 @@ func main() {
 		log.Fatalln("Exiting...")
 	}
 
-	err = startGrpcServer()
+	go func() {
+		err := startGrpcServer()
+		if err != nil {
+			log.Fatalf("GRPC server failed to start")
+		}
+	}()
+
+	err = context.RestoreActiveContext()
 	if err != nil {
-		log.Fatalf("GRPC server failed to start")
+		log.Println("RestoreActiveContext failed")
 	}
+
+	connectionsClose := make(chan struct{})
+	
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c
+	close(connectionsClose)
+
 }

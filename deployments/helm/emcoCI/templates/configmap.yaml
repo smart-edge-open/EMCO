@@ -126,6 +126,41 @@ data:
 
 ---
 
+# NPS Config Map
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: nps
+  labels:
+    app: nps
+data:
+  config.json: |
+          {
+          "database-type": "mongo",
+          "database-ip": "mongo",
+          "etcd-ip": "etcd",
+          "service-port": "9038"
+          }
+
+---
+
+# SDS Config Map
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: sds
+  labels:
+    app: sds
+data:
+  config.json: |
+          {
+          "database-type": "mongo",
+          "database-ip": "mongo",
+          "etcd-ip": "etcd",
+          "service-port": "9039"
+          }
+
+---
 # GenericActionController Config Map
 kind: ConfigMap
 apiVersion: v1

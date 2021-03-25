@@ -1,0 +1,29 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "spec": {
+        "required": ["revision"],
+        "properties": {
+          "revision": {
+            "description": "Deployment Intent Group Revision",
+            "type": "string",
+            "example": "2",
+            "maxLength": 128,
+            "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+          }
+        }
+      },
+      "metadata": {
+        "properties": {
+          "description": {
+            "description": "Description for the resource",
+            "type": "string",
+            "example": "Resource description",
+            "maxLength": 1024
+          }
+        }
+      }
+    }
+  }
+  

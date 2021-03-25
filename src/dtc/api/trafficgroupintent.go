@@ -45,7 +45,7 @@ func (h trafficgroupintentHandler) createHandler(w http.ResponseWriter, r *http.
 	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(deploymentIntentGroupName, project, compositeApp, compositeAppVersion)
 	if err != nil {
 		log.Error(":: Error validating traffic group POST parameters::", log.Fields{"Error": err})
-		http.Error(w, "Invalid parameters", http.StatusNotFound)
+		http.Error(w, "DeploymentIntentGroup does not exist", http.StatusNotFound)
 		return
 	}
 	err = json.NewDecoder(r.Body).Decode(&tgi)
@@ -111,7 +111,14 @@ func (h trafficgroupintentHandler) putHandler(w http.ResponseWriter, r *http.Req
 	compositeAppVersion := vars["version"]
 	deployIntentGroup := vars["deployment-intent-group-name"]
 
-	err := json.NewDecoder(r.Body).Decode(&tgi)
+	// check if the deploymentIntentGrpName exists
+	_, err := orcmod.NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(deployIntentGroup, project, compositeApp, compositeAppVersion)
+	if err != nil {
+		log.Error(":: Error validating traffic group PUT parameters::", log.Fields{"Error": err})
+		http.Error(w, "DeploymentIntentGroup does not exist", http.StatusNotFound)
+		return
+	}
+	err = json.NewDecoder(r.Body).Decode(&tgi)
 
 	switch {
 	case err == io.EOF:
@@ -181,6 +188,8 @@ func (h trafficgroupintentHandler) getHandler(w http.ResponseWriter, r *http.Req
 			log.Error(":: Error getting traffic group intents ::", log.Fields{"Error": err})
 			if strings.Contains(err.Error(), "db Find error") {
 				http.Error(w, err.Error(), http.StatusNotFound)
+			} else if strings.Contains(err.Error(), "not found") {
+				http.Error(w, err.Error(), http.StatusNotFound)
 			} else {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
@@ -191,6 +200,8 @@ func (h trafficgroupintentHandler) getHandler(w http.ResponseWriter, r *http.Req
 		if err != nil {
 			log.Error(":: Error getting traffic group intent ::", log.Fields{"Error": err})
 			if strings.Contains(err.Error(), "db Find error") {
+				http.Error(w, err.Error(), http.StatusNotFound)
+			} else if strings.Contains(err.Error(), "not found") {
 				http.Error(w, err.Error(), http.StatusNotFound)
 			} else {
 				http.Error(w, err.Error(), http.StatusInternalServerError)

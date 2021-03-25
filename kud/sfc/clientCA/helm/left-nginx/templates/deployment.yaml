@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: left-nginx
+  namespace: sfc-head
+  labels:
+    sfc: head
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      sfc: head
+  template:
+    metadata:
+      labels:
+        test: one
+    spec:
+      containers:
+      - name: nginx
+        image: rkamudhan/netshoot:v1.0
+        imagePullPolicy: IfNotPresent
+        stdin: true
+        tty: true
+        resources:
+          memory: "128Mi"
+          cpu: "500m"
+        limits:
+          memory: "128Mi"
+          cpu: "500m"
+        ports:
+        - containerPort: 80
+        securityContext:
+          privileged: true
+          capabilities:
+            add: ["NET_ADMIN"]

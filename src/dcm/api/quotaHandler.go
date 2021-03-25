@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/open-ness/EMCO/src/dcm/pkg/module"
@@ -48,7 +49,13 @@ func (h quotaHandler) createHandler(w http.ResponseWriter, r *http.Request) {
 	ret, err := h.client.CreateQuota(project, logicalCloud, v)
 	if err != nil {
 		log.Error(err.Error(), log.Fields{})
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		if strings.Contains(err.Error(), "Logical Cloud does not exist") {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else if strings.Contains(err.Error(), "Cluster Quotas not allowed for Logical Cloud Level 0") {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		return
 	}
 

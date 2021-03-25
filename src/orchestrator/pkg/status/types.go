@@ -67,6 +67,7 @@ type AppStatus struct {
 type ClusterStatus struct {
 	ClusterProvider string           `json:"cluster-provider,omitempty"`
 	Cluster         string           `json:"cluster,omitempty"`
+	ReadyStatus     string           `json:"readystatus,omitempty"`
 	Resources       []ResourceStatus `json:"resources,omitempty"`
 }
 

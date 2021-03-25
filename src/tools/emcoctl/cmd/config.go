@@ -21,6 +21,8 @@ type EmcoConfigurations struct {
 	Gac          ControllerConfigurations
 	Dtc          ControllerConfigurations
 	HpaPlacement ControllerConfigurations
+	Sfc          ControllerConfigurations
+	SfcClient    ControllerConfigurations
 }
 
 // ControllerConfigurations exported
@@ -52,6 +54,10 @@ func SetDefaultConfiguration() {
 	Configurations.Gac.Port = 0
 	Configurations.HpaPlacement.Host = "localhost"
 	Configurations.HpaPlacement.Port = 9091
+	Configurations.Sfc.Host = "localhost"
+	Configurations.Sfc.Port = 9055
+	Configurations.SfcClient.Host = "localhost"
+	Configurations.SfcClient.Port = 9057
 }
 
 // GetIngressURL Url for Ingress
@@ -172,4 +178,32 @@ func GetHpaPlacementURL() string {
 		os.Exit(1)
 	}
 	return urlPrefix + Configurations.HpaPlacement.Host + ":" + strconv.Itoa(Configurations.HpaPlacement.Port) + "/" + urlVersion
+}
+
+// GetSfcURL Url for sfc
+func GetSfcURL() string {
+	// If Ingress is available use that url
+	if s := GetIngressURL(); s != "" {
+		return s
+	}
+	if Configurations.Sfc.Host == "" || Configurations.Sfc.Port == 0 {
+		fmt.Println("Fatal: No SFC Action Information in Config File!")
+		// Exit executing
+		os.Exit(1)
+	}
+	return urlPrefix + Configurations.Sfc.Host + ":" + strconv.Itoa(Configurations.Sfc.Port) + "/" + urlVersion
+}
+
+// GetSfcClientURL Url for sfc
+func GetSfcClientURL() string {
+	// If Ingress is available use that url
+	if s := GetIngressURL(); s != "" {
+		return s
+	}
+	if Configurations.SfcClient.Host == "" || Configurations.SfcClient.Port == 0 {
+		fmt.Println("Fatal: No SFC Client Action Information in Config File!")
+		// Exit executing
+		os.Exit(1)
+	}
+	return urlPrefix + Configurations.SfcClient.Host + ":" + strconv.Itoa(Configurations.SfcClient.Port) + "/" + urlVersion
 }

@@ -7,12 +7,16 @@ Cluster1: cluster1
 Cluster2: cluster2
 Label1: edgecluster
 Label2: edgecluster
-LogicalCloud: lc1
+Namespace1: ns1
+Namespace2: ns2
+LogicalCloud1: lc1
+LogicalCloud2: lc2
 CompositeApp: collection-composite-app
 App1: prometheus-operator
 App2: collectd
 KubeConfig1: /root/c01.config
 KubeConfig2: /root/c02.config
+KubeConfig3: /root/c03.config
 HelmApp1: /opt/csar/prometheus-operator.tar.gz
 HelmApp2: /opt/csar/collectd.tar.gz
 ProfileApp1: /opt/csar/prometheus-operator_profile.tar.gz

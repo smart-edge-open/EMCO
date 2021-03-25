@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "type": "object",
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "description": "Name of the resource",
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+        },
+        "description": {
+          "description": "Description for the resource",
+          "type": "string",
+          "maxLength": 1024
+        },
+        "userData1": {
+          "description": "User relevant data for the resource",
+          "type": "string",
+          "maxLength": 512
+        },
+        "userData2": {
+          "description": "User relevant data for the resource",
+          "type": "string",
+          "maxLength": 512
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": [
+        "chainEnd",
+        "networkName",
+        "gatewayIp"
+      ],
+      "properties": {
+        "chainEnd": {
+          "type": "string",
+          "enum": [
+            "left",
+            "right"
+          ]
+        },
+        "networkName": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+        },
+        "gatewayIp": {
+          "type": "string",
+          "format": "ipv4"
+        },
+        "subnet": {
+          "type": "string",
+          "pattern": "^([0-9]{1,3}[.]){3}[0-9]{1,3}(\/([0-9]|[1-2][0-9]|3[0-2]))?$"
+        }
+      }
+    }
+  }
+}

@@ -91,6 +91,8 @@ func (v *NetControlIntentClient) GetNetControlIntent(name, project, compositeapp
 	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return NetControlIntent{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(value) == 0 {
+		return NetControlIntent{}, pkgerrors.New("Net Control Intent not found")
 	}
 
 	//value is a byte array

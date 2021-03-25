@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+#creating controller entries
+version: emco/v2
+resourceContext:
+  anchor: controllers
+metadata :
+   name: rsync
+spec:
+  host: {{.RsyncHost}}
+  port: {{.RsyncPort}}
+
+---
+#creating cluster provider
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers
+metadata :
+   name: {{.ClusterProvider}}
+
+---
+#create project
+version: emco/v2
+resourceContext:
+  anchor: projects
+metadata :
+   name: {{.ProjectName}}

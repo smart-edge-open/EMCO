@@ -69,10 +69,10 @@ type ControllerClient struct {
 
 // NewControllerClient returns an instance of the ControllerClient
 // which implements the Manager
-func NewControllerClient() *ControllerClient {
+func NewControllerClient(name, tag string) *ControllerClient {
 	return &ControllerClient{
-		collectionName: "controller",
-		tagMeta:        "controllermetadata",
+		collectionName: name,
+		tagMeta:        tag,
 	}
 }
 

@@ -67,7 +67,9 @@ database persistence enabled.
 
 Install with database authentication enabled and default (random) passwords, and disable persistence:
 
-`$ helm install --namespace emco --set mongo.persistence.enabled=false --set etcd.persistence.enabled=false emco ./dist/packages/emco-0.1.0.tgz`
+**Note: when installing the *all-in-one* chart `emco-0.1.0.tgz`, prepend `emco-db` to the persistence enabled variables as shown in the example.**
+
+`$ helm install --namespace emco --set emco-db.mongo.persistence.enabled=false --set emco-db.etcd.persistence.enabled=false emco ./dist/packages/emco-0.1.0.tgz`
 
 Install with database and services separately with database authentication enabled and default (random) passwords, and disable persistence:
 

@@ -1,0 +1,20 @@
+# Default values for SFC nginx.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 3
+
+nameOverride: ""
+fullnameOverride: ""
+Namespace: default
+SfcLabel: head
+
+resources:
+  cpu: 1
+  memory: 4Gi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

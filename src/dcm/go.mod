@@ -1,12 +1,17 @@
 module github.com/open-ness/EMCO/src/dcm
 
 require (
+	github.com/golang/mock v1.5.0
+	github.com/golang/protobuf v1.4.2
 	github.com/gorilla/handlers v1.3.0
 	github.com/gorilla/mux v1.7.3
+	github.com/onsi/ginkgo v1.15.0
+	github.com/onsi/gomega v1.10.5
 	github.com/open-ness/EMCO/src/monitor v0.0.0-00010101000000-000000000000
 	github.com/open-ness/EMCO/src/orchestrator v0.0.0-00010101000000-000000000000
 	github.com/open-ness/EMCO/src/rsync v0.0.0-00010101000000-000000000000
 	github.com/pkg/errors v0.9.1
+	github.com/stretchr/testify v1.7.0
 	google.golang.org/grpc v1.28.0
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.20.2

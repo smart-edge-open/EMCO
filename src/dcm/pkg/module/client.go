@@ -5,10 +5,10 @@ package module
 
 import (
 	"context"
-	"sync"
-	"time"
 	"encoding/json"
 	"strings"
+	"sync"
+	"time"
 
 	pkgerrors "github.com/pkg/errors"
 	"google.golang.org/grpc"
@@ -22,10 +22,18 @@ import (
 type RsyncInfo struct {
 	RsyncName  string
 	hostName   string
-	portNumber int}
+	portNumber int
+}
 
 var rsyncInfo RsyncInfo
 var mutex = &sync.Mutex{}
+
+type _testvars struct {
+	UseGrpcMock       bool
+	ReadyNotifyClient readynotifypb.ReadyNotifyClient
+}
+
+var Testvars _testvars
 
 // InitRsyncClient initializes connections to the Resource Synchronizer service
 func initRsyncClient() bool {
@@ -55,8 +63,18 @@ func NewRsyncInfo(rName, h string, pN int) RsyncInfo {
 // InvokeReadyNotify will make a gRPC call to the resource synchronizer and
 // will subscribe DCM to alerts from the rsync gRPC server ("ready-notify")
 func InvokeReadyNotify(appContextID string) error {
-	_, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	var rpcClient readynotifypb.ReadyNotifyClient
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	// Unit test helper code
+	if Testvars.UseGrpcMock {
+		rpcClient = Testvars.ReadyNotifyClient
+		readynotifyReq := new(readynotifypb.Topic)
+		// readynotifyReq.AppContext = appContextID
+		rpcClient.Alert(ctx, readynotifyReq)
+		return nil
+	}
 
 	conn := rpc.GetRpcConn(rsyncName)
 	if conn == nil {
@@ -88,7 +106,7 @@ func processAlert(client readynotifypb.ReadyNotifyClient, stream readynotifypb.R
 		resp, err := stream.Recv()
 		if err != nil {
 			log.Error("[ReadyNotify gRPC] Failed to receive notification", log.Fields{"err": err})
-			time.Sleep(5*time.Second) // protect against potential deluge of errors in the for loop
+			time.Sleep(5 * time.Second) // protect against potential deluge of errors in the for loop
 			continue
 		}
 
@@ -149,7 +167,7 @@ func subscribe(client readynotifypb.ReadyNotifyClient, appContextID string) {
 func unsubscribe(client readynotifypb.ReadyNotifyClient, appContextID string) error {
 	_, err := client.Unsubscribe(context.Background(), &readynotifypb.Topic{ClientName: "dcm", AppContext: appContextID})
 	if err != nil {
-		log.Error("[ReadyNotify gRPC] Failed to unsubscribe to alerts", log.Fields{"err": err, "appContextId": appContextID})
+		log.Error("[ReadyNotify gRPC] Failed to unsubscribe to alerts", log.Fields{"err": err, "appContextID": appContextID})
 	}
 	return err
 }

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (c) 2020 Intel Corporation
-registryPrefix: ${EMCODOCKERREPO}
-tag: 
-noProxyHosts: ${NO_PROXY}
+registryPrefix:
+tag: latest
+noProxyHosts: ""
 httpProxy: ""
 httpsProxy: ""

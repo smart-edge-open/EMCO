@@ -144,6 +144,45 @@ spec:
 
 ---
 
+# NPS Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: nps
+  labels:
+    app: nps
+spec:
+  selector:
+    app: nps
+  type: NodePort
+  ports:
+  - name: internal
+    port: 9038
+    nodePort: 31738
+    protocol: TCP
+    targetPort: 9038
+
+---
+
+# SDS Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: sds
+  labels:
+    app: sds
+spec:
+  selector:
+    app: sds
+  type: NodePort
+  ports:
+  - name: internal
+    port: 9039
+    nodePort: 31739
+    protocol: TCP
+    targetPort: 9039
+
+---
 
 # Clm Service
 apiVersion: v1

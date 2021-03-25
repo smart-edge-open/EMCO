@@ -126,7 +126,7 @@ spec:
     route:
     - destination:
         port:
-          number: 9031
+          number: 9081
         host: ncm
 ---
 apiVersion: networking.istio.io/v1alpha3
@@ -192,7 +192,7 @@ spec:
     route:
     - destination:
         port:
-          number: 9051
+          number: 9020
         host: gac
 ---
 apiVersion: networking.istio.io/v1alpha3
@@ -214,7 +214,7 @@ spec:
     route:
     - destination:
         port:
-          number: 9051
+          number: 9018
         host: dtc
 ---
 apiVersion: networking.istio.io/v1alpha3

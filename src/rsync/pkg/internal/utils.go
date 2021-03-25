@@ -5,7 +5,6 @@ package utils
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 
@@ -15,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	log "github.com/open-ness/EMCO/src/orchestrator/pkg/infra/logutils"
 )
 
 // DecodeYAMLFile reads a YAMl file to extract the Kubernetes object definition
@@ -69,22 +69,19 @@ func TagPodsIfPresent(unstruct *unstructured.Unstructured, tag string) {
 
 	spec, ok := unstruct.Object["spec"].(map[string]interface{})
 	if !ok {
-		log.Println("Error converting spec to map")
 		return
 	}
 
 	template, ok := spec["template"].(map[string]interface{})
 	if !ok {
-		//log.Println("Error converting template to map")
 		return
 	}
-	log.Println("Apply label in template")
 	//Attempt to convert the template to a podtemplatespec.
 	//This is to check if we have any pods being created.
 	podTemplateSpec := &corev1.PodTemplateSpec{}
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(template, podTemplateSpec)
 	if err != nil {
-		log.Println("Did not find a podTemplateSpec: " + err.Error())
+		log.Error("Did not find a podTemplateSpec", log.Fields{"err": err})
 		return
 	}
 

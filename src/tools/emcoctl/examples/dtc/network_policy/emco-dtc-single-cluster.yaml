@@ -4,6 +4,17 @@
 #creating controller entries
 version: emco/v2
 resourceContext:
+  anchor: dtc-controllers
+metadata :
+  name: nps
+spec:
+  host: <node-IP>
+  port: 30485
+  type: "action"
+  priority: 1
+---
+version: emco/v2
+resourceContext:
   anchor: controllers
 metadata :
    name: rsync

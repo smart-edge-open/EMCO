@@ -10,6 +10,7 @@ This folder contains following test cases to run with EMCO. These tests assumes 
 1. Prometheus and Collectd Helm charts
 2. vFw
 3. Collectd Helm chart and adding configmap during instantiation (using Generic Action Controller)
+4. DTC ( Create client/server images using kud/tests/helm_charts/dtc/app-code/README.md )
 
 ## Setup Test Environment to run test cases
 
@@ -55,6 +56,9 @@ This folder contains following test cases to run with EMCO. These tests assumes 
 
      virtlet - https://github.com/Mirantis/virtlet
 
+4. DTC testcase
+
+    `$ $bin/emcoctl --config emco-cfg.yaml apply -f test-dtc.yaml -v values.yaml`
 
 ## Cleanup
 
@@ -70,11 +74,15 @@ This folder contains following test cases to run with EMCO. These tests assumes 
 
     `$ $bin/emcoctl --config emco-cfg.yaml delete -f test-vfw.yaml -v values.yaml`
 
-4. Cleanup prerequisites
+4. DTC testcase
+
+    `$ $bin/emcoctl --config emco-cfg.yaml delete -f test-dtc.yaml -v values.yaml`
+
+5. Cleanup prerequisites
 
     `$ $bin/emcoctl --config emco-cfg.yaml delete -f prerequisites.yaml -v values.yaml`
 
-5. Cleanup generated files
+6. Cleanup generated files
 
     `$ ./setup.sh cleanup`
 

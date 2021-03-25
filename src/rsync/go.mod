@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/ghodss/yaml v1.0.0
-	github.com/golang/mock v1.3.1
+	github.com/golang/mock v1.5.0
 	github.com/golang/protobuf v1.4.2
 	github.com/jonboulle/clockwork v0.1.0
 	github.com/open-ness/EMCO/src/monitor v0.0.0-00010101000000-000000000000

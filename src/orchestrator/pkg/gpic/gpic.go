@@ -61,10 +61,10 @@ type AnyOf struct {
 }
 
 // intentResolverHelper helps to populate the cluster lists
-func intentResolverHelper(pn, cn, cln string, clustersWithName []ClusterWithName) ([]ClusterWithName, error) {
+var intentResolverHelper = func(pn, cn, cln string, clusters []ClusterWithName) ([]ClusterWithName, error) {
 	if cln == "" && cn != "" {
 		eachClusterWithName := ClusterWithName{pn, cn}
-		clustersWithName = append(clustersWithName, eachClusterWithName)
+		clusters = append(clusters, eachClusterWithName)
 		log.Printf("Added Cluster: %s ", cn)
 	}
 	if cn == "" && cln != "" {
@@ -76,11 +76,11 @@ func intentResolverHelper(pn, cn, cln string, clustersWithName []ClusterWithName
 		// Populate the clustersWithName array with the clusternames found above
 		for _, eachClusterName := range clusterNamesList {
 			eachClusterWithPN := ClusterWithName{pn, eachClusterName}
-			clustersWithName = append(clustersWithName, eachClusterWithPN)
+			clusters = append(clusters, eachClusterWithPN)
 			log.Printf("Added Cluster :: %s through its label: %s ", eachClusterName, cln)
 		}
 	}
-	return clustersWithName, nil
+	return clusters, nil
 }
 
 // IntentResolver shall help to resolve the given intent into 2 lists of clusters where the app need to be deployed.
@@ -104,10 +104,10 @@ func IntentResolver(intent IntentStruc) (ClusterList, error) {
 		}
 
 		if len(eachAllOf.AnyOfArray) > 0 {
+			index++
 			for _, eachAnyOf := range eachAllOf.AnyOfArray {
 				var opc []ClusterWithName
 				opc, err = intentResolverHelper(eachAnyOf.ProviderName, eachAnyOf.ClusterName, eachAnyOf.ClusterLabelName, opc)
-				index++
 				if err != nil {
 					return ClusterList{}, pkgerrors.Wrap(err, "intentResolverHelper error")
 				}
@@ -117,10 +117,10 @@ func IntentResolver(intent IntentStruc) (ClusterList, error) {
 		}
 	}
 	if len(intent.AnyOfArray) > 0 {
-		var opc []ClusterWithName
+		index++
 		for _, eachAnyOf := range intent.AnyOfArray {
+			var opc []ClusterWithName
 			opc, err = intentResolverHelper(eachAnyOf.ProviderName, eachAnyOf.ClusterName, eachAnyOf.ClusterLabelName, opc)
-			index++
 			if err != nil {
 				return ClusterList{}, pkgerrors.Wrap(err, "intentResolverHelper error")
 			}

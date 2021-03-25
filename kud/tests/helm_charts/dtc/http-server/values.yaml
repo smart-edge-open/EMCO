@@ -5,8 +5,8 @@
 replicaCount: 1
 
 image:
-  repository: amr-registry-pre.caas.intel.com/emco/my-custom-httptest-server
-  tag: "1.4"
+  repository: <docker registry url>/my-custom-httptest-server
+  tag: "1.1"
   pullPolicy: Always
 
 imagePullSecrets: []

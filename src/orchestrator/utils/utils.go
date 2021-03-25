@@ -7,6 +7,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"strings"
+	"net/http"
 
 	"io"
 	"io/ioutil"
@@ -191,4 +192,24 @@ func EnsureDirectory(f string) error {
 		return err
 	}
 	return os.MkdirAll(base, 0700)
+}
+
+// HandleLogicalCloudError is used to handle error for Logical Cloud
+func HandleLogicalCloudError(err string, w *http.ResponseWriter) {
+	switch err {
+	case "The specified Logical Cloud doesn't provide the necessary clusters":
+		http.Error(*w, err, http.StatusBadRequest)
+	case "Failed to obtain Logical Cloud specified":
+		http.Error(*w, err, http.StatusBadRequest)
+	case "Logical Cloud is not currently applied":
+		http.Error(*w, err, http.StatusConflict)
+	case "Logical Cloud has never been applied":
+		http.Error(*w, err, http.StatusConflict)
+	case "Error reading Logical Cloud context":
+		http.Error(*w, err, http.StatusInternalServerError)
+	case "No Qualified Clusters to deploy App":
+		http.Error(*w, err, http.StatusInternalServerError)
+	default:
+		http.Error(*w, err, http.StatusInternalServerError)
+	}
 }

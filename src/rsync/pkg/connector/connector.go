@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 	"sync"
-
+	types "github.com/open-ness/EMCO/src/rsync/pkg/types"
 	log "github.com/open-ness/EMCO/src/orchestrator/pkg/infra/logutils"
 	kubeclient "github.com/open-ness/EMCO/src/rsync/pkg/client"
 	"github.com/open-ness/EMCO/src/rsync/pkg/db"
@@ -20,22 +20,21 @@ import (
 // IsTestKubeClient .. global variable used during unit-tests to check whether a fake kube client object has to be instantiated
 var IsTestKubeClient bool = false
 
-type Connector struct {
-	cid     string
+// Connection is for a cluster
+type Connection struct {
+	Cid     string
 	Clients map[string]*kubeclient.Client
 	sync.Mutex
 }
 
 const basePath string = "/tmp/rsync/"
 
-// Init connector for an app context
-func Init(id interface{}) *Connector {
-	c := make(map[string]*kubeclient.Client)
-	str := fmt.Sprintf("%v", id)
-	return &Connector{
-		Clients: c,
-		cid:     str,
-	}
+// Init Connection for an app context
+func (c *Connection) Init(id interface{}) error {
+	log.Info("Init with interface", log.Fields{})
+	c.Clients = make(map[string]*kubeclient.Client)
+	c.Cid = fmt.Sprintf("%v", id)
+	return nil
 }
 
 // GetKubeConfig uses the connectivity client to get the kubeconfig based on the name
@@ -51,6 +50,7 @@ func GetKubeConfig(clustername string, level string, namespace string) ([]byte, 
 
 	ccc := db.NewCloudConfigClient()
 
+	log.Info("Querying CloudConfig", log.Fields{"strs": strs, "level": level, "namespace": namespace})
 	cconfig, err := ccc.GetCloudConfig(strs[0], strs[1], level, namespace)
 	if err != nil {
 		return nil, pkgerrors.New("Get kubeconfig failed")
@@ -65,7 +65,7 @@ func GetKubeConfig(clustername string, level string, namespace string) ([]byte, 
 }
 
 // GetClient returns client for the cluster
-func (c *Connector) GetClient(cluster string, level string, namespace string) (*kubeclient.Client, error) {
+func (c *Connection) GetClient(cluster string, level string, namespace string) (*kubeclient.Client, error) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -82,7 +82,7 @@ func (c *Connector) GetClient(cluster string, level string, namespace string) (*
 		if err != nil {
 			return nil, err
 		}
-		var kubeConfigPath string = basePath + c.cid + "/" + cluster + "/"
+		var kubeConfigPath string = basePath + c.Cid + "/" + cluster + "/"
 		if _, err := os.Stat(kubeConfigPath); os.IsNotExist(err) {
 			err = os.MkdirAll(kubeConfigPath, 0700)
 			if err != nil {
@@ -108,22 +108,15 @@ func (c *Connector) GetClient(cluster string, level string, namespace string) (*
 	return client, nil
 }
 
-func (c *Connector) GetClientWithRetry(cluster string, level string, namespace string) (*kubeclient.Client, error) {
-	client, err := c.GetClient(cluster, level, namespace)
-	if err != nil {
-		return nil, err
-	}
-	if err = client.IsReachable(); err != nil {
-		return nil, err // TODO: Add retry
-	}
-	return client, nil
-}
-
-func (c *Connector) RemoveClient() {
+func (c *Connection) RemoveClient() {
 	c.Lock()
 	defer c.Unlock()
-	err := os.RemoveAll(basePath + "/" + c.cid)
+	err := os.RemoveAll(basePath + "/" + c.Cid)
 	if err != nil {
 		log.Error("Warning: Deleting kubepath", log.Fields{"err": err})
 	}
+}
+
+func (c *Connection) GetClientInternal(cluster string, level string, namespace string) (types.ClientProvider, error) {
+	return c.GetClient(cluster, level, namespace)
 }

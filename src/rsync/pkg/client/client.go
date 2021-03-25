@@ -15,6 +15,8 @@ import (
 	"k8s.io/kubectl/pkg/validation"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	utils "github.com/open-ness/EMCO/src/rsync/pkg/internal"
 
 	resapi "k8s.io/apimachinery/pkg/api/resource"
 )
@@ -208,7 +210,37 @@ func (c *Client) IsReachable() error {
 	}
 	return nil
 }
+//TagResource with label
+func (c *Client) TagResource(res []byte, label string) ( []byte, error) {
 
+	//Decode the yaml to create a runtime.Object
+	unstruct := &unstructured.Unstructured{}
+	//Ignore the returned obj as we expect the data in unstruct
+	_, err := utils.DecodeYAMLData(string(res), unstruct)
+	if err != nil {
+		return nil, err
+	}
+	//Add the tracking label to all resources created here
+	labels := unstruct.GetLabels()
+	//Check if labels exist for this object
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	//labels[config.GetConfiguration().KubernetesLabelName] = client.GetInstanceID()
+	labels["emco/deployment-id"] = label
+	unstruct.SetLabels(labels)
+
+	// This checks if the resource we are creating has a podSpec in it
+	// Eg: Deployment, StatefulSet, Job etc..
+	// If a PodSpec is found, the label will be added to it too.
+	//connector.TagPodsIfPresent(unstruct, client.GetInstanceID())
+	utils.TagPodsIfPresent(unstruct, label)
+	b, err := unstruct.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
 // PopulateResourceListV1WithDefValues takes strings of form <resourceName1>=<value1>,<resourceName1>=<value2>
 // and returns ResourceList.
 func PopulateResourceListV1WithDefValues(spec string) (v1.ResourceList, error) {

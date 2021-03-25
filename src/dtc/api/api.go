@@ -7,10 +7,12 @@ import (
 	"reflect"
 
 	"github.com/gorilla/mux"
+	controller "github.com/open-ness/EMCO/src/orchestrator/pkg/module/controller"
 	"github.com/open-ness/EMCO/src/dtc/pkg/module"
 )
 
 var moduleClient *module.Client
+var moduleController *controller.ControllerClient
 
 // For the given client and testClient, if the testClient is not null and
 // implements the client manager interface corresponding to client, then
@@ -34,6 +36,13 @@ func setClient(client, testClient interface{}) interface{} {
         case *module.InboundClientsIntentDbClient:
                 if testClient != nil && reflect.TypeOf(testClient).Implements(reflect.TypeOf((*module.InboundClientsIntentManager)(nil)).Elem()) {
                         c, ok := testClient.(module.InboundClientsIntentManager)
+                        if ok {
+                                return c
+                        }
+                }
+        case *controller.ControllerClient:
+                if testClient != nil && reflect.TypeOf(testClient).Implements(reflect.TypeOf((*controller.ControllerManager)(nil)).Elem()) {
+                        c, ok := testClient.(controller.ControllerManager)
                         if ok {
                                 return c
                         }
@@ -76,6 +85,15 @@ func NewRouter(testClient interface{}) *mux.Router {
 	router.HandleFunc("/projects/{project}/composite-apps/{composite-app-name}/{version}/deployment-intent-groups/{deployment-intent-group-name}/traffic-group-intents/{traffic-group-intent-name}/inbound-intents/{intent-name}/clients/{name}", inboundclientsintentHandler.getHandler).Methods("GET")
 	router.HandleFunc("/projects/{project}/composite-apps/{composite-app-name}/{version}/deployment-intent-groups/{deployment-intent-group-name}/traffic-group-intents/{traffic-group-intent-name}/inbound-intents/{intent-name}/clients/{name}", inboundclientsintentHandler.putHandler).Methods("PUT")
 	router.HandleFunc("/projects/{project}/composite-apps/{composite-app-name}/{version}/deployment-intent-groups/{deployment-intent-group-name}/traffic-group-intents/{traffic-group-intent-name}/inbound-intents/{intent-name}/clients/{name}", inboundclientsintentHandler.deleteHandler).Methods("DELETE")
+
+        controlHandler := controllerHandler{
+                client: setClient(moduleClient.Controller, testClient).(controller.ControllerManager),
+	}
+	router.HandleFunc("/dtc-controllers", controlHandler.createHandler).Methods("POST")
+	router.HandleFunc("/dtc-controllers", controlHandler.getHandler).Methods("GET")
+	router.HandleFunc("/dtc-controllers/{controller-name}", controlHandler.putHandler).Methods("PUT")
+	router.HandleFunc("/dtc-controllers/{controller-name}", controlHandler.getHandler).Methods("GET")
+	router.HandleFunc("/dtc-controllers/{controller-name}", controlHandler.deleteHandler).Methods("DELETE")
 
 	return router
 }

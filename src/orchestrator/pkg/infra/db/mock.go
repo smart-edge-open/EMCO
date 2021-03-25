@@ -11,8 +11,9 @@ import (
 )
 
 type MockDB struct {
-	Items []map[string]map[string][]byte
-	Err   error
+	Items      []map[string]map[string][]byte
+	Err        error
+	MarshalErr error
 }
 
 func (m *MockDB) HealthCheck() error {
@@ -23,10 +24,22 @@ func (m *MockDB) Insert(table string, key Key, query interface{}, tag string, da
 
 	i := make(map[string][]byte)
 	out, _ := json.Marshal(data)
+
+	// store the tag
 	i[tag] = out
+
 	e := make(map[string]map[string][]byte)
 	jkey, _ := json.Marshal(key)
 	e[string(jkey)] = i
+
+	keymap := map[string]interface{}{}
+	json.Unmarshal([]byte(jkey), &keymap)
+
+	// also store all keyvalues so they can be easily retrieved by wildcarding (not just the tags)
+	for k, v := range keymap {
+		i[k], _ = json.Marshal(v)
+	}
+
 	m.Items = append(m.Items, e)
 	return m.Err
 }
@@ -34,9 +47,9 @@ func (m *MockDB) Insert(table string, key Key, query interface{}, tag string, da
 func (m *MockDB) Unmarshal(inp []byte, out interface{}) error {
 	err := json.Unmarshal(inp, out)
 	if err != nil {
-		return pkgerrors.Wrap(err, "Unmarshaling json")
+		return pkgerrors.Wrap(err, "Unmarshaling bson")
 	}
-	return nil
+	return m.MarshalErr
 }
 
 func (m *MockDB) Find(table string, key Key, tag string) ([][]byte, error) {
@@ -47,6 +60,7 @@ func (m *MockDB) Find(table string, key Key, tag string) ([][]byte, error) {
 	var i int
 	var r [][]byte
 	i = 0
+
 	for _, item := range m.Items {
 		for k, _ := range item {
 			s := strings.Split(str, "\"\"}")

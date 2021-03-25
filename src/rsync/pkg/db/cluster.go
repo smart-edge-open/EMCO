@@ -41,8 +41,8 @@ type KubeConfig struct {
 type CloudConfigManager interface {
 	GetCloudConfig(provider string, cluster string, level string, namespace string) (CloudConfig, error)
 	CreateCloudConfig(provider string, cluster string, level string, namespace string, config string) (CloudConfig, error)
-	GetNamespace(provider string, cluster string) (CloudConfig, error)                   // level-0 only
-	SetNamespace(provider string, cluster string, namespace string) (CloudConfig, error) // level-0 only
+	GetNamespace(provider string, cluster string) (string, error)         // level-0 only
+	SetNamespace(provider string, cluster string, namespace string) error // level-0 only
 	DeleteCloudConfig(provider string, cluster string, level string, namespace string) error
 }
 
@@ -194,6 +194,7 @@ func (c *CloudConfigClient) GetNamespace(provider string, cluster string) (strin
 		log.Error("Could not fetch the CloudConfig so can't return namespace", log.Fields{})
 		return "", pkgerrors.Wrap(err, "Could not fetch the CloudConfig so can't return namespace")
 	}
+
 	if len(values) > 1 {
 		log.Error("Multiple CloudConfigs were returned, which was unexpected", log.Fields{})
 		return "", pkgerrors.New("Multiple CloudConfigs were returned, which was unexpected")

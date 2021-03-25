@@ -67,8 +67,13 @@ func (v InboundClientsIntentDbClient) CreateClientsInboundIntent(ici InboundClie
 		InboundClientsIntentName:  ici.Metadata.Name,
 	}
 
+        //Check if the Traffic Group Intent exists
+	_, err := NewTrafficGroupIntentClient().GetTrafficGroupIntent(trafficintentgroupname, project, compositeapp, compositeappversion, deploymentintentgroupname)
+	if err != nil {
+		return InboundClientsIntent{}, pkgerrors.Errorf("Traffic Group Intent %v does not exist", trafficintentgroupname)
+	}
 	//Check if the Inbound Server Intent exists
-	_, err := NewServerInboundIntentClient().GetServerInboundIntent(inboundserverintentname, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname)
+	_, err = NewServerInboundIntentClient().GetServerInboundIntent(inboundserverintentname, project, compositeapp, compositeappversion, deploymentintentgroupname, trafficintentgroupname)
 	if err != nil {
 		return InboundClientsIntent{}, pkgerrors.Errorf("Inbound Server Intent %v does not exist", inboundserverintentname)
 	}
@@ -105,6 +110,8 @@ func (v *InboundClientsIntentDbClient) GetClientsInboundIntent(name, project, co
 	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return InboundClientsIntent{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(value) == 0 {
+		return InboundClientsIntent{}, pkgerrors.New("Inbound clients intent not found")
 	}
 
 	//value is a byte array

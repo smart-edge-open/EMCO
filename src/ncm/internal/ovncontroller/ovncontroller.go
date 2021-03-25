@@ -41,7 +41,10 @@ func Apply(ctxVal interface{}, clusterProvider, cluster string) error {
 			ApiVersion: netintents.NETWORK_APIVERSION,
 			Kind:       netintents.NETWORK_KIND,
 		}
-		crNetwork.Network = intent
+		crNetwork.MetaData.Labels = make(map[string]string)
+		crNetwork.MetaData.Labels[nettypes.NetLabel] = intent.Metadata.Name
+		crNetwork.MetaData.Name = intent.Metadata.Name
+		crNetwork.NetworkSpec = intent.Spec
 		// Produce the yaml CR document for each intent
 		y, err := yaml.Marshal(&crNetwork)
 		if err != nil {
@@ -67,7 +70,10 @@ func Apply(ctxVal interface{}, clusterProvider, cluster string) error {
 			ApiVersion: netintents.PROVIDER_NETWORK_APIVERSION,
 			Kind:       netintents.PROVIDER_NETWORK_KIND,
 		}
-		crProviderNet.ProviderNet = intent
+		//crProviderNet.MetaData.Labels = make(map[string]string)
+		//crProviderNet.MetaData.Labels[nettypes.NetLabel] = intent.Metadata.Name
+		crProviderNet.MetaData.Name = intent.Metadata.Name
+		crProviderNet.ProviderNetSpec = intent.Spec
 		// Produce the yaml CR document for each intent
 		y, err := yaml.Marshal(&crProviderNet)
 		if err != nil {

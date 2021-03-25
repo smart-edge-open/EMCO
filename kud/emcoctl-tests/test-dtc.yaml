@@ -166,9 +166,9 @@ metadata:
   userData1: user data 1
   userData2: user data 2
 spec:
-  application: {{.App5}}
-  applabel: app=http-server
-  servicename: http-service
+  appName: {{.App5}}
+  appLabel: app=http-server
+  serviceName: http-service
   port: 3333
   protocol: TCP
 
@@ -183,9 +183,9 @@ metadata:
   userData1: user data 1
   userData2: user data 2
 spec:
-  application: {{.App4}}
-  applabel: app=http-client
-  servicename: {{.App4}}
+  appName: {{.App4}}
+  appLabel: app=http-client
+  serviceName: {{.App4}}
   namespaces: []
   cidrs: []
 

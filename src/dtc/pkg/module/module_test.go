@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/open-ness/EMCO/src/dtc/pkg/module"
+	 "github.com/open-ness/EMCO/src/orchestrator/pkg/module/controller"
 )
 
 var _ = Describe("Trafficgroupintent", func() {
@@ -21,6 +22,7 @@ var _ = Describe("Trafficgroupintent", func() {
 		client.TrafficGroupIntent = module.NewTrafficGroupIntentClient()
 		client.ServerInboundIntent = module.NewServerInboundIntentClient()
 		client.ClientsInboundIntent = module.NewClientsInboundIntentClient()
+		client.Controller = controller.NewControllerClient("dtccontroller", "dtccontrollermetadata")
 	})
 
 	Describe("Create new client", func() {

@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sdewan
+  labels:
+    app: sdewan
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sdewan
+  template:
+    metadata:
+      labels:
+        app: sdewan
+    spec:
+      containers:
+      - name: sdewan
+        image: rkamudhan/netshoot:v1.0
+        imagePullPolicy: IfNotPresent
+        stdin: true
+        tty: true

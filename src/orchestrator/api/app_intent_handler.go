@@ -45,7 +45,19 @@ func (h appIntentHandler) createAppIntentHandler(w http.ResponseWriter, r *http.
 	err, httpError := validation.ValidateJsonSchemaData(appIntentJSONFile, a)
 	if err != nil {
 		log.Error(err.Error(), log.Fields{})
-		http.Error(w, err.Error(), httpError)
+		if strings.Contains(err.Error(), "provider-name is required") {
+			http.Error(w, "Missing provider-name in an intent", httpError)
+		} else if strings.Contains(err.Error(), "cluster-name is required") {
+			http.Error(w, "Missing cluster-name or cluster-label-name", httpError)
+		} else if strings.Contains(err.Error(), "Must not validate the schema (not)") {
+			http.Error(w, "Only one of cluster name or cluster label allowed", httpError)
+		} else if strings.Contains(err.Error(), "app-name is required") {
+			http.Error(w, "Missing app-name for the intent", httpError)
+		}else if strings.Contains(err.Error(), "name is required") {
+			http.Error(w, "Missing name for the intent", httpError)
+		} else {
+			http.Error(w, err.Error(), httpError)
+		}
 		return
 	}
 

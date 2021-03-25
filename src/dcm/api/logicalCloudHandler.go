@@ -17,9 +17,10 @@ import (
 
 // logicalCloudHandler is used to store backend implementations objects
 type logicalCloudHandler struct {
-	client        dcm.LogicalCloudManager
-	clusterClient dcm.ClusterManager
-	quotaClient   dcm.QuotaManager
+	client               dcm.LogicalCloudManager
+	clusterClient        dcm.ClusterManager
+	quotaClient          dcm.QuotaManager
+	userPermissionClient dcm.UserPermissionManager
 }
 
 // CreateHandler handles the creation of a logical cloud
@@ -249,8 +250,15 @@ func (h logicalCloudHandler) instantiateHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	userPermissions, err := h.userPermissionClient.GetAllUserPerms(project, name)
+	if err != nil {
+		log.Error(err.Error(), log.Fields{})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	// Instantiate the Logical Cloud
-	err = dcm.Instantiate(project, lc, clusters, quotas)
+	err = dcm.Instantiate(project, lc, clusters, quotas, userPermissions)
 	if err != nil {
 		log.Error(err.Error(), log.Fields{})
 		if strings.Contains(err.Error(), "The Logical Cloud can't be re-instantiated yet, it is being terminated") {
@@ -265,6 +273,10 @@ func (h logicalCloudHandler) instantiateHandler(w http.ResponseWriter, r *http.R
 			http.Error(w, err.Error(), http.StatusConflict)
 		} else if strings.Contains(err.Error(), "The clusters associated to this L0 logical cloud don't all share the same namespace name") {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+		} else if strings.Contains(err.Error(), "Level-1 Logical Clouds require a Quota to be associated first") {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		} else if strings.Contains(err.Error(), "Level-1 Logical Clouds require a User Permission assigned to its primary namespace") {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 		} else {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -276,7 +288,7 @@ func (h logicalCloudHandler) instantiateHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusAccepted)
 }
 
 // terminateHandler handles terminating a particular logical cloud

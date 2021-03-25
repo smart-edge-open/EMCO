@@ -6,7 +6,7 @@ REGISTRY=${EMCODOCKERREPO}
 #EMCOBUILDROOT is now container's root DIR
 EMCOBUILDROOT=/repo
 BIN_PATH=${EMCOBUILDROOT}/bin
-TAG=$1
+TAG=${TAG}
 
 create_helm_chart() {
   echo "Creating helm chart"
@@ -59,9 +59,10 @@ EOF
   rm -rf ${BIN_PATH}/helm/monitor
 }
 
-
-if [ -z ${TAG} ]; then
-  TAG=${BRANCH}-daily-`date +"%m%d%y"`
+if [ "${BUILD_CAUSE}" != "RELEASE" ];then
+  if [ -z ${TAG} ]; then
+    TAG=${BRANCH}-daily-`date +"%m%d%y"`
+  fi
 fi
 
 # check if it is a cron scheduled build
@@ -76,7 +77,7 @@ if [ "${BUILD_CAUSE}" == "RELEASE" ]; then
   if [ ! -z ${EMCOSRV_RELEASE_TAG} ]; then
     TAG=${EMCOSRV_RELEASE_TAG}
   else
-    TAG=`git tag --points-at HEAD`
+    TAG=${TAG}
   fi
   if [ -z ${TAG} ]; then
     echo "HEAD has no tag associated with it"

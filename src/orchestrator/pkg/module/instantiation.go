@@ -5,7 +5,6 @@ package module
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -101,6 +100,9 @@ type InstantiationManager interface {
 	StatusResourcesByApp(p, ca, v, di, qInstance, qType string, fApps, fClusters []string) (DeploymentResourcesByAppStatus, error)
 	Terminate(p string, ca string, v string, di string) error
 	Stop(p string, ca string, v string, di string) error
+	Migrate(p string, ca string, v string, tCav string, di string, tDi string) error
+	Update(p string, ca string, v string, di string) (int64, error)
+	Rollback(p string, ca string, v string, di string, rbRev string) error
 }
 
 // InstantiationClientDbInfo consists of storeName and tagState
@@ -137,6 +139,8 @@ func (c InstantiationClient) Approve(p string, ca string, v string, di string) e
 	case state.StateEnum.Terminated:
 		break
 	case state.StateEnum.Created:
+		break
+	case state.StateEnum.Updated:
 		break
 	case state.StateEnum.Applied:
 		return pkgerrors.Errorf("DeploymentIntentGroup is in an invalid state" + stateVal)
@@ -177,8 +181,8 @@ func getOverrideValuesByAppName(ov []OverrideValues, a string) map[string]string
 }
 
 /*
-findGenericPlacementIntent takes in projectName, CompositeAppName, CompositeAppVersion, DeploymentIntentName
-and returns the name of the genericPlacementIntentName. Returns empty value if string not found.
+	findGenericPlacementIntent takes in projectName, CompositeAppName, CompositeAppVersion, DeploymentIntentName
+	and returns the name of the genericPlacementIntentName. Returns empty value if string not found.
 */
 func findGenericPlacementIntent(p, ca, v, di string) (string, error) {
 	var gi string
@@ -198,7 +202,7 @@ func findGenericPlacementIntent(p, ca, v, di string) (string, error) {
 
 // GetSortedTemplateForApp returns the sorted templates.
 //It takes in arguments - appName, project, compositeAppName, releaseName, compositeProfileName, array of override values
-func GetSortedTemplateForApp(appName, p, ca, v, rName, cp string, overrideValues []OverrideValues) ([]helm.KubernetesResourceTemplate, error) {
+func GetSortedTemplateForApp(appName, p, ca, v, rName, cp, namespace string, overrideValues []OverrideValues) ([]helm.KubernetesResourceTemplate, error) {
 
 	log.Info(":: Processing App ::", log.Fields{"appName": appName})
 
@@ -236,7 +240,7 @@ func GetSortedTemplateForApp(appName, p, ca, v, rName, cp string, overrideValues
 		}
 	}
 
-	sortedTemplates, err = helm.NewTemplateClient("", "default", rName,
+	sortedTemplates, err = helm.NewTemplateClient("", namespace, rName,
 		ManifestFileName).Resolve(appContent,
 		appProfileContent, overrideValuesOfAppStr,
 		appName)
@@ -270,72 +274,15 @@ func cleanTmpfiles(sortedTemplates []helm.KubernetesResourceTemplate) error {
 	return nil
 }
 
-/*
-Instantiate methods takes in projectName, compositeAppName, compositeAppVersion,
-DeploymentIntentName. This method is responsible for template resolution, intent
-resolution, creation and saving of context for saving into etcd.
-*/
-func (c InstantiationClient) Instantiate(p string, ca string, v string, di string) error {
-
-	log.Info(":: Orchestrator Instantiate ::", log.Fields{"project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": di})
-	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(di, p, ca, v)
-	if err != nil {
-		return pkgerrors.Wrap(err, "Not finding the deploymentIntentGroup")
-	}
-
-	s, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(di, p, ca, v)
-	if err != nil {
-		return pkgerrors.Errorf("Error retrieving DeploymentIntentGroup stateInfo: " + di)
-	}
-	stateVal, err := state.GetCurrentStateFromStateInfo(s)
-	if err != nil {
-		return pkgerrors.Errorf("Error getting current state from DeploymentIntentGroup stateInfo: " + di)
-	}
-	switch stateVal {
-	case state.StateEnum.Approved:
-		break
-	case state.StateEnum.Terminated:
-		break // TODO - ideally, should check that all resources have completed being terminated
-	case state.StateEnum.TerminateStopped:
-		break
-	case state.StateEnum.Created:
-		return pkgerrors.Errorf("DeploymentIntentGroup must be Approved before instantiating" + di)
-	case state.StateEnum.Applied:
-		return pkgerrors.Errorf("DeploymentIntentGroup is in an invalid state" + di)
-	case state.StateEnum.InstantiateStopped:
-		return pkgerrors.Errorf("DeploymentIntentGroup has already been instantiated and stopped" + di)
-	case state.StateEnum.Instantiated:
-		return pkgerrors.Errorf("DeploymentIntentGroup has already been instantiated" + di)
-	default:
-		return pkgerrors.Errorf("DeploymentIntentGroup is in an unknown state" + stateVal)
-	}
-
-	rName := dIGrp.Spec.Version //rName is releaseName
-	overrideValues := dIGrp.Spec.OverrideValuesObj
-	cp := dIGrp.Spec.Profile
-	lc := dIGrp.Spec.LogicalCloud
-
-	gIntent, err := findGenericPlacementIntent(p, ca, v, di)
-	if err != nil {
-		return err
-	}
-
-	log.Info(":: The name of the GenPlacIntent ::", log.Fields{"GenPlmtIntent": gIntent})
-	log.Info(":: DeploymentIntentGroup, ReleaseName, CompositeProfile ::", log.Fields{"dIGrp": dIGrp.MetaData.Name, "releaseName": rName, "cp": cp})
-
-	allApps, err := NewAppClient().GetApps(p, ca, v)
-	if err != nil {
-		return pkgerrors.Wrap(err, "Not finding the apps")
-	}
-
+func validateLogicalCloud(p string, lc string, dcmCloudClient *LogicalCloudClient) error {
 	// check that specified logical cloud is already instantiated
-	dcmCloudClient := NewLogicalCloudClient()
 	logicalCloud, err := dcmCloudClient.Get(p, lc)
-	log.Info(":: logicalCloud ::", log.Fields{"logicalCloud": logicalCloud})
 	if err != nil {
 		log.Error("Failed to obtain Logical Cloud specified", log.Fields{"error": err.Error()})
 		return pkgerrors.Wrap(err, "Failed to obtain Logical Cloud specified")
 	}
+	log.Info(":: logicalCloud ::", log.Fields{"logicalCloud": logicalCloud})
+
 	lckey := LogicalCloudKey{
 		Project:          p,
 		LogicalCloudName: lc,
@@ -349,12 +296,6 @@ func (c InstantiationClient) Instantiate(p string, ca string, v string, di strin
 		log.Error("The Logical Cloud has never been instantiated", log.Fields{"cid": cid})
 		return pkgerrors.New("The Logical Cloud has never been instantiated")
 	}
-
-	// the namespace where the resources of this app are supposed to deployed to
-	namespace := logicalCloud.Specification.NameSpace
-	log.Info("Namespace for this logical cloud", log.Fields{"namespace": namespace})
-	// level of the logical cloud (0 - admin, 1 - custom)
-	level := logicalCloud.Specification.Level
 
 	// make sure rsync status for this logical cloud is Instantiated (instantiated),
 	// otherwise the cloud isn't ready to receive the application being instantiated
@@ -385,202 +326,105 @@ func (c InstantiationClient) Instantiate(p string, ca string, v string, di strin
 		return pkgerrors.New("The Logical Cloud isn't in an expected status so not taking any action.")
 	}
 
+	return nil
+}
+
+func getLogicalCloudInfo(p string, lc string) ([]Cluster, string, string, error) {
+	dcmCloudClient := NewLogicalCloudClient()
+	logicalCloud, _ := dcmCloudClient.Get(p, lc)
+	if err := validateLogicalCloud(p, lc, dcmCloudClient); err != nil {
+		return nil, "", "", err
+	}
+
+	// the namespace where the resources of this app are supposed to deployed to
+	namespace := logicalCloud.Specification.NameSpace
+	log.Info("Namespace for this logical cloud", log.Fields{"namespace": namespace})
+	// level of the logical cloud (0 - admin, 1 - custom)
+	level := logicalCloud.Specification.Level
+
 	// get all clusters from specified logical cloud (LC)
 	// [candidate in the future for emco-lib]
 	dcmClusterClient := NewClusterClient()
 	dcmClusters, _ := dcmClusterClient.GetAllClusters(p, lc)
 	log.Info(":: dcmClusters ::", log.Fields{"dcmClusters": dcmClusters})
+	return dcmClusters, namespace, level, nil
+}
 
-	cca, err := makeAppContextForCompositeApp(p, ca, v, rName, di, namespace, level)
-	if err != nil {
-		return err
+func checkClusters(listOfClusters gpic.ClusterList, dcmClusters []Cluster) error {
+	// make sure LC can support DIG by validating DIG clusters against LC clusters
+	var mandatoryClusters []gpic.ClusterWithName
+
+	for _, mc := range listOfClusters.MandatoryClusters {
+		for _, c := range mc.Clusters {
+			mandatoryClusters = append(mandatoryClusters, c)
+		}
+
 	}
-	context := cca.context
-	ctxval := cca.ctxval
-	compositeHandle := cca.compositeAppHandle
-
-	var appOrderInstr struct {
-		Apporder []string `json:"apporder"`
-	}
-
-	var appDepInstr struct {
-		Appdep map[string]string `json:"appdependency"`
-	}
-	appdep := make(map[string]string)
-
-	// Add composite app using appContext
-	for _, eachApp := range allApps {
-		appOrderInstr.Apporder = append(appOrderInstr.Apporder, eachApp.Metadata.Name)
-		appdep[eachApp.Metadata.Name] = "go"
-
-		sortedTemplates, err := GetSortedTemplateForApp(eachApp.Metadata.Name, p, ca, v, rName, cp, overrideValues)
-
-		if err != nil {
-			deleteAppContext(context)
-			log.Error("Unable to get the sorted templates for app", log.Fields{})
-			return pkgerrors.Wrap(err, "Unable to get the sorted templates for app")
-		}
-
-		log.Info(":: Resolved all the templates ::", log.Fields{"appName": eachApp.Metadata.Name, "SortedTemplate": sortedTemplates})
-
-		resources, err := getResources(sortedTemplates)
-		if err != nil {
-			deleteAppContext(context)
-			return pkgerrors.Wrapf(err, "Unable to get the resources for app :: %s", eachApp.Metadata.Name)
-		}
-
-		defer cleanTmpfiles(sortedTemplates)
-
-		specData, err := NewAppIntentClient().GetAllIntentsByApp(eachApp.Metadata.Name, p, ca, v, gIntent, di)
-		if err != nil {
-			deleteAppContext(context)
-			return pkgerrors.Wrap(err, "Unable to get the intents for app")
-		}
-
-		// listOfClusters shall have both mandatoryClusters and optionalClusters where the app needs to be installed.
-		listOfClusters, err := gpic.IntentResolver(specData.Intent)
-		if err != nil {
-			deleteAppContext(context)
-			return pkgerrors.Wrap(err, "Unable to get the intents resolved for app")
-		}
-
-		log.Info(":: listOfClusters ::", log.Fields{"listOfClusters": listOfClusters})
-		if listOfClusters.MandatoryClusters == nil && listOfClusters.OptionalClusters == nil {
-			deleteAppContext(context)
-			log.Error("No compatible clusters have been provided to the Deployment Intent Group", log.Fields{"listOfClusters": listOfClusters})
-			return pkgerrors.New("No compatible clusters have been provided to the Deployment Intent Group")
-		}
-
-		// make sure LC can support DIG by validating DIG clusters against LC clusters
-		var mandatoryClusters []gpic.ClusterWithName
-
-		for _, mc := range listOfClusters.MandatoryClusters {
-			for _, c := range mc.Clusters {
-				mandatoryClusters = append(mandatoryClusters, c)
-			}
-
-		}
-		for _, dcluster := range dcmClusters {
-			for i, cluster := range mandatoryClusters {
-				if cluster.ProviderName == dcluster.Specification.ClusterProvider && cluster.ClusterName == dcluster.Specification.ClusterName {
-					// remove the cluster from slice since it's part of the LC
-					lastIndex := len(mandatoryClusters) - 1
-					mandatoryClusters[i] = mandatoryClusters[lastIndex]
-					mandatoryClusters = mandatoryClusters[:lastIndex]
-					// we're done checking this DCM cluster
-					break
-				}
+	for _, dcluster := range dcmClusters {
+		for i, cluster := range mandatoryClusters {
+			if cluster.ProviderName == dcluster.Specification.ClusterProvider && cluster.ClusterName == dcluster.Specification.ClusterName {
+				// remove the cluster from slice since it's part of the LC
+				lastIndex := len(mandatoryClusters) - 1
+				mandatoryClusters[i] = mandatoryClusters[lastIndex]
+				mandatoryClusters = mandatoryClusters[:lastIndex]
+				// we're done checking this DCM cluster
+				break
 			}
 		}
-		if len(mandatoryClusters) > 0 {
-			log.Error("The specified Logical Cloud doesn't provide the mandatory clusters", log.Fields{"mandatoryClusters": mandatoryClusters})
-			return pkgerrors.New("The specified Logical Cloud doesn't provide the mandatory clusters")
-		}
-
-		//BEGIN: storing into etcd
-		// Add an app to the app context
-		apphandle, err := context.AddApp(compositeHandle, eachApp.Metadata.Name)
-		if err != nil {
-			deleteAppContext(context)
-			return pkgerrors.Wrap(err, "Error adding App to AppContext")
-		}
-		err = addClustersToAppContext(listOfClusters, context, apphandle, resources, namespace)
-		if err != nil {
-			deleteAppContext(context)
-			return pkgerrors.Wrap(err, "Error while adding cluster and resources to app")
-		}
-		err = verifyResources(listOfClusters, context, resources, eachApp.Metadata.Name)
-		if err != nil {
-			deleteAppContext(context)
-			return pkgerrors.Wrap(err, "Error while verifying resources in app: ")
-		}
+	}
+	if len(mandatoryClusters) > 0 {
+		log.Error("The specified Logical Cloud doesn't provide the mandatory clusters", log.Fields{"mandatoryClusters": mandatoryClusters})
+		return pkgerrors.New("The specified Logical Cloud doesn't provide the mandatory clusters")
 	}
 
-	jappOrderInstr, err := json.Marshal(appOrderInstr)
-	if err != nil {
-		deleteAppContext(context)
-		return pkgerrors.Wrap(err, "Error marshalling app order instruction")
-	}
-	appDepInstr.Appdep = appdep
-	jappDepInstr, err := json.Marshal(appDepInstr)
-	if err != nil {
-		deleteAppContext(context)
-		return pkgerrors.Wrap(err, "Error marshalling app dependency instruction")
-	}
-	_, err = context.AddInstruction(compositeHandle, "app", "order", string(jappOrderInstr))
-	if err != nil {
-		deleteAppContext(context)
-		return pkgerrors.Wrap(err, "Error adding app dependency instruction")
-	}
-	_, err = context.AddInstruction(compositeHandle, "app", "dependency", string(jappDepInstr))
-	if err != nil {
-		deleteAppContext(context)
-		return pkgerrors.Wrap(err, "Error adding app dependency instruction")
-	}
-	//END: storing into etcd
+	return nil
+}
 
-	// BEGIN: scheduler code
+/*
+Instantiate methods takes in projectName, compositeAppName, compositeAppVersion,
+DeploymentIntentName. This method is responsible for template resolution, intent
+resolution, creation and saving of context for saving into etcd.
+*/
+func (c InstantiationClient) Instantiate(p string, ca string, v string, di string) error {
 
-	pl, mapOfControllers, err := getPrioritizedControllerList(p, ca, v, di)
+	log.Info(":: Orchestrator Instantiate ::", log.Fields{"project": p, "composite-app": ca, "composite-app-ver": v, "dep-group": di})
+
+	// in case of migrate dig comes from JSON body
+	dIGrp, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroup(di, p, ca, v)
 	if err != nil {
-		return pkgerrors.Wrap(err, "Error adding getting prioritized controller list")
+		return pkgerrors.Wrap(err, "Not finding the deploymentIntentGroup")
 	}
 
-	log.Info("Orchestrator Instantiate .. Priority Based List ", log.Fields{"PlacementControllers::": pl.pPlaCont,
-		"ActionControllers::": pl.pActCont, "mapOfControllers::": mapOfControllers})
-	// Invoke all Placement Controllers communication interface in loop
-	err = callGrpcForPlacementControllerList(pl.pPlaCont, ctxval)
+	// handle state info
+	s, err := handleStateInfo(p, ca, v, di)
 	if err != nil {
-		deleteAppContext(context)
-		log.Error("Orchestrator Instantiate .. Error calling PlacementController gRPC.", log.Fields{"all-placement-controllers": pl.pPlaCont, "err": err})
-		return pkgerrors.Wrap(err, "Error calling PlacementController gRPC")
+		return pkgerrors.Errorf("Error in handleStateInfo for DeploymentIntent:: " + di)
 	}
 
-	// delete extra clusters from group map
-	err = deleteExtraClusters(allApps, context)
+	// BEGIN : Make app context
+	instantiator := Instantiator{p, ca, v, di, dIGrp}
+	cca, err := instantiator.MakeAppContext()
 	if err != nil {
-		deleteAppContext(context)
-		return pkgerrors.Wrap(err, "Error deleting extra clusters")
+		return pkgerrors.Wrap(err, "Error in making AppContext")
 	}
+	// END : Make app context
 
-	// Invoke all Action Controllers communication interface
-	err = callGrpcForControllerList(pl.pActCont, mapOfControllers, ctxval)
-	log.Warn("", log.Fields{"pl.pActCont::": pl.pActCont})
-	log.Warn("", log.Fields{"mapOfControllers::": mapOfControllers})
-	log.Warn("", log.Fields{"ctxval::": ctxval})
+	// BEGIN : callScheduler
+	err = callScheduler(cca.context, cca.ctxval, p, ca, v, di)
 	if err != nil {
-		deleteAppContext(context)
-		return pkgerrors.Wrap(err, "Error calling gRPC for action controller list")
+		return pkgerrors.Wrap(err, "Error in callScheduler")
 	}
-	// END: Scheduler code
+	// END : callScheduler
 
 	// BEGIN : Rsync code
-	err = callRsyncInstall(ctxval)
+	err = callRsyncInstall(cca.ctxval)
 	if err != nil {
-		deleteAppContext(context)
+		deleteAppContext(cca.context)
 		return pkgerrors.Wrap(err, "Error calling rsync")
 	}
 	// END : Rsync code
 
-	// BEGIN:: save the context in the orchestrator db record
-	key := DeploymentIntentGroupKey{
-		Name:         di,
-		Project:      p,
-		CompositeApp: ca,
-		Version:      v,
-	}
-	a := state.ActionEntry{
-		State:     state.StateEnum.Instantiated,
-		ContextId: ctxval.(string),
-		TimeStamp: time.Now(),
-	}
-	s.Actions = append(s.Actions, a)
-	err = db.DBconn.Insert(c.db.storeName, key, nil, c.db.tagState, s)
-	if err != nil {
-		log.Warn(":: Error updating DeploymentIntentGroup state in DB ::", log.Fields{"Error": err.Error(), "GPIntent": gIntent, "DeploymentIntentGroup": di, "CompositeApp": ca, "CompositeAppVersion": v, "Project": p, "AppContext": ctxval.(string)})
-		return pkgerrors.Wrap(err, "Error adding DeploymentIntentGroup state to DB")
-	}
-	// END:: save the context in the orchestrator db record
+	err = storeAppContextIntoMetaDB(cca.ctxval, c.db.storeName, c.db.tagState, s, p, ca, v, di)
 
 	log.Info(":: Done with instantiation call to rsync... ::", log.Fields{"CompositeAppName": ca})
 	return err

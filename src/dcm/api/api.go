@@ -33,10 +33,16 @@ func NewRouter(
 		quotaClient = module.NewQuotaClient()
 	}
 
+	if userPermissionClient == nil {
+		userPermissionClient = module.NewUserPermissionClient()
+	}
+
 	// Set up Logical Cloud API
-	logicalCloudHandler := logicalCloudHandler{client: logicalCloudClient,
-		clusterClient: clusterClient,
-		quotaClient:   quotaClient,
+	logicalCloudHandler := logicalCloudHandler{
+		client:               logicalCloudClient,
+		clusterClient:        clusterClient,
+		quotaClient:          quotaClient,
+		userPermissionClient: userPermissionClient,
 	}
 	lcRouter := router.PathPrefix("/v2/projects/{project-name}").Subrouter()
 	lcRouter.HandleFunc(
@@ -86,10 +92,6 @@ func NewRouter(
 		"/logical-clouds/{logical-cloud-name}/cluster-references/{cluster-reference}/kubeconfig",
 		clusterHandler.getConfigHandler).Methods("GET")
 
-	// Set up User Permission API
-	if userPermissionClient == nil {
-		userPermissionClient = module.NewUserPermissionClient()
-	}
 	userPermissionHandler := userPermissionHandler{client: userPermissionClient}
 	upRouter := router.PathPrefix("/v2/projects/{project-name}").Subrouter()
 	upRouter.HandleFunc(

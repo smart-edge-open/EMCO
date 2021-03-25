@@ -1,90 +1,56 @@
 {
   "$schema": "http://json-schema.org/schema#",
+  "definitions": {
+    "clusterSpecific": {
+      "type": "object",
+      "properties": {
+        "provider-name":                { "type": "string", "example": "p1",  "maxLength": 128},
+        "cluster-label-name":           { "type": "string", "example": "east",  "maxLength": 128 },
+        "cluster-name":                 { "type": "string", "example": "c1",  "maxLength": 128 }
+      },
+      "oneOf" : [ { "required" : ["provider-name", "cluster-name"], "not": {"required": ["cluster-label-name"]} },
+                  { "required" : ["provider-name", "cluster-label-name"], "not": {"required": ["cluster-name"]} } ]
+    },
+    "allOfItem": {
+      "type": "object",
+      "properties": {
+        "provider-name":                { "type": "string", "example": "p1",  "maxLength": 128},
+        "cluster-label-name":           { "type": "string", "example": "east",  "maxLength": 128 },
+        "cluster-name":                 { "type": "string", "example": "c1",  "maxLength": 128 },
+        "anyOf": { "items": {"$ref": "#/definitions/clusterSpecific" }, "type": "array"}
+      },
+      "oneOf" : [ { "required" : ["provider-name", "cluster-name"], "not": {"required": ["cluster-label-name"]} }, { "required" : ["anyOf"]},
+                  { "required" : ["provider-name", "cluster-label-name"], "not": {"required": ["cluster-name"]} } ]
+    }
+  },
   "type": "object",
   "properties": {
     "spec": {
+      "required": ["app-name", "intent"],
       "properties": {
           "app-name": {
             "type": "string",
             "example": "appl",
             "maxLength": 128
           },
-          "anyOf": {
-            "items": {
-              "type": "object",
-              "description": "AnyOf consists of Array of ProviderName & ClusterLabelNames",
-              "properties": {
-                "cluster-label-name": {
-                  "type": "string",
-                  "example": "east",
-                  "maxLength": 128
-                },
-                "provider-name": {
-                  "type": "string",
-                  "example": "provider1",
-                  "maxLength": 128
-                },
-                "cluster-name": {
-                  "type": "string",
-                  "example": "cluster1",
-                  "maxLength": 128
-                }
-              }
+          "intent": {
+            "properties": {
+            "anyOf": {
+              "items": {"$ref": "#/definitions/clusterSpecific" },
+              "type": "array"
             },
-            "type": "array"
-          },
-          "allOf": {
-            "items": {
-              "type": "object",
-              "description": "AllOf ProviderName, ClusterName, ClusterLabelName and AnyOfArray",
-              "properties": {
-                "provider-name": {
-                  "type": "string",
-                  "example": "provider2",
-                  "maxLength": 128
+            "allOf": {
+              "items": {
+                "$ref": "#/definitions/allOfItem"
                 },
-                "cluster-label-name": {
-                  "type": "string",
-                  "example": "west",
-                  "maxLength": 128
-                },
-                "anyOf": {
-                  "items": {
-                    "type": "object",
-                    "description": "AnyOf consists of Array of ProviderName & ClusterLabelNames",
-                    "properties": {
-                      "cluster-label-name": {
-                        "type": "string",
-                        "example": "east",
-                        "maxLength": 128
-                      },
-                      "provider-name": {
-                        "type": "string",
-                        "example": "provider1",
-                        "maxLength": 128
-                      },
-                      "cluster-name": {
-                        "type": "string",
-                        "example": "cluster1",
-                        "maxLength": 128
-                      }
-                    }
-                  },
-                  "type": "array"
-                },
-                "cluster-name": {
-                  "type": "string",
-                  "example": "cluster2",
-                  "maxLength": 128
-                }
+                "type": "array"
               }
-            },
-            "type": "array"
+            }
           }
         }
-    },
+      },
+
     "metadata": {
-      "required": ["name"],
       "properties": {
         "userData2": {
           "description": "User relevant data for the resource",
@@ -102,8 +68,8 @@
           "description": "Name of the resource",
           "type": "string",
           "example": "ResName",
-          "maxLength": 128,
-          "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+          "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$",
+          "maxLength": 128
         },
         "description": {
           "description": "Description for the resource",
@@ -111,7 +77,8 @@
           "example": "Resource description",
           "maxLength": 1024
         }
-      }
+      },
+      "required": ["name"]
     }
   }
 }

@@ -9,6 +9,8 @@ set -o pipefail
 
 HOST_IP=${HOST_IP:-"oops"}
 KUBE_PATH=${KUBE_PATH:-"oops"}
+PRIVILEGED=${2:-"admin"}
+
 # tar files
 test_folder=../tests/
 demo_folder=../demo/
@@ -37,7 +39,13 @@ function create {
     Cluster1: cluster1
     ClusterLabel: edge-cluster
     ClusterLabelNetworkPolicy: networkpolicy-supported
+    Cluster1Ref: cluster1-ref
     AdminCloud: default
+    PrivilegedCloud: privileged-cloud
+    PrimaryNamespace: ns1
+    ClusterQuota: quota1
+    StandardPermission: standard-permission
+    PrivilegedPermission: privileged-permission
     CompositeApp: prometheus-collectd-composite-app
     App1: prometheus-operator
     App2: collectd
@@ -71,9 +79,11 @@ function create {
     GacPort: 30493
     OvnPort: 30473
     DtcPort: 30483
+    NpsPort: 30485
     HostIP: $HOST_IP
 
 NET
+
 cat << NET > emco-cfg.yaml
   orchestrator:
     host: $HOST_IP
@@ -97,6 +107,230 @@ cat << NET > emco-cfg.yaml
    host: $HOST_IP
    port: 30481
 NET
+
+# head of prerequisites.yaml
+cat << NET > prerequisites.yaml
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+---
+#create project
+version: emco/v2
+resourceContext:
+  anchor: projects
+metadata :
+   name: {{.ProjectName}}
+---
+#creating controller entries
+version: emco/v2
+resourceContext:
+  anchor: controllers
+metadata :
+   name: rsync
+spec:
+  host:  {{.HostIP}}
+  port: {{.RsyncPort}}
+
+---
+version: emco/v2
+resourceContext:
+  anchor: controllers
+metadata :
+   name: dtc
+spec:
+  host: {{.HostIP}}
+  port: {{.DtcPort}}
+  type: "action"
+  priority: 1
+
+---
+#creating dtc controller entries
+version: emco/v2
+resourceContext:
+  anchor: dtc-controllers
+metadata :
+   name: nps
+spec:
+  host:  {{.HostIP}}
+  port: {{.NpsPort}}
+  type: "action"
+  priority: 1
+
+---
+#creating cluster provider
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers
+metadata :
+   name: {{.ClusterProvider}}
+
+---
+#creating cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters
+metadata :
+   name: {{.Cluster1}}
+file:
+  {{.KubeConfig}}
+
+---
+#Add label cluster
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster1}}/labels
+label-name: {{.ClusterLabel}}
+
+NET
+
+if [ "$PRIVILEGED" = "privileged" ]; then
+# rest of prerequisites.yaml for a privileged cloud
+cat << NET >> prerequisites.yaml
+---
+#create privileged logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds
+metadata:
+  name: {{.PrivilegedCloud}}
+spec:
+  namespace: {{.PrimaryNamespace}}
+  user:
+    user-name: user-1
+    type: certificate
+
+---
+#create cluster quotas
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.PrivilegedCloud}}/cluster-quotas
+metadata:
+    name: {{.ClusterQuota}}
+spec:
+    limits.cpu: '400'
+    limits.memory: 1000Gi
+    requests.cpu: '300'
+    requests.memory: 900Gi
+    requests.storage: 500Gi
+    requests.ephemeral-storage: '500'
+    limits.ephemeral-storage: '500'
+    persistentvolumeclaims: '500'
+    pods: '500'
+    configmaps: '1000'
+    replicationcontrollers: '500'
+    resourcequotas: '500'
+    services: '500'
+    services.loadbalancers: '500'
+    services.nodeports: '500'
+    secrets: '500'
+    count/replicationcontrollers: '500'
+    count/deployments.apps: '500'
+    count/replicasets.apps: '500'
+    count/statefulsets.apps: '500'
+    count/jobs.batch: '500'
+    count/cronjobs.batch: '500'
+    count/deployments.extensions: '500'
+
+---
+#add primary user permission
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.PrivilegedCloud}}/user-permissions
+metadata:
+    name: {{.StandardPermission}}
+spec:
+    namespace: {{.PrimaryNamespace}}
+    apiGroups:
+    - ""
+    - "apps"
+    - "k8splugin.io"
+    resources:
+    - secrets
+    - pods
+    - configmaps
+    - services
+    - deployments
+    - resourcebundlestates
+    verbs:
+    - get
+    - watch
+    - list
+    - create
+
+---
+#add privileged cluster-wide user permission
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.PrivilegedCloud}}/user-permissions
+metadata:
+    name: {{.PrivilegedPermission}}
+spec:
+    namespace: ""
+    apiGroups:
+    - "*"
+    resources:
+    - "*"
+    verbs:
+    - "*"
+
+---
+#add cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.PrivilegedCloud}}/cluster-references
+metadata:
+  name: {{.Cluster1Ref}}
+spec:
+  cluster-provider: {{.ClusterProvider}}
+  cluster-name: {{.Cluster1}}
+  loadbalancer-ip: "0.0.0.0"
+
+NET
+
+# instantiation.yaml specifically to instantiate a privileged logical cloud
+cat << NET >> instantiation.yaml
+---
+#instantiate logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.PrivilegedCloud}}/instantiate
+
+NET
+
+else
+# rest of prerequisites.yaml for an admin cloud
+cat << NET >> prerequisites.yaml
+---
+#create admin logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds
+metadata:
+  name: {{.AdminCloud}}
+spec:
+  level: "0"
+
+---
+#add cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.AdminCloud}}/cluster-references
+metadata:
+  name: {{.Cluster1Ref}}
+spec:
+  cluster-provider: {{.ClusterProvider}}
+  cluster-name: {{.Cluster1}}
+  loadbalancer-ip: "0.0.0.0"
+
+---
+#instantiate logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.AdminCloud}}/instantiate
+
+NET
+
+fi
 
 }
 

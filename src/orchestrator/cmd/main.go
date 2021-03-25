@@ -48,7 +48,7 @@ func main() {
 		Addr:    ":" + config.GetConfiguration().ServicePort,
 	}
 
-	controller.NewControllerClient().InitControllers()
+	controller.NewControllerClient("controller", "controllermetadata").InitControllers()
 
 	connectionsClose := make(chan struct{})
 	go func() {

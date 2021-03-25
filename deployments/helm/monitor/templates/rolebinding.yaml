@@ -4,9 +4,11 @@ kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: monitor
+  namespace: {{ .Release.Namespace }}
 subjects:
 - kind: ServiceAccount
   name: monitor
+  namespace: {{ .Release.Namespace }}
 roleRef:
   kind: Role
   name: monitor

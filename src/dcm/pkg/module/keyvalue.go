@@ -69,6 +69,7 @@ func (v *KeyValueClient) CreateKVPair(project, logicalCloud string, c KeyValue) 
 		LogicalCloudName: logicalCloud,
 		KeyValueName:     c.MetaData.KeyValueName,
 	}
+	lcClient := NewLogicalCloudClient()
 
 	//Check if project exist
 	err := CheckProject(project)
@@ -76,7 +77,7 @@ func (v *KeyValueClient) CreateKVPair(project, logicalCloud string, c KeyValue) 
 		return KeyValue{}, pkgerrors.New("Unable to find the project")
 	}
 	//check if logical cloud exists
-	err = CheckLogicalCloud(project, logicalCloud)
+	err = CheckLogicalCloud(lcClient, project, logicalCloud)
 	if err != nil {
 		return KeyValue{}, pkgerrors.New("Unable to find the logical cloud")
 	}

@@ -12,7 +12,9 @@ require (
 	github.com/open-ness/EMCO/src/orchestrator v0.0.0-00010101000000-000000000000
 	github.com/open-ness/EMCO/src/rsync v0.0.0-00010101000000-000000000000
 	github.com/pkg/errors v0.9.1
+	github.com/stretchr/testify v1.7.0
 	google.golang.org/grpc v1.28.0
+	google.golang.org/protobuf v1.24.0
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.20.2
 	k8s.io/apimachinery v0.20.2

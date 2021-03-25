@@ -12,6 +12,7 @@ import (
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/infra/db"
 	mtypes "github.com/open-ness/EMCO/src/orchestrator/pkg/module/types"
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/state"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	pkgerrors "github.com/pkg/errors"
 )
@@ -36,9 +37,10 @@ type NetworkKey struct {
 
 // structure for the Network Custom Resource
 type CrNetwork struct {
-	ApiVersion string  `yaml:"apiVersion"`
-	Kind       string  `yaml:"kind"`
-	Network    Network `yaml:",inline"`
+	ApiVersion  string            `yaml:"apiVersion"`
+	Kind        string            `yaml:"kind"`
+	MetaData    metav1.ObjectMeta `yaml:"metadata"`
+	NetworkSpec NetworkSpec       `yaml:"spec"`
 }
 
 const NETWORK_APIVERSION = "k8s.plugin.opnfv.org/v1alpha1"

@@ -188,5 +188,13 @@ func NewRouter(projectClient moduleLib.ProjectManager,
 	router.HandleFunc("/projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/status",
 		instantiationHandler.statusHandler).Queries("instance", "{instance}", "type", "{type}", "output", "{output}", "app", "{app}", "cluster", "{cluster}", "resource", "{resource}", "apps", "{apps}", "clusters", "{clusters}", "resources", "{resources}")
 
+	// setting routes for Update
+	updateHandler := updateHandler{
+		client: instantiationClient,
+	}
+
+	router.HandleFunc("/projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/migrate", updateHandler.migrateHandler).Methods("POST")
+	router.HandleFunc("/projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/update", updateHandler.updateHandler).Methods("POST")
+	router.HandleFunc("/projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/rollback", updateHandler.rollbackHandler).Methods("POST")
 	return router
 }

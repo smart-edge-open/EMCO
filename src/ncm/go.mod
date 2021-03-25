@@ -7,6 +7,7 @@ require (
 	github.com/open-ness/EMCO/src/orchestrator v0.0.0-00010101000000-000000000000
 	github.com/pkg/errors v0.9.1
 	gopkg.in/yaml.v2 v2.3.0
+	k8s.io/apimachinery v0.20.2
 )
 
 replace (

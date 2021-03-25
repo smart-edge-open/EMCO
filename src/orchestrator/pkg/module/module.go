@@ -29,7 +29,7 @@ func NewClient() *Client {
 	c.Project = NewProjectClient()
 	c.CompositeApp = NewCompositeAppClient()
 	c.App = NewAppClient()
-	c.Controller = controller.NewControllerClient()
+	c.Controller = controller.NewControllerClient("controller", "controllermetadata")
 	c.GenericPlacementIntent = NewGenericPlacementIntentClient()
 	c.AppIntent = NewAppIntentClient()
 	c.DeploymentIntentGroup = NewDeploymentIntentGroupClient()

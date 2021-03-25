@@ -7,6 +7,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -350,14 +351,16 @@ func ValidateJsonSchemaData(jsonSchemaFile string, jsonData interface{}) (error,
 		return pkgerrors.Wrap(err, "JsonSchemaValidation: Validation error"), http.StatusInternalServerError
 	}
 
+	var reason string
 	// Validate document against Json Schema
 	if !result.Valid() {
 		for _, desc := range result.Errors() {
 			log.Error("The document is not valid", log.Fields{
 				"param": desc.Field(), "reason": desc.Description(), "req": string(req),
 			})
+			reason = reason + desc.Description()
 		}
-		return pkgerrors.New("JsonSchemaValidation: Document Validation failed"), http.StatusBadRequest
+		return pkgerrors.Wrap(errors.New(reason), "Invalid Input:"), http.StatusBadRequest
 	}
 
 	return nil, 0

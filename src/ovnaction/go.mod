@@ -1,6 +1,7 @@
 module github.com/open-ness/EMCO/src/ovnaction
 
 require (
+	github.com/containernetworking/cni v0.8.1 // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/gorilla/handlers v1.3.0
 	github.com/gorilla/mux v1.7.3

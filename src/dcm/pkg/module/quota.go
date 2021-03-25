@@ -19,8 +19,8 @@ type Quota struct {
 type QMetaDataList struct {
 	QuotaName   string `json:"name"`
 	Description string `json:"description"`
-	UserData1    string `json:"userData1"`
-	UserData2    string `json:"userData2"`
+	UserData1   string `json:"userData1"`
+	UserData2   string `json:"userData2"`
 }
 
 // TODO: use QSpec fields to validate quota keys
@@ -92,6 +92,7 @@ func (v *QuotaClient) CreateQuota(project, logicalCloud string, c Quota) (Quota,
 		LogicalCloudName: logicalCloud,
 		QuotaName:        c.MetaData.QuotaName,
 	}
+	lcClient := NewLogicalCloudClient()
 
 	//Check if project exists
 	err := CheckProject(project)
@@ -99,9 +100,17 @@ func (v *QuotaClient) CreateQuota(project, logicalCloud string, c Quota) (Quota,
 		return Quota{}, pkgerrors.New("Unable to find the project")
 	}
 	//check if logical cloud exists
-	err = CheckLogicalCloud(project, logicalCloud)
+	err = CheckLogicalCloud(lcClient, project, logicalCloud)
 	if err != nil {
 		return Quota{}, pkgerrors.New("Unable to find the logical cloud")
+	}
+	//Check if Logical Cloud Level 0 & then avoid creating Quotas
+	lc, err := lcClient.Get(project, logicalCloud)
+	if err != nil {
+		return Quota{}, pkgerrors.Wrap(err, "Logical Cloud does not exist")
+	}
+	if lc.Specification.Level == "0" {
+		return Quota{}, pkgerrors.New("Cluster Quotas not allowed for Logical Cloud Level 0")
 	}
 	//Check if this Quota already exists
 	_, err = v.GetQuota(project, logicalCloud, c.MetaData.QuotaName)

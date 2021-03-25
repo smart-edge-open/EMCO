@@ -121,6 +121,7 @@ func (v *ClusterClient) CreateCluster(project, logicalCloud string, c Cluster) (
 		LogicalCloudName: logicalCloud,
 		ClusterReference: c.MetaData.ClusterReference,
 	}
+	lcClient := NewLogicalCloudClient()
 
 	//Check if project exists
 	err := CheckProject(project)
@@ -128,12 +129,11 @@ func (v *ClusterClient) CreateCluster(project, logicalCloud string, c Cluster) (
 		return Cluster{}, pkgerrors.New("Unable to find the project")
 	}
 	//check if logical cloud exists
-	err = CheckLogicalCloud(project, logicalCloud)
+	err = CheckLogicalCloud(lcClient, project, logicalCloud)
 	if err != nil {
 		return Cluster{}, pkgerrors.New("Unable to find the logical cloud")
 	}
 
-	lcClient := NewLogicalCloudClient()
 	lckey := LogicalCloudKey{
 		Project:          project,
 		LogicalCloudName: logicalCloud,

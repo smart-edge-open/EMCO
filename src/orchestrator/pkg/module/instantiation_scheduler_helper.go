@@ -8,8 +8,8 @@ import (
 
 	"fmt"
 
-	"github.com/open-ness/EMCO/src/orchestrator/pkg/appcontext"
 	client "github.com/open-ness/EMCO/src/orchestrator/pkg/grpc/contextupdateclient"
+	"github.com/open-ness/EMCO/src/orchestrator/pkg/appcontext"
 	rsyncclient "github.com/open-ness/EMCO/src/orchestrator/pkg/grpc/installappclient"
 	plsGrpcClient "github.com/open-ness/EMCO/src/orchestrator/pkg/grpc/placementcontrollerclient"
 	log "github.com/open-ness/EMCO/src/orchestrator/pkg/infra/logutils"
@@ -211,7 +211,7 @@ queryDBAndSetRsyncInfo queries the MCO db to find the record the sync controller
 and then sets the RsyncInfo global variable.
 */
 func queryDBAndSetRsyncInfo() (rsyncclient.RsyncInfo, error) {
-	client := controller.NewControllerClient()
+	client := controller.NewControllerClient("controller", "controllermetadata")
 	vals, _ := client.GetControllers()
 	for _, v := range vals {
 		if v.Metadata.Name == rsyncName {
@@ -299,5 +299,49 @@ func deleteExtraClusters(apps []App, ct appcontext.AppContext) error {
 
 		}
 	}
+	return nil
+}
+
+// callScheduler instantiates based on the controller priority list
+func callScheduler(context appcontext.AppContext, ctxval interface{}, p, ca, v, di string) (error) {
+	// BEGIN: scheduler code
+
+	allApps, err := NewAppClient().GetApps(p, ca, v)
+	if err != nil {
+		return pkgerrors.Wrap(err, "Error in getting all Apps")
+	}
+
+	pl, mapOfControllers, err := getPrioritizedControllerList(p, ca, v, di)
+	if err != nil {
+		return pkgerrors.Wrap(err, "Error adding getting prioritized controller list")
+	}
+
+	log.Info("Orchestrator Instantiate .. Priority Based List ", log.Fields{"PlacementControllers::": pl.pPlaCont,
+		"ActionControllers::": pl.pActCont, "mapOfControllers::": mapOfControllers})
+	// Invoke all Placement Controllers communication interface in loop
+	err = callGrpcForPlacementControllerList(pl.pPlaCont, ctxval)
+	if err != nil {
+		deleteAppContext(context)
+		log.Error("Orchestrator Instantiate .. Error calling PlacementController gRPC.", log.Fields{"all-placement-controllers": pl.pPlaCont, "err": err})
+		return pkgerrors.Wrap(err, "Error calling PlacementController gRPC")
+	}
+
+	// delete extra clusters from group map
+	err = deleteExtraClusters(allApps, context)
+	if err != nil {
+		deleteAppContext(context)
+		return pkgerrors.Wrap(err, "Error deleting extra clusters")
+	}
+
+	// Invoke all Action Controllers communication interface
+	err = callGrpcForControllerList(pl.pActCont, mapOfControllers, ctxval)
+	log.Warn("", log.Fields{"pl.pActCont::": pl.pActCont})
+	log.Warn("", log.Fields{"mapOfControllers::": mapOfControllers})
+	log.Warn("", log.Fields{"ctxval::": ctxval})
+	if err != nil {
+		deleteAppContext(context)
+		return pkgerrors.Wrap(err, "Error calling gRPC for action controller list")
+	}
+	// END: Scheduler code
 	return nil
 }

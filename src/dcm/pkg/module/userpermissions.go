@@ -10,10 +10,24 @@ import (
 
 // UserPermission contains the parameters needed for a user permission
 type UserPermission struct {
-	UserPermissionName string   `json:"name"`
-	APIGroups          []string `json:"apiGroups"`
-	Resources          []string `json:"resources"`
-	Verbs              []string `json:"verbs"`
+	MetaData      UPMetaDataList `json:"metadata"`
+	Specification UPSpec         `json:"spec"`
+}
+
+// UPMetaDataList contains the parameters needed for a user permission metadata
+type UPMetaDataList struct {
+	UserPermissionName string `json:"name"`
+	Description        string `json:"description"`
+	UserData1          string `json:"userData1"`
+	UserData2          string `json:"userData2"`
+}
+
+// UPSpec contains the parameters needed for a user permission spec
+type UPSpec struct {
+	Namespace string   `json:"namespace"`
+	APIGroups []string `json:"apiGroups"`
+	Resources []string `json:"resources"`
+	Verbs     []string `json:"verbs"`
 }
 
 // UserPermissionKey is the key structure that is used in the database
@@ -23,8 +37,7 @@ type UserPermissionKey struct {
 	UserPermissionName string `json:"upname"`
 }
 
-// UserPermissionManager is an interface that exposes the connection
-// functionality
+// UserPermissionManager is an interface that exposes the connection functionality
 type UserPermissionManager interface {
 	CreateUserPerm(project, logicalCloud string, c UserPermission) (UserPermission, error)
 	GetUserPerm(project, logicalCloud, name string) (UserPermission, error)
@@ -56,8 +69,9 @@ func (v *UserPermissionClient) CreateUserPerm(project, logicalCloud string, c Us
 	key := UserPermissionKey{
 		Project:            project,
 		LogicalCloudName:   logicalCloud,
-		UserPermissionName: c.UserPermissionName,
+		UserPermissionName: c.MetaData.UserPermissionName,
 	}
+	lcClient := NewLogicalCloudClient()
 
 	//Check if project exists
 	err := CheckProject(project)
@@ -65,13 +79,13 @@ func (v *UserPermissionClient) CreateUserPerm(project, logicalCloud string, c Us
 		return UserPermission{}, pkgerrors.New("Unable to find the project")
 	}
 	//check if logical cloud exists
-	err = CheckLogicalCloud(project, logicalCloud)
+	err = CheckLogicalCloud(lcClient, project, logicalCloud)
 	if err != nil {
 		return UserPermission{}, pkgerrors.New("Unable to find the logical cloud")
 	}
 
 	//Check if this User Permission already exists
-	_, err = v.GetUserPerm(project, logicalCloud, c.UserPermissionName)
+	_, err = v.GetUserPerm(project, logicalCloud, c.MetaData.UserPermissionName)
 	if err == nil {
 		return UserPermission{}, pkgerrors.New("User Permission already exists")
 	}
@@ -162,7 +176,7 @@ func (v *UserPermissionClient) UpdateUserPerm(project, logicalCloud, userPermNam
 		UserPermissionName: userPermName,
 	}
 	//Check for URL name and json permission name mismatch
-	if c.UserPermissionName != userPermName {
+	if c.MetaData.UserPermissionName != userPermName {
 		return UserPermission{}, pkgerrors.New("Update Error - Permission name mismatch")
 	}
 	//Check if this User Permission exists

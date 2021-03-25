@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ngfw
+  labels:
+    app: ngfw
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ngfw
+  template:
+    metadata:
+      labels:
+        app: ngfw
+    spec:
+      containers:
+      - name: ngfw
+        image: rkamudhan/netshoot:v1.0
+        imagePullPolicy: IfNotPresent
+        stdin: true
+        tty: true

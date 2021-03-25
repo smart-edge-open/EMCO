@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slb
+  labels:
+    app: slb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: slb
+  template:
+    metadata:
+      labels:
+        app: slb
+    spec:
+      containers:
+      - name: slb
+        image: rkamudhan/netshoot:v1.0
+        imagePullPolicy: IfNotPresent
+        stdin: true
+        tty: true

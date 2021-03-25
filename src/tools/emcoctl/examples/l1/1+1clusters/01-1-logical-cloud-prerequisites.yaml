@@ -1,0 +1,103 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+---
+#creating cluster 1
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters
+metadata :
+   name: {{.Cluster1}}
+
+file:
+  {{.KubeConfig1}}
+
+---
+#Add label to cluster 1
+version: emco/v2
+resourceContext:
+  anchor: cluster-providers/{{.ClusterProvider}}/clusters/{{.Cluster1}}/labels
+label-name: {{.Label1}}
+
+---
+#create logical cloud without admin permissions
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds
+metadata:
+  name: {{.LogicalCloud1}}
+spec:
+  namespace: {{.Namespace1}}
+  user:
+    user-name: user-1
+    type: certificate
+
+---
+#add primary user permission
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LogicalCloud1}}/user-permissions
+metadata:
+    name: permission-1
+spec:
+    namespace: {{.Namespace1}}
+    apiGroups:
+    - ""
+    - "apps"
+    - "k8splugin.io"
+    resources:
+    - secrets
+    - pods
+    - configmaps
+    - services
+    - deployments
+    - resourcebundlestates
+    verbs:
+    - get
+    - watch
+    - list
+    - create
+
+---
+#create cluster quotas
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LogicalCloud1}}/cluster-quotas
+metadata:
+    name: quota-1
+spec:
+    limits.cpu: '400'
+    limits.memory: 1000Gi
+    requests.cpu: '300'
+    requests.memory: 900Gi
+    requests.storage: 500Gi
+    requests.ephemeral-storage: '500'
+    limits.ephemeral-storage: '500'
+    persistentvolumeclaims: '500'
+    pods: '500'
+    configmaps: '1000'
+    replicationcontrollers: '500'
+    resourcequotas: '500'
+    services: '500'
+    services.loadbalancers: '500'
+    services.nodeports: '500'
+    secrets: '500'
+    count/replicationcontrollers: '500'
+    count/deployments.apps: '500'
+    count/replicasets.apps: '500'
+    count/statefulsets.apps: '500'
+    count/jobs.batch: '500'
+    count/cronjobs.batch: '500'
+    count/deployments.extensions: '500'
+
+---
+#add cluster reference to logical cloud
+version: emco/v2
+resourceContext:
+  anchor: projects/{{.ProjectName}}/logical-clouds/{{.LogicalCloud1}}/cluster-references
+metadata:
+  name: lc1-cl-1
+spec:
+  cluster-provider: {{.ClusterProvider}}
+  cluster-name: {{.Cluster1}}
+  loadbalancer-ip: "0.0.0.0"

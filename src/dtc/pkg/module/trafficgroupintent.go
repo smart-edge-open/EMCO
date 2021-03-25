@@ -83,6 +83,9 @@ func (v *TrafficGroupIntentDbClient) GetTrafficGroupIntent(name, project, compos
 	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return TrafficGroupIntent{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(value) == 0 {
+		return TrafficGroupIntent{}, pkgerrors.New("Traffic group intent not found")
+
 	}
 
 	//value is a byte array

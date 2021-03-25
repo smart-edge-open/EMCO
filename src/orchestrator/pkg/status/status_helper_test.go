@@ -160,7 +160,7 @@ var _ = Describe("StatusHelper", func() {
 			State:     state.StateEnum.Instantiated,
 			ContextId: fmt.Sprintf("%v", appContext.ctxVal),
 		}
-
+		stateInfoInstantiated.StatusContextId = fmt.Sprintf("%v", appContext.ctxVal)
 		stateInfoInstantiated.Actions = make([]state.ActionEntry, 0)
 		stateInfoInstantiated.Actions = append(stateInfoInstantiated.Actions, actionCreated)
 		stateInfoInstantiated.Actions = append(stateInfoInstantiated.Actions, actionApproved)
@@ -267,6 +267,7 @@ var _ = Describe("StatusHelper", func() {
 						{
 							ClusterProvider: "vfw-cluster-provider",
 							Cluster:         "edge01",
+							ReadyStatus:     "Unknown",
 							Resources: []status.ResourceStatus{
 								{
 									Name: "fw0-packetgen-67d8fb7b68-8g824",
@@ -285,6 +286,7 @@ var _ = Describe("StatusHelper", func() {
 						{
 							ClusterProvider: "vfw-cluster-provider",
 							Cluster:         "edge02",
+							ReadyStatus:     "Unknown",
 							Resources: []status.ResourceStatus{
 								{
 									Name: "fw0-packetgen-67d8fb7b68-8g824",
@@ -317,6 +319,7 @@ var _ = Describe("StatusHelper", func() {
 						{
 							ClusterProvider: "vfw-cluster-provider",
 							Cluster:         "edge01",
+							ReadyStatus:     "Unknown",
 							Resources: []status.ResourceStatus{
 								{
 									Name:        "fw0-packetgen",
@@ -328,6 +331,7 @@ var _ = Describe("StatusHelper", func() {
 						{
 							ClusterProvider: "vfw-cluster-provider",
 							Cluster:         "edge02",
+							ReadyStatus:     "Unknown",
 							Resources: []status.ResourceStatus{
 								{
 									Name:        "fw0-packetgen",

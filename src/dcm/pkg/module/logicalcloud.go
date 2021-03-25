@@ -37,17 +37,8 @@ type Spec struct {
 
 // UserData contains the parameters needed for user
 type UserData struct {
-	UserName        string     `json:"user-name"`
-	Type            string     `json:"type"`
-	UserPermissions []UserPerm `json:"user-permissions"`
-}
-
-//  UserPerm contains the parameters needed for user permissions
-type UserPerm struct {
-	PermName  string   `json:"permission-name"`
-	APIGroups []string `json:"apiGroups"`
-	Resources []string `json:"resources"`
-	Verbs     []string `json:"verbs"`
+	UserName string `json:"user-name"`
+	Type     string `json:"type"`
 }
 
 // LogicalCloudKey is the key structure that is used in the database
@@ -326,8 +317,8 @@ func CheckProject(project string) error {
 }
 
 // CheckLogicalCloud checks if logical cloud exists
-func CheckLogicalCloud(project, logicalCloud string) error {
-	_, err := NewLogicalCloudClient().Get(project, logicalCloud)
+func CheckLogicalCloud(lcClient LogicalCloudManager, project string, logicalCloud string) error {
+	_, err := lcClient.Get(project, logicalCloud)
 	if err != nil {
 		return pkgerrors.New("Unable to find the logical cloud")
 	}

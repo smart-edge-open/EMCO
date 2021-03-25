@@ -1,6 +1,6 @@
 #!/bin/sh -e
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (c) 2020 Intel Corporation
+# Copyright (c) 2021 Intel Corporation
 
 cmd=${1:-""}
 
@@ -31,6 +31,14 @@ case ${cmd} in
 
    "clm")
       ./clm
+      ;;
+
+   "sfc")
+      ./sfc
+      ;;
+
+   "sfcclient")
+      ./sfcclient
       ;;
 
     *)

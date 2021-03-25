@@ -7,10 +7,36 @@ This document provides high level features, fixes, and known issues and limitati
 
 # Release History
 
+1. EMCO - 21.03.05
 1. EMCO - 21.03
 1. EMCO - 20.12
 
 # Features for Release
+
+1. **EMCO - 21.03.05**
+	- Support for Application Update added in this release
+		- New APIs for Migrate, Update and Rollback added
+		- Supports changes in Helm Chart (Uploading a new Helm chart) using migrate API
+		- Supports adding and deleting of applications in composite application using migrate API
+		- Addition/ Deletion of cluster (Generic Placement Intent) based on change of labels, adding/deleting clusters from label
+		- Any changes to deployed resources (like replica count, labels, port changes etc)
+		- Rollback to any previous revision
+		- Application Status support for updates
+
+	- Rsync code refactored to support updates, restarts and ability to handle multiple actions simultaneously
+	- Status queries of Deployment Intent Groups and Cluster Networks have a few changes to align with the `rsync` and application update changes.
+		- The AppContext instance ID used to track AppContext status is indicated in the top level `states` object by the attribuate `statusctxid`.
+		- A `readystatus` attribute with values `Unknown`, `Available` or `Retrying` is added at the cluster object level.  Resources will no longer have a `Retrying` status.
+		- Resource level status simply shows the last action made by `rsync` on the resource.
+	- A sub-controller framework for DTC was added. New controllers for network policy(nps) and service discovery(sds) as sub-controllers were added to DTC.
+	- Logical cloud functionality has been enhanced as follows:
+		- There are three types of logical clouds `admin` (aka level 0), `standard` (aka level 1) and `privileged`.
+		- Privileged clouds allow multiple user permissions for multiple namespaces to be defined.
+		- The user permission API has become a distinct API to allow multiple permissions to be specified for a logical cloud.
+	- A variation of the vFW example has been added that does not require virtual machines in containters (i.e. virtlet).
+	- Service Function Chaining (SFC) is introduced as a preview feature to demonstrate integration with Nodus CNI network chaining.
+
+
 
 1. **EMCO - 21.03**
 	- Support for Helm v3 charts in composite applications.
@@ -42,6 +68,10 @@ This document provides high level features, fixes, and known issues and limitati
 
 # Fixes for Release
 
+1. **EMCO - 21.03.05**
+
+	- Additional unit test coverage in many packages has been added.
+
 1. **EMCO - 21.03**
 
 	- Emcoctl get with token has been fixed.
@@ -51,6 +81,10 @@ This document provides high level features, fixes, and known issues and limitati
 	- Format of the cluster network intent status query response has been simplified to remove inapplicable and redundant `apps` and `clusters` lists.
 
 # Known Issues and Limitations
+
+- **EMCO 21.03.05**
+	- A delay for deploying SFC CRs is explicitly performed.  This will be replaced with a more generic app / resource dependency mechanism.
+
 
 - **EMCO 21.03**
 	- If the `monitor` pod is restarted on an edge cluster, the `rsync` connection will fail because it continues to listen on the previous (now removed) connection.

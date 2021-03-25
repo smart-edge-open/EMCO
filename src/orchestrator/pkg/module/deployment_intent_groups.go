@@ -97,7 +97,7 @@ func (c *DeploymentIntentGroupClient) CreateDeploymentIntentGroup(d DeploymentIn
 	v string) (DeploymentIntentGroup, error) {
 
 	res, err := c.GetDeploymentIntentGroup(d.MetaData.Name, p, ca, v)
-	if !reflect.DeepEqual(res, DeploymentIntentGroup{}) {
+	if err == nil && !reflect.DeepEqual(res, DeploymentIntentGroup{}) {
 		return DeploymentIntentGroup{}, pkgerrors.New("DeploymentIntent already exists")
 	}
 
@@ -155,6 +155,8 @@ func (c *DeploymentIntentGroupClient) GetDeploymentIntentGroup(di string, p stri
 	result, err := db.DBconn.Find(c.storeName, key, c.tagMetaData)
 	if err != nil {
 		return DeploymentIntentGroup{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(result) == 0 {
+		return DeploymentIntentGroup{}, pkgerrors.New("Deployment Intent Group not found")
 	}
 
 	if result != nil {
@@ -210,7 +212,7 @@ func (c *DeploymentIntentGroupClient) GetAllDeploymentIntentGroups(p string, ca 
 
 }
 
-// GetDeploymentIntentGroupState returns the AppContent with a given DeploymentIntentname, project, compositeAppName and version of compositeApp
+// GetDeploymentIntentGroupState returns the DIG-StateInfo with a given DeploymentIntentname, project, compositeAppName and version of compositeApp
 func (c *DeploymentIntentGroupClient) GetDeploymentIntentGroupState(di string, p string, ca string, v string) (state.StateInfo, error) {
 
 	key := DeploymentIntentGroupKey{

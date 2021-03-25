@@ -153,7 +153,7 @@ func TestGenerateKubernetesArtifacts(t *testing.T) {
 			//sha256 hash of the evaluated templates in each chart
 			expectedHashMap: map[string]string{
 				"/tmp/helm-tmpl-766285534/manifest-0": "81ef115271f6579f6346c5bf909553e139864d9938e3eea82ad50cf6dedc1ab9",
-				"/tmp/helm-tmpl-490085794/manifest-2": "bbe57b3a0cdfaa9c7aa5997d026ff03b1ca31ea850277aac9b9af5dc7ab9b694",
+				"/tmp/helm-tmpl-490085794/manifest-2": "0f7ac458db24f2bdf7bd3ad8df3b0cb3e19e61c0db96d73df617d2ca15bf936d",
 				"/tmp/helm-tmpl-522092734/manifest-1": "4ba5336b0cdd3c8d23ab60fc3e4680588bf5101dc774c177ef281485ddf0790c",
 			},
 			expectedError: "",

@@ -14,6 +14,9 @@ and numerous edge locations. It is architected to be flexible, modular and
 highly scalable. It is aimed at various verticals, including telecommunication
 service providers.
 
+Refer to EMCO whitepaper for details on EMCO architecture:
+https://www.openness.org/docs/doc/building-blocks/emco/openness-emco
+
 ## Build and Deploy EMCO
 
 ### Set up the environment
@@ -95,18 +98,36 @@ Alternatively, you can build EMCO locally and deploy EMCO components in a
 Kubernetes cluster using Helm charts (and use them to deploy your workload in
 another set of Kubernetes clusters).
 
+This requires the locally built container images to be pushed to the
+container registry `EMCODOCKERREPO` with the appropriate tag, so that the
+Kubernetes cluster can pull images from that container registry. The tag can
+be set based on whether it is a developer/test build or a release build.
+
 Do the following steps:
 
  * Set up the environment:
-   ```export BUILD_CAUSE=DEV_TEST```
-   This triggers the following steps to push the locally generated EMCO images
-   to the `EMCODOCKERREPO` container registry with appropriate tags.
- * BUILD_CAUSE can be set to RELEASE during releases and that will push the EMCO service images to container registry
-   ```export BUILD_CAUSE=RELEASE```
-   ```export EMCOSRV_RELEASE_TAG=openness-<release number>tag```
+
+   * For development/testing:
+     ```export BUILD_CAUSE=DEV_TEST```
+     This sets the image tags to the form `${USER}-latest`.
+
+   * For release:
+     ```
+        export BUILD_CAUSE=RELEASE
+        export EMCOSRV_RELEASE_TAG=openness-${release_number}tag
+     ```
+     This sets the image tags to the specified tag. Note that if you set
+     `BUILD_CAUSE=RELEASE` but do not set `EMCOSRV_RELEASE_TAG`, the image tags
+     will be set to any tag defined on the git `HEAD` of the current git
+     branch. If no git tag is defined on the HEAD, the build will fail.
+
  * Set up the Helm charts: Be sure to reference those image names and tags in
    your Helm charts.
+
  * Build and deploy EMCO:
    ```make deploy```
+
+### Deploy sample test cases with EMCO
+See [this Readme](kud/emcoctl-tests/Readme.md) on how to setup environment and running few test cases with EMCO.
 
 See [this tutorial](docs/user/Tutorial_Helm.md) for further details.

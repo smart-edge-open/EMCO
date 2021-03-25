@@ -9,6 +9,8 @@ import "time"
 // information about resources which can be instantiated via rsync.
 // The last Actions entry holds the current state of the container object.
 type StateInfo struct {
+	// Same Status AppContext between instantiation and termination for a DIG
+	StatusContextId string `json:"statusctxid"`
 	Actions []ActionEntry `json:"actions"`
 }
 
@@ -18,6 +20,7 @@ type ActionEntry struct {
 	State     StateValue `json:"state"`
 	ContextId string     `json:"instance"`
 	TimeStamp time.Time  `json:"time"`
+	Revision  int64      `json:"revision"`
 }
 
 type StateValue = string
@@ -31,6 +34,7 @@ type states struct {
 	Terminated         StateValue
 	InstantiateStopped StateValue
 	TerminateStopped   StateValue
+	Updated		StateValue
 }
 
 var StateEnum = &states{
@@ -42,4 +46,5 @@ var StateEnum = &states{
 	Terminated:         "Terminated",
 	InstantiateStopped: "InstantiateStopped",
 	TerminateStopped:   "TerminateStopped",
+	Updated:            "Updated",
 }

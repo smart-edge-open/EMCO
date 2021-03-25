@@ -311,9 +311,9 @@ spec:
       containers:
         - name: monitor
           # Replace this with the built image name
-          image: emcov2/monitor:latest
+          image: emco-monitor:latest
           command:
-          - /opt/monitor/monitor
+          - /opt/emco/monitor/monitor
           imagePullPolicy: IfNotPresent
           env:
             - name: WATCH_NAMESPACE

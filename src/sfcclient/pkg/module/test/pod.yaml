@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+  annotations:
+    podannotation: onetwothree
+    k8s.plugin.opnfv.org/nfn-network: '{"CniType":"ovn4nfv","Interface":[{"interface":"eth0","name":"network1"},{"interface":"eth1","name":"network2","defaultGateway":"eth1","ipAddress":"10.20.30.40","macAddress":"11:22:33:44:55:66"}]}'
+    k8s.v1.cni.cncf.io/networks: '[{"name":"ovn-networkobj","namespace":"default"}]'
+spec:
+  containers:
+  - name: myapp-container
+    image: busybox
+    command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600']

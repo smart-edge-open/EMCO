@@ -26,6 +26,18 @@ dependencies:
   - name: dtc
     version: ~0.x-0
     repository: 'file://../dtc'
+  - name: nps
+    version: ~0.x-0
+    repository: 'file://../nps'
+  - name: sds
+    version: ~0.x-0
+    repository: 'file://../sds'
   - name: gac
     version: ~0.x-0
     repository: 'file://../gac'
+  - name: sfc
+    version: ~0.x-0
+    repository: 'file://../sfc'
+  - name: sfcclient
+    version: ~0.x-0
+    repository: 'file://../sfcclient'

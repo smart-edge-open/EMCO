@@ -104,6 +104,8 @@ func (v *InboundServerIntentDbClient) GetServerInboundIntent(name, project, comp
 	value, err := db.DBconn.Find(v.db.storeName, key, v.db.tagMeta)
 	if err != nil {
 		return InboundServerIntent{}, pkgerrors.Wrap(err, "db Find error")
+	} else if len(value) == 0 {
+		 return InboundServerIntent{}, pkgerrors.New("Inbound server intent not found")
 	}
 
 	//value is a byte array

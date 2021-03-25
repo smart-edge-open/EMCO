@@ -11,10 +11,13 @@ It contains methods for creating appContext, saving cluster and resource details
 import (
 	"encoding/json"
 	"io/ioutil"
+	"time"
 
 	"github.com/open-ness/EMCO/src/orchestrator/pkg/appcontext"
 	gpic "github.com/open-ness/EMCO/src/orchestrator/pkg/gpic"
+	"github.com/open-ness/EMCO/src/orchestrator/pkg/infra/db"
 	log "github.com/open-ness/EMCO/src/orchestrator/pkg/infra/logutils"
+	"github.com/open-ness/EMCO/src/orchestrator/pkg/state"
 	"github.com/open-ness/EMCO/src/orchestrator/utils"
 	"github.com/open-ness/EMCO/src/orchestrator/utils/helm"
 	pkgerrors "github.com/pkg/errors"
@@ -40,6 +43,14 @@ type K8sResource struct {
 // TODO move into a better place or reuse existing struct
 type MetadataList struct {
 	Namespace string `yaml:"namespace"`
+}
+
+type appOrderInstr struct {
+	Apporder []string `json:"apporder"`
+}
+
+type appDepInstr struct {
+	AppDepMap map[string]string `json:"appdependency"`
 }
 
 // makeAppContext creates an appContext for a compositeApp and returns the output as contextForCompositeApp
@@ -253,4 +264,161 @@ func verifyResources(l gpic.ClusterList, ct appcontext.AppContext, resources []r
 		}
 	}
 	return nil
+}
+
+func storeAppContextIntoRunTimeDB(allApps []App, cxtForCApp contextForCompositeApp, overrideValues []OverrideValues, dcmClusters []Cluster, p, ca, v, rName, cp, gIntent, di, namespace string) error {
+
+	context := cxtForCApp.context
+	// for recording the app order instruction
+	var appOrdInsStr appOrderInstr
+	// for recording the app dependency
+	var appDepStr appDepInstr
+	appDepStr.AppDepMap = make(map[string]string)
+
+	for _, eachApp := range allApps {
+		appOrdInsStr.Apporder = append(appOrdInsStr.Apporder, eachApp.Metadata.Name)
+		appDepStr.AppDepMap[eachApp.Metadata.Name] = "go"
+
+		sortedTemplates, err := GetSortedTemplateForApp(eachApp.Metadata.Name, p, ca, v, rName, cp, namespace, overrideValues)
+
+		if err != nil {
+			deleteAppContext(context)
+			log.Error("Unable to get the sorted templates for app", log.Fields{"AppName": eachApp.Metadata.Name})
+			return pkgerrors.Wrap(err, "Unable to get the sorted templates for app")
+		}
+
+		log.Info(":: Resolved all the templates ::", log.Fields{"appName": eachApp.Metadata.Name, "SortedTemplate": sortedTemplates})
+
+		resources, err := getResources(sortedTemplates)
+		if err != nil {
+			deleteAppContext(context)
+			return pkgerrors.Wrapf(err, "Unable to get the resources for app :: %s", eachApp.Metadata.Name)
+		}
+
+		defer cleanTmpfiles(sortedTemplates)
+
+		specData, err := NewAppIntentClient().GetAllIntentsByApp(eachApp.Metadata.Name, p, ca, v, gIntent, di)
+		if err != nil {
+			deleteAppContext(context)
+			return pkgerrors.Wrap(err, "Unable to get the intents for app")
+		}
+
+		// listOfClusters shall have both mandatoryClusters and optionalClusters where the app needs to be installed.
+		listOfClusters, err := gpic.IntentResolver(specData.Intent)
+		if err != nil {
+			deleteAppContext(context)
+			return pkgerrors.Wrap(err, "Unable to get the intents resolved for app")
+		}
+
+		log.Info(":: listOfClusters ::", log.Fields{"listOfClusters": listOfClusters})
+		if listOfClusters.MandatoryClusters == nil && listOfClusters.OptionalClusters == nil {
+			deleteAppContext(context)
+			log.Error("No compatible clusters have been provided to the Deployment Intent Group", log.Fields{"listOfClusters": listOfClusters})
+			return pkgerrors.New("No compatible clusters have been provided to the Deployment Intent Group")
+		}
+
+		if err := checkClusters(listOfClusters, dcmClusters); err != nil {
+			return err
+		}
+
+		//BEGIN: storing into etcd
+		// Add an app to the app context
+		apphandle, err := context.AddApp(cxtForCApp.compositeAppHandle, eachApp.Metadata.Name)
+		if err != nil {
+			deleteAppContext(context)
+			return pkgerrors.Wrap(err, "Error adding App to AppContext")
+		}
+		err = addClustersToAppContext(listOfClusters, context, apphandle, resources, namespace)
+		if err != nil {
+			deleteAppContext(context)
+			return pkgerrors.Wrap(err, "Error while adding cluster and resources to app")
+		}
+		err = verifyResources(listOfClusters, context, resources, eachApp.Metadata.Name)
+		if err != nil {
+			deleteAppContext(context)
+			return pkgerrors.Wrap(err, "Error while verifying resources in app: ")
+		}
+	}
+	jappOrderInstr, err := json.Marshal(appOrdInsStr)
+	if err != nil {
+		deleteAppContext(context)
+		return pkgerrors.Wrap(err, "Error marshalling app order instruction")
+	}
+
+	jappDepInstr, err := json.Marshal(appDepStr.AppDepMap)
+	if err != nil {
+		deleteAppContext(context)
+		return pkgerrors.Wrap(err, "Error marshalling app dependency instruction")
+	}
+	_, err = context.AddInstruction(cxtForCApp.compositeAppHandle, "app", "order", string(jappOrderInstr))
+	if err != nil {
+		deleteAppContext(context)
+		return pkgerrors.Wrap(err, "Error adding app dependency instruction")
+	}
+	_, err = context.AddInstruction(cxtForCApp.compositeAppHandle, "app", "dependency", string(jappDepInstr))
+	if err != nil {
+		deleteAppContext(context)
+		return pkgerrors.Wrap(err, "Error adding app dependency instruction")
+	}
+	//END: storing into etcd
+
+	return nil
+}
+
+func storeAppContextIntoMetaDB(ctxval interface{}, storeName string, colName string, s state.StateInfo, p, ca, v, di string) error {
+
+	// BEGIN:: save the context in the orchestrator db record
+	key := DeploymentIntentGroupKey{
+		Name:         di,
+		Project:      p,
+		CompositeApp: ca,
+		Version:      v,
+	}
+	a := state.ActionEntry{
+		State:     state.StateEnum.Instantiated,
+		ContextId: ctxval.(string),
+		TimeStamp: time.Now(),
+		Revision:  1,
+	}
+	s.StatusContextId = ctxval.(string)
+	s.Actions = append(s.Actions, a)
+	err := db.DBconn.Insert(storeName, key, nil, colName, s)
+	if err != nil {
+		log.Warn(":: Error updating DeploymentIntentGroup state in DB ::", log.Fields{"Error": err.Error(), "DeploymentIntentGroup": di, "CompositeApp": ca, "CompositeAppVersion": v, "Project": p, "AppContext": ctxval.(string)})
+		return pkgerrors.Wrap(err, "Error adding DeploymentIntentGroup state to DB")
+	}
+	// END:: save the context in the orchestrator db record
+	return nil
+}
+
+func handleStateInfo(p, ca, v, di string) (state.StateInfo, error) {
+
+	s, err := NewDeploymentIntentGroupClient().GetDeploymentIntentGroupState(di, p, ca, v)
+	if err != nil {
+		return state.StateInfo{}, pkgerrors.Errorf("Error retrieving DeploymentIntentGroup stateInfo: " + di)
+	}
+
+	stateVal, err := state.GetCurrentStateFromStateInfo(s)
+	if err != nil {
+		return state.StateInfo{}, pkgerrors.Errorf("Error getting current state from DeploymentIntentGroup stateInfo: " + di)
+	}
+	switch stateVal {
+	case state.StateEnum.Approved:
+		break
+	case state.StateEnum.Terminated:
+		break // TODO - ideally, should check that all resources have completed being terminated
+	case state.StateEnum.TerminateStopped:
+		break
+	case state.StateEnum.Created:
+		return state.StateInfo{}, pkgerrors.Errorf("DeploymentIntentGroup must be Approved before instantiating" + di)
+	case state.StateEnum.Applied:
+		return state.StateInfo{}, pkgerrors.Errorf("DeploymentIntentGroup is in an invalid state" + di)
+	case state.StateEnum.InstantiateStopped:
+		return state.StateInfo{}, pkgerrors.Errorf("DeploymentIntentGroup has already been instantiated and stopped" + di)
+	case state.StateEnum.Instantiated:
+		return state.StateInfo{}, pkgerrors.Errorf("DeploymentIntentGroup has already been instantiated" + di)
+	default:
+		return state.StateInfo{}, pkgerrors.Errorf("DeploymentIntentGroup is in an unknown state" + stateVal)
+	}
+	return s, nil
 }

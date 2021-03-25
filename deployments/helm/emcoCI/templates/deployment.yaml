@@ -487,8 +487,148 @@ spec:
             items:
             - key: config.json
               path: config.json
----
 
+---
+# NPS Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nps
+  template:
+    metadata:
+      labels:
+        app: nps
+    spec:
+      containers:
+        - name: nps
+          image: {{ .Values.registryPrefix }}emco-nps:{{ .Values.tag }}
+          imagePullPolicy: Always
+          env:
+          - name: NO_PROXY
+            value: {{ .Values.noProxyHosts }}
+          - name: no_proxy
+            value: {{ .Values.noProxyHosts }}
+          - name: HTTP_PROXY
+            value: {{ .Values.httpProxy }}
+          - name: http_proxy
+            value: {{ .Values.httpProxy }}
+          - name: HTTPS_PROXY
+            value: {{ .Values.httpsProxy }}
+          - name: https_proxy
+            value: {{ .Values.httpsProxy }}
+          {{- if eq .Values.enableDbAuth true }}
+          - name: DB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: username
+          - name: DB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: password
+          - name: CONTEXTDB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: username
+          - name: CONTEXTDB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: password
+          {{- end }}
+          command: ["./nps"]
+          workingDir: /opt/emco/nps
+          ports:
+          - containerPort: 9038
+          volumeMounts:
+          - name: config
+            mountPath: /opt/emco/nps/config.json
+            subPath: config.json
+      volumes:
+        - name: config
+          configMap:
+            name: nps
+            items:
+            - key: config.json
+
+---
+# SDS Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sds
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sds
+  template:
+    metadata:
+      labels:
+        app: sds
+    spec:
+      containers:
+        - name: sds
+          image: {{ .Values.registryPrefix }}emco-sds:{{ .Values.tag }}
+          imagePullPolicy: Always
+          env:
+          - name: NO_PROXY
+            value: {{ .Values.noProxyHosts }}
+          - name: no_proxy
+            value: {{ .Values.noProxyHosts }}
+          - name: HTTP_PROXY
+            value: {{ .Values.httpProxy }}
+          - name: http_proxy
+            value: {{ .Values.httpProxy }}
+          - name: HTTPS_PROXY
+            value: {{ .Values.httpsProxy }}
+          - name: https_proxy
+            value: {{ .Values.httpsProxy }}
+          {{- if eq .Values.enableDbAuth true }}
+          - name: DB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: username
+          - name: DB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: password
+          - name: CONTEXTDB_EMCO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: username
+          - name: CONTEXTDB_EMCO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: etcd-secret
+                key: password
+          {{- end }}
+          command: ["./sds"]
+          workingDir: /opt/emco/sds
+          ports:
+          - containerPort: 9039
+          volumeMounts:
+          - name: config
+            mountPath: /opt/emco/sds/config.json
+            subPath: config.json
+      volumes:
+        - name: config
+          configMap:
+            name: sds
+            items:
+            - key: config.json
+
+---
 # Clm Deployment
 apiVersion: apps/v1
 kind: Deployment

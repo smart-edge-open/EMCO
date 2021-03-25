@@ -20,22 +20,22 @@ import (
 
 // AppIntent has two components - metadata, spec
 type AppIntent struct {
-	MetaData MetaData `json:"metadata"`
-	Spec     SpecData `json:"spec"`
+	MetaData MetaData `json:"metadata,omitempty"`
+	Spec     SpecData `json:"spec,omitempty"`
 }
 
 // MetaData has - name, description, userdata1, userdata2
 type MetaData struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	UserData1   string `json:"userData1"`
-	UserData2   string `json:"userData2"`
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+	UserData1   string `json:"userData1,omitempty"`
+	UserData2   string `json:"userData2,omitempty"`
 }
 
 // SpecData consists of appName and intent
 type SpecData struct {
-	AppName string           `json:"app-name"`
-	Intent  gpic.IntentStruc `json:"intent"`
+	AppName string           `json:"app-name,omitempty"`
+	Intent  gpic.IntentStruc `json:"intent,omitempty"`
 }
 
 // AppIntentManager is an interface which exposes the
@@ -212,6 +212,10 @@ func (c *AppIntentClient) GetAllIntentsByApp(aN, p, ca, v, i, digName string) (S
 	if err != nil {
 		return SpecData{}, pkgerrors.Wrap(err, "db Find error")
 	}
+	if len(result) == 0 {
+		return SpecData{}, nil
+	}
+	
 	var a AppIntent
 	err = db.DBconn.Unmarshal(result[0], &a)
 	if err != nil {
