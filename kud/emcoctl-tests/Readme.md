@@ -5,12 +5,11 @@
 # Running EMCO testcases with emcoctl
 #################################################################
 
-This folder contains following test cases to run with EMCO. These tests assumes one edge cluster to run all test cases. EMCO needs to be installed on a cluster before running these tests. 
+This folder contains following test cases to run with EMCO. These tests assumes one edge cluster to run all test cases. EMCO needs to be installed on a cluster before running these tests.
 
 1. Prometheus and Collectd Helm charts
 2. vFw
 3. Collectd Helm chart and adding configmap during instantiation (using Generic Action Controller)
-4. Http Server and Client
 
 ## Setup Test Environment to run test cases
 
@@ -45,12 +44,16 @@ This folder contains following test cases to run with EMCO. These tests assumes 
 
     `$ $bin/emcoctl --config emco-cfg.yaml apply -f test-gac.yaml -v values.yaml`
 
-3. Distributed Traffic Controller testcase
-
-    `$ $bin/emcoctl --config emco-cfg.yaml apply -f test-dtc.yaml -v values.yaml`
-4. Firewall testcase
+3. Firewall testcase
 
     `$ $bin/emcoctl --config emco-cfg.yaml apply -f test-vfw.yaml -v values.yaml`
+    #### NOTE: This usecase is only tested using kubernetes installation: https://github.com/onap/multicloud-k8s/tree/master/kud, which comes with the requisite packages installed.
+    #### For running vFw use case, the Kubernetes cluster needs to have following packages installed:
+     multus - https://github.com/k8snetworkplumbingwg/multus-cni
+
+     ovn4nfv - https://github.com/akraino-edge-stack/icn-ovn4nfv-k8s-network-controller/tree/master
+
+     virtlet - https://github.com/Mirantis/virtlet
 
 
 ## Cleanup
@@ -63,19 +66,15 @@ This folder contains following test cases to run with EMCO. These tests assumes 
 
     `$ $bin/emcoctl --config emco-cfg.yaml delete -f test-gac.yaml -v values.yaml`
 
-3. Delete Distributed Traffic Controller testcase
-
-    `$ $bin/emcoctl --config emco-cfg.yaml delete -f test-dtc.yaml -v values.yaml`
-
-4. Firewall testcase
+3. Firewall testcase
 
     `$ $bin/emcoctl --config emco-cfg.yaml delete -f test-vfw.yaml -v values.yaml`
 
-5. Cleanup prerequisites
+4. Cleanup prerequisites
 
     `$ $bin/emcoctl --config emco-cfg.yaml delete -f prerequisites.yaml -v values.yaml`
 
-6. Cleanup generated files
+5. Cleanup generated files
 
     `$ ./setup.sh cleanup`
 
