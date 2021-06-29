@@ -14,6 +14,7 @@ PRIVILEGED=${2:-"admin"}
 # tar files
 test_folder=../tests/
 demo_folder=../demo/
+deployment_folder=../../deployments/
 function create {
     mkdir -p output
     tar -czf output/collectd.tar.gz -C $test_folder/vnfs/comp-app/collection/app1/helm .
@@ -32,6 +33,7 @@ function create {
     tar -czf output/packetgen.tar.gz -C $demo_folder/composite-firewall packetgen
     tar -czf output/sink.tar.gz -C $demo_folder/composite-firewall sink
     tar -czf output/profile.tar.gz -C $demo_folder/composite-firewall manifest.yaml override_values.yaml
+    tar -czf output/monitor.tar.gz -C $deployment_folder/helm monitor
 
         cat << NET > values.yaml
     ProjectName: proj1
@@ -52,12 +54,14 @@ function create {
     App3: operator
     App4: http-client
     App5: http-server
+    AppMonitor: monitor
     KubeConfig: $KUBE_PATH
     HelmApp1: output/prometheus-operator.tar.gz
     HelmApp2: output/collectd.tar.gz
     HelmApp3: output/operator.tar.gz
     HelmApp4: output/http-client.tar.gz
     HelmApp5: output/http-server.tar.gz
+    HelmAppMonitor: output/monitor.tar.gz
     HelmAppFirewall: output/firewall.tar.gz
     HelmAppPacketgen: output/packetgen.tar.gz
     HelmAppSink: output/sink.tar.gz
@@ -75,6 +79,7 @@ function create {
     GacIntent: collectd-gac-intent
     CompositeAppDtc: dtc-composite-app
     DtcIntent: collectd-dtc-intent
+    CompositeAppMonitor: monitor-composite-app
     ConfigmapFile: info.json
     GacPort: 30493
     OvnPort: 30473

@@ -15,10 +15,10 @@ spec:
         app: slb
       annotations:
         k8s.v1.cni.cncf.io/networks: '[                                        
-            { "name": "ovn4nfv-k8s-plugin",                                    
+            { "name": "ovn-networkobj",
               "interface": "net1"                                              
             }]'
-        k8s.plugin.opnfv.org/nfn-network: '{ "type": "ovn4nfv", "interface": [{"name": "virutal-net1", "interface": "net2", "defaultGateway": "false"}, {"name": "left-pnetwork", "interface": "net3", "defaultGateway": "false"}, { "name": "dync-net1", "interface": "net4", "defaultGateway": "false"}]}'
+        k8s.plugin.opnfv.org/nfn-network: '{ "type": "ovn4nfv", "interface": [{"name": "virtual-net1", "interface": "net2", "defaultGateway": "false"}, {"name": "left-pnetwork", "interface": "net3", "defaultGateway": "false"}, { "name": "dync-net1", "interface": "net4", "defaultGateway": "false"}]}'
     spec:
       containers:
       - name: slb

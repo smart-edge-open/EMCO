@@ -584,11 +584,19 @@ func (c InstantiationClient) Terminate(p string, ca string, v string, di string)
 
 	currentCtxId := state.GetLastContextIdFromStateInfo(s)
 
+	if stateVal == state.StateEnum.InstantiateStopped {
+		err = state.UpdateAppContextStopFlag(currentCtxId, false)
+		if err != nil {
+			return err
+		}
+	}
+
 	var ac appcontext.AppContext
 	_, err = ac.LoadAppContext(currentCtxId)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "Error getting AppContext with Id: %v", currentCtxId)
 	}
+
 	// Get the composite app meta
 	m, err := ac.GetCompositeAppMeta()
 	if err != nil {

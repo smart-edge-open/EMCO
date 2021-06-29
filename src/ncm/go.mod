@@ -1,8 +1,10 @@
 module github.com/open-ness/EMCO/src/ncm
 
 require (
+	github.com/ghodss/yaml v1.0.0
 	github.com/gorilla/handlers v1.3.0
 	github.com/gorilla/mux v1.7.3
+	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.1.0
 	github.com/open-ness/EMCO/src/clm v0.0.0-00010101000000-000000000000
 	github.com/open-ness/EMCO/src/orchestrator v0.0.0-00010101000000-000000000000
 	github.com/pkg/errors v0.9.1

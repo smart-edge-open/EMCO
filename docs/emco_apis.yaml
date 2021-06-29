@@ -1492,6 +1492,102 @@ paths:
       requestBody:
         content: {}
 
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/migrate:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+    post:
+      tags:
+        - Deployment Lifecycle
+      summary: Migrate a Deployment
+      description: Migrate from one version of the composite app to another. Used when new apps are added or deleted in composite app or helm charts updated
+      operationId: migrateDeploymentIntentGroup
+      responses:
+        '201':
+          description: Success
+        '202':
+          description: Accepted
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json: # Media type
+            schema:            # Request payload
+              $ref: '#/components/schemas/MigrateIntent'
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/update:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+    post:
+      tags:
+        - Deployment Lifecycle
+      summary: Update a Deployment
+      description: Update a  Deployment. Any changes in the intents reflected in the end cluster(s) after update is called.
+      operationId: updateApiDeploymentIntentGroup
+      responses:
+        '201':
+          description: Success
+        '202':
+          description: Accepted
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content: {}
+
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/rollback:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+    post:
+      tags:
+        - Deployment Lifecycle
+      summary: Rollback a Deployment to older revision
+      description: Revision is provided by update API. Rollback takes the deployment group to the state as in the revision.
+      operationId: rollbackDeploymentIntentGroup
+      responses:
+        '201':
+          description: Success
+        '202':
+          description: Accepted
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json: # Media type
+            schema:            # Request payload
+              $ref: '#/components/schemas/RollbackIntent'
+
   /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/status:
     parameters:
       - $ref: '#/components/parameters/projectName'
@@ -5341,6 +5437,44 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/DeploymentIntent'
+    MigrateIntent:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          type: object
+          description: MigrateSpecData for Migrate API
+          properties:
+            target-composite-app-version:
+              type: string
+              description: Version of composite app to migrate to
+              maxLength: 128
+              example: "v2"
+            target-dig-name:
+              type: string
+              description: Deployment Intent Group to Migrate to
+              maxLength: 128
+              example: "dig2"
+          required:
+          - target-composite-app-version
+          - target-dig-name
+    RollbackIntent:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          type: object
+          description: RollbackSpecData for Rollback API
+          properties:
+            revision:
+              type: string
+              description: Revision to Rollback the deployment to.
+              maxLength: 128
+              example: "4"
+          required:
+          - revision
     Controller:
       type: object
       properties:
@@ -5594,7 +5728,7 @@ components:
             podSelector:
               type: object
               required:
-                -matchlabels
+                - matchLabels
               properties:
                 matchLabels:
                   type: object
@@ -5603,7 +5737,7 @@ components:
             namespaceSelector:
               type: object
               required:
-                -matchlabels
+                - matchLabels
               properties:
                 matchLabels:
                   type: object

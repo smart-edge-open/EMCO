@@ -14,6 +14,8 @@ import (
 	batch "k8s.io/api/batch/v1"
 	batchv1beta1 "k8s.io/api/batch/v1beta1"
 	v1core "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/kubernetes/pkg/apis/apps/install"
 	_ "k8s.io/kubernetes/pkg/apis/batch/install"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
@@ -257,4 +259,111 @@ func AddNfnAnnotation(r interface{}, new []WorkloadIfIntentSpec) {
 			"resource type": typeStr,
 		})
 	}
+}
+// Add Annotations for non standard K8s resources with template section
+func AddTemplateAnnotation(r interface{}, a nettypes.NetworkSelectionElement, new []WorkloadIfIntentSpec) ([]byte, error) {
+
+	//Decode the yaml to create a runtime.Object
+	unstruct := &unstructured.Unstructured{}
+	decode := scheme.Codecs.UniversalDeserializer().Decode
+	_, _, err := decode([]byte(r.(string)), nil, unstruct)
+	if err != nil {
+		return nil, pkgerrors.Wrap(err, "Deserialize YAML error")
+	}
+	// Check if template section is available
+	_, found, err := unstructured.NestedMap(unstruct.Object, "spec", "template")
+	if err != nil  || !found {
+		log.Error("Error NestedMap no template section", log.Fields{"unstruct": unstruct})
+		return nil, err
+	}
+	err = updateTemplateNfnAnnotation(unstruct, new)
+	if err != nil {
+		return nil, pkgerrors.Wrap(err, "updateTemplateNfnAnnotation error")
+	}
+	err = updateTemplateNetworkAnnotation(unstruct, a)
+	if err != nil {
+		return nil, pkgerrors.Wrap(err, "updateTemplateNetworkAnnotation error")
+	}
+	// Convert to Json
+	b, err := unstruct.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+// Add NFN annotation to resources with template section
+func updateTemplateNfnAnnotation(unstruct *unstructured.Unstructured, new []WorkloadIfIntentSpec) error {
+	var nfnAnnotation NfnAnnotation
+	annotations, found, err := unstructured.NestedMap(unstruct.Object, "spec", "template", "metadata", "annotations")
+	if err != nil   {
+		log.Error("Error NestedMap for template metadata annotations", log.Fields{"unstruct": unstruct})
+		return err
+	}
+	if !found || annotations == nil {
+		annotations = make(map[string]interface{})
+	}
+
+	nfnAnnotIntf := annotations[NfnAnnotationKey]
+	if nfnAnnotIntf != nil {
+		nfnAnnot := fmt.Sprintf("%v", nfnAnnotIntf)
+		if len(nfnAnnot) != 0 {
+			err := json.Unmarshal([]byte(nfnAnnot), &nfnAnnotation)
+			if err != nil {
+				log.Warn("Error unmarshalling nfn annotation", log.Fields{
+					"annotation": nfnAnnot,
+				})
+				return err
+			}
+		}
+	}
+	newNfnAnnotation := newNfnIfs(nfnAnnotation, new)
+	j, err := json.Marshal(newNfnAnnotation)
+	if err != nil {
+		log.Error("Network nfn annotation has invalid format", log.Fields{
+			"error": err,
+		})
+		return err
+	}
+	annotations[NfnAnnotationKey] = string(j)
+	if err := unstructured.SetNestedMap(unstruct.Object, annotations, "spec", "template", "metadata", "annotations"); err != nil {
+		log.Error("Error adding template with nfn annotations", log.Fields{"err": err})
+	}
+	return err
+}
+// Add network annotation to resources with template section
+func updateTemplateNetworkAnnotation(unstruct *unstructured.Unstructured, a nettypes.NetworkSelectionElement) error {
+	//netAnnotation, _ := ParsePodTemplateNetworkAnnotation(pt)
+	annotations, found, err := unstructured.NestedMap(unstruct.Object, "spec", "template", "metadata", "annotations")
+	if err != nil   {
+		log.Error("Error NestedMap for template metadata annotations", log.Fields{"unstruct": unstruct})
+		return err
+	}
+	if !found || annotations == nil {
+		annotations = make(map[string]interface{})
+	}
+	defaultNamespace := unstruct.GetNamespace()
+	netAnnotIntf := annotations[nettypes.NetworkAttachmentAnnot]
+	var netAnnotation []*nettypes.NetworkSelectionElement
+	if netAnnotIntf != nil {
+		netAnnot := fmt.Sprintf("%v", netAnnotIntf)
+		netAnnotation, err = netutils.ParseNetworkAnnotation(netAnnot, defaultNamespace)
+		if err != nil {
+			return err
+		}
+	} else {
+		netAnnotation = nil
+	}
+	elements := addNetworkAnnotation(a, netAnnotation)
+	j, err := json.Marshal(elements)
+	if err != nil {
+		log.Error("Existing network annotation has invalid format", log.Fields{
+			"error": err,
+		})
+		return err
+	}
+	annotations[nettypes.NetworkAttachmentAnnot] = string(j)
+	if err := unstructured.SetNestedMap(unstruct.Object, annotations, "spec", "template", "metadata", "annotations"); err != nil {
+		log.Error("Error adding template with nfn annotations", log.Fields{"err": err})
+	}
+	return err
 }

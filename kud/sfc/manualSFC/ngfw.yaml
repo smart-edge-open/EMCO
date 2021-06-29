@@ -15,7 +15,7 @@ spec:
         app: ngfw
       annotations:
         k8s.v1.cni.cncf.io/networks: '[                                        
-            { "name": "ovn4nfv-k8s-plugin",                                    
+            { "name": "ovn-networkobj",
               "interface": "net1"                                              
             }]'
         k8s.plugin.opnfv.org/nfn-network: '{ "type": "ovn4nfv", "interface": [{ "name": "dync-net1", "interface": "net2", "defaultGateway": "false"}, { "name": "dync-net2", "interface": "net3", "defaultGateway": "false"}]}'

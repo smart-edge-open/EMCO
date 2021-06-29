@@ -8,13 +8,11 @@ import (
 	"os"
 	"path"
 
-	corev1 "k8s.io/api/core/v1"
-
+	log "github.com/open-ness/EMCO/src/orchestrator/pkg/infra/logutils"
 	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	log "github.com/open-ness/EMCO/src/orchestrator/pkg/infra/logutils"
 )
 
 // DecodeYAMLFile reads a YAMl file to extract the Kubernetes object definition
@@ -63,37 +61,24 @@ func EnsureDirectory(f string) error {
 	return os.MkdirAll(base, 0700)
 }
 
-// TagPodsIfPresent finds the PodTemplateSpec from any workload
+// TagPodsIfPresent finds the TemplateSpec from any workload
 // object that contains it and changes the spec to include the tag label
 func TagPodsIfPresent(unstruct *unstructured.Unstructured, tag string) {
-
-	spec, ok := unstruct.Object["spec"].(map[string]interface{})
-	if !ok {
+	_, found, err := unstructured.NestedMap(unstruct.Object, "spec", "template")
+	if err != nil || !found {
 		return
 	}
-
-	template, ok := spec["template"].(map[string]interface{})
-	if !ok {
-		return
-	}
-	//Attempt to convert the template to a podtemplatespec.
-	//This is to check if we have any pods being created.
-	podTemplateSpec := &corev1.PodTemplateSpec{}
-	err := runtime.DefaultUnstructuredConverter.FromUnstructured(template, podTemplateSpec)
+	// extract spec template labels
+	labels, found, err := unstructured.NestedMap(unstruct.Object, "spec", "template", "metadata", "labels")
 	if err != nil {
-		log.Error("Did not find a podTemplateSpec", log.Fields{"err": err})
+		log.Error("TagPodsIfPresent: Error reading the NestMap for template", log.Fields{"unstruct": unstruct, "err": err})
 		return
 	}
-
-	labels := podTemplateSpec.GetLabels()
-	if labels == nil {
-		labels = map[string]string{}
+	if labels == nil || !found {
+		labels = make(map[string]interface{})
 	}
 	labels["emco/deployment-id"] = tag
-	podTemplateSpec.SetLabels(labels)
-
-	updatedTemplate, err := runtime.DefaultUnstructuredConverter.ToUnstructured(podTemplateSpec)
-
-	//Set the label
-	spec["template"] = updatedTemplate
+	if err := unstructured.SetNestedMap(unstruct.Object, labels, "spec", "template", "metadata", "labels"); err != nil {
+		log.Error("Error tagging template with emco label", log.Fields{"err": err})
+	}
 }

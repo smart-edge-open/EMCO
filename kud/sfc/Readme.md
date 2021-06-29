@@ -202,6 +202,5 @@ The `collect-info.sh` script can be used to collect logs and information about t
 
 The SFC demo can also be deployed manually (not using EMCO) on the target edge cluster using the instructions
 here https://github.com/akraino-edge-stack/icn-nodus/tree/master/demo/calico-nodus-secondary-sfc-setup
-if needed to verify the edge cluster has been set up correctly.
-
-
+if needed to verify the edge cluster has been set up correctly.  A copy of the demo SFC resource yaml files
+are included in the kud/sfc/manualSFC directory.

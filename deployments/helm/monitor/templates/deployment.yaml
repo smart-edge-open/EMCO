@@ -3,7 +3,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: monitor
+  name: {{ .Release.Name }}-monitor
   namespace: {{ .Release.Namespace }}
 spec:
   replicas: 1

@@ -104,34 +104,40 @@ func UpdateAppContext(intentName, appContextId string) error {
 				})
 				continue
 			}
-
-			// Unmarshal resource to K8S object
-			robj, err := runtime.Decode(scheme.Codecs.UniversalDeserializer(), []byte(r.(string)))
-			if err != nil {
-				return pkgerrors.Wrapf(err, "Error decoding resource: %v", wi.Spec.WorkloadResource)
-			}
-
 			// Add network annotation to object
 			netAnnot := nettypes.NetworkSelectionElement{
 				Name:      "ovn-networkobj",
 				Namespace: "default",
 			}
-			module.AddNetworkAnnotation(robj, netAnnot)
-
 			// Add nfn interface annotations to object
 			var newNfnIfs []module.WorkloadIfIntentSpec
 			for _, i := range wifs {
 				newNfnIfs = append(newNfnIfs, i.Spec)
 			}
-			module.AddNfnAnnotation(robj, newNfnIfs)
-
-			// Marshal object back to yaml format (via json - seems to eliminate most clutter)
-			j, err := json.Marshal(robj)
+			var j []byte
+			// Unmarshal resource to K8S object
+			robj, err := runtime.Decode(scheme.Codecs.UniversalDeserializer(), []byte(r.(string)))
 			if err != nil {
-				log.Error("Error marshalling resource to JSON", log.Fields{
-					"error": err,
-				})
-				continue
+				// Not a standard K8s Resource
+				//Check if it follows the K8s API Conventions
+				j, err = module.AddTemplateAnnotation(r, netAnnot, newNfnIfs)
+				if err != nil {
+					log.Error("Error AddTemplateAnnotation", log.Fields{
+						"error": err,
+					})
+					continue
+				}
+			} else {
+				module.AddNetworkAnnotation(robj, netAnnot)
+				module.AddNfnAnnotation(robj, newNfnIfs)
+				// Marshal object back to yaml format (via json - seems to eliminate most clutter)
+				j, err = json.Marshal(robj)
+				if err != nil {
+					log.Error("Error marshalling resource to JSON", log.Fields{
+						"error": err,
+					})
+					continue
+				}
 			}
 			y, err := jyaml.JSONToYAML(j)
 			if err != nil {

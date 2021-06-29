@@ -6,14 +6,48 @@ package ovncontroller
 import (
 	"encoding/json"
 
+	otheryaml "github.com/ghodss/yaml"
+	nad "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	netintents "github.com/open-ness/EMCO/src/ncm/pkg/networkintents"
 	nettypes "github.com/open-ness/EMCO/src/ncm/pkg/networkintents/types"
 	appcontext "github.com/open-ness/EMCO/src/orchestrator/pkg/appcontext"
 	log "github.com/open-ness/EMCO/src/orchestrator/pkg/infra/logutils"
 	"gopkg.in/yaml.v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	pkgerrors "github.com/pkg/errors"
 )
+
+// makeNetworkAttachmentDefinition makes a network attachment definition and
+// returns it as a string ready to be added to the resources list for the
+// appcontext
+func makeNetworkAttachmentDefinition(name string) (string, error) {
+	nad := nad.NetworkAttachmentDefinition{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "k8s.cni.cncf.io/v1",
+			Kind:       "NetworkAttachmentDefinition",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: nad.NetworkAttachmentDefinitionSpec{
+			Config: `{
+                  "cniVersion": "0.3.1",
+                  "type": "ovn4nfvk8s-cni",
+                  "nfn-network": "` + name + `"
+                }`,
+		},
+	}
+	y, err := otheryaml.Marshal(&nad)
+	if err != nil {
+		log.Error("Error marshalling netwrok attachment definition to yaml", log.Fields{
+			"error": err,
+			"name":  name,
+		})
+		return "", err
+	}
+	return string(y), nil
+}
 
 // controller takes an appcontext as input
 //   finds the cluster(s) associated with the context
@@ -58,6 +92,17 @@ func Apply(ctxVal interface{}, clusterProvider, cluster string) error {
 			name:  intent.Metadata.Name + nettypes.SEPARATOR + netintents.NETWORK_KIND,
 			value: string(y),
 		})
+
+		// make the network attachment definition CR for this network
+		nadRes, err := makeNetworkAttachmentDefinition(intent.Metadata.Name)
+		if err != nil {
+			// TODO - probably should error out instead (and above too)
+			continue
+		}
+		resources = append(resources, resource{
+			name:  intent.Metadata.Name + nettypes.SEPARATOR + "NetworkAttachmentDefinition",
+			value: nadRes,
+		})
 	}
 
 	// Find all Provider Network Intents for this cluster
@@ -86,6 +131,17 @@ func Apply(ctxVal interface{}, clusterProvider, cluster string) error {
 		resources = append(resources, resource{
 			name:  intent.Metadata.Name + nettypes.SEPARATOR + netintents.PROVIDER_NETWORK_KIND,
 			value: string(y),
+		})
+
+		// make the network attachment definition CR for this network
+		nadRes, err := makeNetworkAttachmentDefinition(intent.Metadata.Name)
+		if err != nil {
+			// TODO - probably should error out instead (and above too)
+			continue
+		}
+		resources = append(resources, resource{
+			name:  intent.Metadata.Name + nettypes.SEPARATOR + "NetworkAttachmentDefinition",
+			value: nadRes,
 		})
 	}
 

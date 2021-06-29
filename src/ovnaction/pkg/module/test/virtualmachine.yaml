@@ -1,0 +1,73 @@
+apiVersion: kubevirt.io/v1alpha3
+kind: VirtualMachine
+metadata:
+  name: packetgen
+  labels:
+    release: r1
+    app: packetgen
+    chart: packetgen
+spec:
+  running: true
+  template:
+    metadata:
+      labels:
+        app: packetgen
+        release: r1
+      annotations:
+        app: packetgen
+        release: r1
+    spec:
+      domain:
+        cpu:
+          model: host-model
+        devices:
+          disks:
+            - name: containerdisk
+              disk:
+                bus: virtio
+            - name: cloudinitdisk
+              disk:
+                bus: virtio
+          interfaces:
+          - name: default
+            bridge: {}
+          - name: unprotected
+            macAddress: ee:f0:75:e0:b6:26
+            bridge: {}
+          - name: emco
+            macAddress: 0a:c0:37:55:f5:ab
+            bridge: {}
+        resources:
+          requests:
+            memory: 1024
+      networks:
+      - name: default
+        pod: {}
+      - name: unprotected
+        multus:
+          networkName: net1
+      - name: emco
+        multus:
+          networkName: net2
+      volumes:
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            networkData: |
+              version: 2
+              ethernets:
+                enp1s0:
+                  dhcp4: true
+                eth1:
+                  match:
+                    macaddress: "ee:f0:75:e0:b6:26"
+                  set-name: eth1
+                  dhcp4: true
+                eth2:
+                  match:
+                    macaddress: "0a:c0:37:55:f5:ab"
+                  set-name: eth2
+                  dhcp4: true
+        - name: containerdisk
+          containerDisk:
+            image: integratedcloudnative/ubuntu:16.04
+            imagePullPolicy: IfNotPresent

@@ -284,6 +284,12 @@ func (v *SchedulerClient) TerminateNetworkIntents(clusterProvider, cluster strin
 
 	// call resource synchronizer to terminate the CRs in the cluster
 	contextId := state.GetLastContextIdFromStateInfo(s)
+	if stateVal == state.StateEnum.InstantiateStopped {
+		err = state.UpdateAppContextStopFlag(contextId, false)
+		if err != nil {
+			return err
+		}
+	}
 	err = callRsyncUninstall(contextId)
 	if err != nil {
 		return err

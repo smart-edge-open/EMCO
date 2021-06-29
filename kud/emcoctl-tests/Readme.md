@@ -60,6 +60,10 @@ This folder contains following test cases to run with EMCO. These tests assumes 
 
     `$ $bin/emcoctl --config emco-cfg.yaml apply -f test-dtc.yaml -v values.yaml`
 
+5. Installing Monitor on edge cluster
+
+    `$ $bin/emcoctl --config emco-cfg.yaml apply -f monitor.yaml -v values.yaml`
+
 ## Cleanup
 
 1. Delete Prometheus and Collectd usecase
