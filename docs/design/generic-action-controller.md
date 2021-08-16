@@ -4,30 +4,30 @@ Copyright (c) 2019-2020 Intel Corporation
 ```
 # GENERIC ACTION CONTROLLER
 
-The generic action controller microservice is an action controller which shall be registered with the central orchestrator. It can achieve the following usecases:
+The generic action controller microservice is an action controller which is  registered with the central orchestrator. It manages the following usecases:
 
-- <b>Create a new kubernetes object</b> and deploy that along with a specific application which is part of the composite application. There are two variations here: 
+- <b>Create a new Kubernetes\* object</b> and deploy it along with a specific application which is part of the composite application. There are two variations here:
 
-  - Default : Apply the new object to every instance of the app in every cluster where the app is deployed.
-  - Cluster-Specific : Apply the new object only where the app is deployed to a specific cluster, denoted by a cluster-name or a list of clusters denoted by a cluster-label
+  - Default: Apply the new object to every instance of the app in every cluster where the app is deployed.
+  - Cluster-Specific: Apply the new object only where the app is deployed to a specific cluster, denoted by a cluster-name or a list of clusters denoted by a cluster-label
 
-- <b>Modify an existing kubernetes object</b> which may have been deployed using the helm chart for an app or may have been newly created by the above mentioned usecase. Modification may correspond to specific fields in the YAML definition of the object.
+- <b>Modify an existing Kubernetes object</b> which may have been deployed using the helm chart for an app or may have been newly created by the above mentioned usecase. Modification may correspond to specific fields in the YAML definition of the object.
 
 To acheive both the usecases, the controller exposes REST APIs to create, update and delete the following :
 
 - Resource - Specifies the newly defined object or an existing object.
 - Customization - Specifies the modifications(using JSON Patching) to be applied on the objects.
 
-* The <b>outline of this doc</b> :
+* The <b>outline of this document</b> :
 
 Internally the doc is divided into 2 sections:
 
-  - <b>First section</b> - It focuses on examples. Shows how to register the controller, and shows configuration examples of 3 usecases we support.
+  - <b>Examples</b> - showing how to register the controller, and shows configuration examples of 3 supported usecases.
     - Creation of a new k8s resource.
     - Creation of configMaps and secrets using data from multiple external files.
     - Modifying an existing resource.
 
-  - <b> Second section</b> - The detailed definition of REST APIs exposed by the controllers and the options supported by each API.
+  - <b>REST API definition</b> - The detailed definition of REST APIs exposed by the controllers and the options supported by each API.
 
 
 ### Controller registration with the orchestrator:
@@ -59,7 +59,7 @@ metadata:
   name: {{.GacIntent}}
 ```
 
-For eg, Create a new resource which a new <b>NetworkPolicy</b>
+For example, Create a new resource which a new <b>NetworkPolicy</b>
 Once the intent is registered, we could create the new resource in the following way:
 
 
@@ -79,13 +79,10 @@ spec:
     name: MyNetworkPolicy
 file:
   {{.NetworkPolicyYAML}} # This is the raw manifest YAML definition of networkPolicy.
-
 ```
 
-Eg of network policy YAML definition
-
+Example of network policy YAML definition
 ```
-
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -100,14 +97,12 @@ spec:
             name: backend
 ```
 
-Next thing might be,  you may want to go for a cluster specific customization.
+Next thing might be, you may want to go for a cluster specific customization.
 Lets say you want the network policy to be deployed on clusters which have
 label as "label_a".
 
 * ##### Add customization to resource
-
 ```
-
 version: emco/v2
 resourceContext:
   anchor: projects/{{.ProjectName}}/composite-apps/{{.CompositeApp}}/v1/deployment-intent-groups/{{.DeploymentIntent}}/generic-k8s-intents/{{.GacIntent}}/resources/collectd-resources/customizations
@@ -130,8 +125,8 @@ For example, we want to deploy a cluster specific configmap and the config
 data for the configMap comes from an external JSON file like, sensor.json.
 We can also have multiple external files as config Data.
 
-Similar to configMaps, you can also create cluster specific secrets with 
-external files. 
+Similar to configMaps, you can also create cluster specific secrets with
+external files.
 Both the flow for configMap and Secret creation remain identical.
 An example of configmap creation is shown below :
 
@@ -164,7 +159,6 @@ file:
 ```
 
 * ##### Customize using the data file
-
 ```
 version: emco/v2
 resourceContext:
@@ -182,17 +176,15 @@ spec:
 files:
   - {{.ConfigmapFile}} # this might be data file like sensor.json which is the
   data to be loaded into configMap.
-
 ```
 
 ### Modifying an existing resource
 
-GAC supports modifying an existing resource. For example, you have an etcd-cluster in your composite app which is currently configured for 
-replica count 3, and you want the replica count to be 6. 
+GAC supports modifying an existing resource. For example, you have an etcd-cluster in your composite app which is currently configured for
+replica count 3, and you want the replica count to be 6.
 This can be done by the following steps:
 
 * ##### Add the GAC intent
-
 ```
 version: emco/v2
 resourceContext:
@@ -203,7 +195,6 @@ metadata:
 
 
 * ##### Add resources to GAC intent
-
 ```
 version: emco/v2
 resourceContext:
@@ -220,7 +211,6 @@ spec:
 ```
 
 * ##### Add customization to increase the replica count
-
 ```
 version: emco/v2
 resourceContext:
@@ -243,21 +233,20 @@ spec:
         "value": 6
       }
     ]
-
 ```
 
 ### REST APIs
 
  - The proposed API is structured in two parts: one defines the base resource
-object of interest(which shall be called 'resource' in the APIs), and the other defines customizations to be applied on the base resource. 
+object of interest(which shall be called 'resource' in the APIs), and the other defines customizations to be applied on the base resource.
 - The base resource may be a newly defined object (the first use
-case above) or an existing object defined in the Helm chart of some app (the second use case). 
+case above) or an existing object defined in the Helm chart of some app (the second use case).
 - The customization specifies the JSON patches to be applied
-on the base resource and, optionally, the cluster(s) to which the app must be mapped. 
+on the base resource and, optionally, the cluster(s) to which the app must be mapped.
 - If no clusters are specified, the customization is applied
-independent of which cluster(s) the app is mapped to. 
+independent of which cluster(s) the app is mapped to.
 
-- When customizations have been defined for a resource, only the customized variants shall be applied. 
+- When customizations have been defined for a resource, only the customized variants shall be applied.
 - The base resource is applied only when no
 customizations exist.
 
@@ -265,8 +254,7 @@ customizations exist.
 
 The following APIs allow for the creation and retrieval of Generic K8s Intents.
 
-- Meta data body 
-
+- Meta data body
 ```
 {
    "metadata":{
@@ -278,7 +266,6 @@ The following APIs allow for the creation and retrieval of Generic K8s Intents.
 }
 ```
 - Operations supported
-
 ```
 CREATE - /projects/{project}/composite-apps/{composite-app-name}/{version}/deployment-intent-groups/{deployment-intent-group-name}/generic-k8s-intents
 ```
@@ -299,8 +286,7 @@ DELETE - /projects/{project}/composite-apps/{composite-app-name}/{version}/deplo
 
 The following APIs allow for the creation and retrieval of Resource.
 
-- metadata Body of resource
-
+- Metadata Body of resource
 ```
 {
   "metadata":{
@@ -327,10 +313,10 @@ The fields in the `spec` object in the POST request body are as follows:
 
  * `appName`: Name of the application of interest.
  * `newObject`: Flag indicating whether this intent defines a new object.
-   If `true`, the `file` must be uploaded along with the API creation[unless its configMap or secret]; The 'file' shall contain the resource definition in YAML format. In case of configMap/Secret, the 'file' neeed not be present. The data file in case of configMap/secret shall be uploaded through customization.
+   If `true`, the `file` must be uploaded along with the API creation[unless it is configMap or secret]; The `file` shall contain the resource definition in YAML format. In case of configMap/Secret, the `file` neeed not be present. The data file in case of configMap/secret shall be uploaded through customization.
 
  * `resourceGVK`: A reference to the object being created or existing.
-   (`apiVersion` and `kind` in K8s terms) and a name (`metadata/name` field in K8s). 
+   (`apiVersion` and `kind` in K8s terms) and a name (`metadata/name` field in K8s).
 
 Only one object of a given `apiVersion`, `kind` and `name` can exist as a
 base resource without customizations.
@@ -355,16 +341,15 @@ DELETE - /projects/{project}/composite-apps/{composite-app-name}/{version}/deplo
 
 ## Definition of Customization
 
-Customization allows us to customize an existing resource or a newly created resource. 
-Lets say you want a cluster specific deployment, then this can help.
-Customization also supports uploading of multiple data `files` 
-which can be used for the 'data' field in case of configMaps and
+Customization allows us to customize an existing resource or a newly created resource.
+Let's say you want a cluster specific deployment, then this can help.
+Customization also supports uploading of multiple data `files`
+which can be used for the `data` field in case of configMaps and
 secrets.
 It can also help modifying an existing k8s resource through JSON
 patching.
 
-- metadata body of customization
-
+- Metadata Body of Customization
 ```
 {
   "metadata": {
@@ -392,11 +377,9 @@ patching.
     ]
   }
 }
-
 ```
 
-- Operations supported 
-
+- Operations supported
 ```
 CREATE - /projects/{project}/composite-apps/{composite-app-name}/{version}/deployment-intent-groups/{deployment-intent-group-name}/generic-k8s-intents/{intent-name}/resources/{resource-name}/customizations
 ```
@@ -426,12 +409,12 @@ The fields in the `spec` object in the POST request body are as follows:
      applied to all relevant clusters except those specified.
    * `clusterProvider`: Name of the service provider hosting the cluster.
    * `clusterName`: Cluster name. Required and relevant only if `scope` is `name`.
-   * `clusterLabel`: A label set on the cluster. Required and relevant onl if `scope` is `label`.
-    * `patchType`: Specifies the type of patch. Required and relevant only if you want to modify an existing resource. 
+   * `clusterLabel`: A label set on the cluster. Required and relevant only if `scope` is `label`.
+    * `patchType`: Specifies the type of patch. Required and relevant only if you want to modify an existing resource.
     * `patchJson`: This consists of :
-      *  `op` : stands for the operation to be performed as patch. For eg, "replace". For other operations in case of JSON patching , refer : https://github.com/evanphx/json-patch
+      *  `op` : stands for the operation to be performed as patch. For example, "replace". For other operations in case of JSON patching , refer : https://github.com/evanphx/json-patch
       * `path` : denotes the path of the item in the YAML definition of the resource. For eg, you can find the 'replica' count at `/spec/replicas`
       * `value` : modified value of the item.
-   
 
-Updating or deleting a customization when the customized resource has been deployed will affect only the database entry but not the actual deployments in any cluster.
+
+> **NOTE**: Updating or deleting a customization when the customized resource has been deployed will affect only the database entry but not the actual deployments in any cluster.

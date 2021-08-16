@@ -5,7 +5,7 @@ Copyright (c) 2021 Intel Corporation
 
 # EMCO Resource Lifecycle and Status
 
-This document describes how EMCO keeps track of the status of resources that have a lifecycle.  Resources with a lifecycle refer to the subset of EMCO resources that support operations like _instantiate_ or _terminate_, which result in Kubernetes resources being applied or deleted from remote Kuberentes clusters via the EMCO `rsync` microservice.
+This document describes how EMCO keeps track of the status of resources that have a lifecycle.  Resources with a lifecycle refer to the subset of EMCO resources that support operations like _instantiate_ or _terminate_, which result in Kubernetes\* resources being applied or deleted from remote Kuberentes clusters via the EMCO `rsync` microservice.
 EMCO keeps track of the state and status of resources on the EMCO side as well as on the remote cluster.
 
 ## EMCO Resources with a Lifecycle
@@ -17,44 +17,34 @@ EMCO keeps track of the state and status of resources on the EMCO side as well a
 	- Lifecycle operations are issued via the Distributed Cluster Manager (`dcm`) to instantiate logical clouds.
 
 ### Terminology
-This document will refer to _EMCO resources_ , _AppContext_ , _rsync resources_ , and _cluster resources_ .
+This document will refer to _EMCO resources_, _AppContext_, _rsync resources_, and _cluster resources_.
 
-- **EMCO resources** : These are the data resources that are input to various EMCO microservices via the REST APIs.  This data is generally input as JSON or file data and is stored in the EMCO database (i.e. MongoDB).  EMCO resources include the onboarded cluster registration data, logical clouds, network intents, composite application data, placement intents, action controller intents and so on.
-- **AppContext** : The EMCO _AppContext_ is maintainted in the `etcd` storage used by EMCO to stage and maintain resources for composite applications, network intents and logical clouds.  Basically, all resources that are to be deployed to the remote clusters are prepared in the _AppContext_ by various EMCO microservices and the Resource Synchronizer (`rsync`) microservice handles applying and removing those resources in the remote clusters.  Generally, for EMCO resources that support lifecycle operations, an _AppContext_ entry is created that is used to manage and track all of the resources associated with the EMCO resource and status information.
-- **rsync resource** - This term is used to refer to a Kubernetes resource that has been prepared by the EMCO microservices in an _AppContext_ entry.  The _rsync resource_ will have a status, managed by _rsync_ with respect to the lifecycle operations and whether or not _rsync_ has executed the operation to the associated remote cluster.
-- **cluster resource** - This term is used to refer to the actual instance of a Kubernetes resource in a remote cluster.  A _cluster resource_ has an association with a  _rsync resource_.  Though not necessary 1:1.  For example, the _rsync resource_ may be a Deployment.  In the cluster, there would be Deployment and Pod  _cluster resources_ that get instantiated after the _rsync resource_ is applied to the cluster.
+- **EMCO resources**: These are the data resources that are input to various EMCO microservices via the REST APIs.  This data is generally input as JSON or file data and is stored in the EMCO database (i.e. MongoDB\*.) EMCO resources include the onboarded cluster registration data, logical clouds, network intents, composite application data, placement intents, action controller intents and so on.
+- **AppContext**: The EMCO _AppContext_ is maintainted in the `etcd` storage used by EMCO to stage and maintain resources for composite applications, network intents and logical clouds.  Basically, all resources that are to be deployed to the remote clusters are prepared in the _AppContext_ by various EMCO microservices, and the Resource Synchronizer (`rsync`) microservice handles applying and removing those resources in the remote clusters.  Generally, for EMCO resources that support lifecycle operations, an _AppContext_ entry is created and used to manage and track all of the resources associated with the EMCO resource and status information.
+- **rsync resource**: This term is used to refer to a Kubernetes resource that has been prepared by the EMCO microservices in an _AppContext_ entry.  The _rsync resource_ will have a status, managed by _rsync_ with respect to the lifecycle operations and whether or not _rsync_ has executed the operation to the associated remote cluster.
+- **cluster resource**: This term is used to refer to the actual instance of a Kubernetes resource in a remote cluster.  A _cluster resource_ has an association with a  _rsync resource_, though not necessary 1:1.  For example, the _rsync resource_ may be a Deployment.  In the cluster, there would be Deployment and Pod  _cluster resources_ that get instantiated after the _rsync resource_ is applied to the cluster.
 
 ### Cluster Network Intent lifecycle
 
 The _state_ of `Cluster Network Intents` for a cluster is  maintained in the `Cluster` resource in the EMCO database. The _state_ tracks the operations issued to the resource via the API. The states are:
 
 -   **Created**: Upon initial creation of the cluster. In this state, `Cluster Network Intents` may be added to the `Cluster`.
--   **Applied**: Once applied, the `Cluster Network Intents` are rendered to create appropriate _rsync resources_  in the _AppContext_ and rsync is then invoked to instantiate these to the cluster to create  _cluster resources_.  In this state (for now), additional network intents may not be added, modified or deleted until the current ones are terminated.  The cluster resource may not be deleted from the EMCO database until the current network intents are terminated.
-
-
+-   **Applied**: Once applied, the `Cluster Network Intents` are rendered to create appropriate _rsync resources_  in the _AppContext_ and rsync is then invoked to instantiate these to the cluster to create _cluster resources_.  In this state (for now), additional network intents may not be added, modified or deleted until the current ones are terminated.  The cluster resource may not be deleted from the EMCO database until the current network intents are terminated.
 ```
 	URL: POST /v2/cluster-providers/{cluster-provider-name}/clusters/{cluster-name}/apply
 ```
 
--   **Terminated**: Causes  _rsync_ to delete the  _cluster resources_  from the destination clusters.  This state is effectively similar to the Created state - `Cluster Network Intents` may be added, modified or deleted.  The `Cluster` resource itself may be deleted (subject to deleting sub-resources first).  The Applied state may also be re-invoked to start a new set of  _rsync resources_  and  _cluster resources_.
-
+-   **Terminated**: Causes  _rsync_ to delete the  _cluster resources_  from the destination clusters.  This state is effectively similar to the Created state in that `Cluster Network Intents` may be added, modified or deleted.  The `Cluster` resource itself may be deleted (subject to deleting sub-resources first.)  The Applied state may also be re-invoked to start a new set of  _rsync resources_  and  _cluster resources_.
 ```
 	URL: POST /v2/cluster-providers/{cluster-provider-name}/clusters/{cluster-name}/terminate
 ```
 
--   **InstantiateStopped**: Causes  _rsync_  to stop any current instantiation operations for the associated AppContext.
-	When _rsync_ continues to retry instantiating _rsync resources_ to a specific cluster because it has become unreachable, the stop API may be invoked to cause the instantiate process to complete.
-
-	Note: In the case where a cluster is in a retrying condition during instantiation, issuing a `terminate` to the `Cluster` will also stop the instantiation sequence before beginning the termination process.
-
+-   **InstantiateStopped**: Causes  _rsync_  to stop any current instantiation operations for the associated AppContext. When _rsync_ continues to retry instantiating _rsync resources_ to a specific cluster because it has become unreachable, the stop API may be invoked to cause the instantiate process to complete. Note that in the case where a cluster is in a retrying condition during instantiation, issuing a `terminate` to the `Cluster` will also stop the instantiation sequence before beginning the termination process.
 ```
 	URL: POST /v2/cluster-providers/{cluster-provider-name}/clusters/{cluster-name}/stop
 ```
 
--   **TerminateStopped**: Causes  _rsync_  to stop any current termination operations for the associated AppContext.
-	When _rsync_ continues to retry deleting _rsync resources_ from a specific cluster because it has become unreachable, the stop API may be invoked to cause the terminate process to complete.
-	This may be necessary if it is known that the retry condition cannot be resolved and there is an intent to delete the `Cluster Network Intents` and the `Cluster`.  EMCO will prevent removal of the `Cluster` until the `Cluster Network Intents` have been terminated and the termination operation has completed (or failed).
-
+-   **TerminateStopped**: Causes  _rsync_  to stop any current termination operations for the associated AppContext. When _rsync_ continues to retry deleting _rsync resources_ from a specific cluster because it has become unreachable, the stop API may be invoked to cause the terminate process to complete. This may be necessary if it is known that the retry condition cannot be resolved and there is an intent to delete the `Cluster Network Intents` and the `Cluster`,  EMCO will prevent removal of the `Cluster` until the `Cluster Network Intents` have been terminated and the termination operation has completed (or failed).
 ```
 	URL: POST /v2/cluster-providers/{cluster-provider-name}/clusters/{cluster-name}/stop
 ```
@@ -67,13 +57,11 @@ The state of the Deployment Intent Group (DIG) is maintained in the Deployment I
 
 -   **Created**: Upon creation of the DIG, intents may be added to the DIG. The DIG may be modified or deleted.
 -   **Approved**: Once the DIG is Approved, the DIG and its intents may not be modified or deleted. Modifying the DIG or its intents will unapprove the DIG and set it back to the Created state.
-
 ```
 	URL: /v2/projects/{project-name}/composite-apps/{composite-app-name}/{version}/deployment-intent-groups/{deployment-intent-group-name}/approve
 ```
 
 -   **Instantiated**: When the DIG is Instantiated, the  _rsync resources_  are created in the EMCO AppContext and the  _rsync_  is invoked to create the  _cluster resources_  in the destination clusters.
-
 ```
 	URL: /v2/projects/{project-name}/composite-apps/{composite-app-name}/{version}/deployment-intent-groups/{deployment-intent-group-name}/instantiate
 ```
@@ -81,7 +69,6 @@ The state of the Deployment Intent Group (DIG) is maintained in the Deployment I
 	Once instantiated, the DIG and its intents may not be modified or deleted. The DIG must be Terminated first.
 
 -   **Terminated**: Causes  _rsync_  to delete the  _cluster resources_  from the destination clusters.  This state is effectively similar to the Approved state.  The Instantiated state may be re-invoked to start a new set of  _rsync resources_ and  _cluster resources_.
-
 ```
 	URL: /v2/projects/{project-name}/composite-apps/{composite-app-name}/{version}/deployment-intent-groups/{deployment-intent-group-name}/terminate
 ```
@@ -91,15 +78,13 @@ The state of the Deployment Intent Group (DIG) is maintained in the Deployment I
 	When _rsync_ continues to retry instantiating _rsync resources_ to a specific cluster because it has become unreachable, the stop API may be invoked to cause the instantiate process to complete.
 
 	Note: In the case of a some clusters in a retrying condition during instantiate, issuing a terminate to the DIG will also stop the instantiate sequence before beginning the termination process.
-
 ```
 	URL: /v2/projects/{project-name}/composite-apps/{composite-app-name}/{version}/deployment-intent-groups/{deployment-intent-group-name}/stop
 ```
 
 -   **TerminateStopped**: Causes  _rsync_  to stop any current termination operations for the associated AppContext.
 	When _rsync_ continues to retry deleting _rsync resources_ from a specific cluster because it has become unreachable, the stop API may be invoked to cause the terminate process to complete.
-	This may be necessary if it is known that the retry condition cannot be resolved and there is an intent to delete the DIG.  EMCO will prevent removal of the DIG until it has been terminated and the termination operation has completed (or failed).
-
+	This may be necessary if it is known that the retry condition cannot be resolved and there is an intent to delete the DIG.  EMCO will prevent removal of the DIG until it has been terminated and the termination operation has completed (or failed.)
 ```
 	URL: /v2/projects/{project-name}/composite-apps/{composite-app-name}/{version}/deployment-intent-groups/{deployment-intent-group-name}/stop
 ```
@@ -112,7 +97,7 @@ In the initial EMCO release, logical clouds do not maintain the lifecycle _state
 ### EMCO Resource State Diagram
 The following diagram illustrates how the states of Deployment Intent Groups work.  The states of the EMCO resource (Deployment Intent Group) are shown in green.  The light blue statuses inside the Instantiated, InstantiateStopped, Terminated, and TerminateStopped states represent the status of the associated AppContext.
 
-Note: The state diagram for cluster network intents is similar.  Just lacking the Approved state and the Instantiated is called Applied for cluster network intents..
+Note: The state diagram for cluster network intents is similar, but is lacking the Approved state, and the Instantiated is called Applied for cluster network intents.
 
 ![EMCO](images/DigStateDiagram.png)
 
@@ -130,7 +115,7 @@ The rsync process will maintain a top level status for the AppContext. The statu
 The following diagram illustrates how the top level AppContext status progresses.
 
 Note: Once an EMCO resource has been instantiated (or applied), it will have an AppContext created for it and the EMCO resource cannot be deleted until the associated AppContext has reached a Terminated or TerminateFailed status.
-  
+
 ![EMCO](images/AppContextStateDiagram.png)
 
 ## Cluster Ready Status
@@ -191,11 +176,11 @@ status:
   statefulSetStatuses: []
 ```
 3.  A Watcher thread is started per cluster by _rsync_ to watch for changes to ResourceBundleState CRs in the cluster. When an updated CR is detected, the Watcher retrieves it and saves it into the corresponding AppContext per App/Cluster so it is available to provide information for _cluster resource_ queries.
-    
+
 
 The  _cluster resource_ status is provided in two forms.
 
-1.  The actual status{} portion of the  _cluster resource_  (if present) is made available in the information returned via the ResourceBundleState CR.
+1.  The `actual status{}` portion of the  _cluster resource_  (if present) is made available in the information returned via the ResourceBundleState CR.
 2.  Summarized in a value as follows.
 
 -   **Present**: For  _rsync resources_  with a corresponding  _cluster resource_  in the ResourceBundleState CR, the clustesr status is present.
@@ -210,7 +195,7 @@ URL:  GET /v2/cluster-providers/{cluster-provider-name}/clusters/{cluster-name}/
 URL:  GET /v2/projects/{project-name}/composite-apps/{composite-app-name}/{version}/deployment-intent-groups/{deployment-intent-group-name}/status
 ```
 
-Note: Logical clouds do yet not support the status API.
+> **NOTE** Logical clouds do yet not support the status API.
 
 
 #### Status Query Parameters
@@ -219,38 +204,38 @@ The status query provides many query parameters to modify the behavior of the qu
 
 The following query parameters are available:
 
-`type`=_< `rsync` | `cluster` >_
+`type`=< `rsync` | `cluster` >
 * default type is `rsync`
 * `rsync`: gathers status based on the rsync resources.
 * `cluster`: gathers status based on cluster resource information received in the ResourceBundleState CRs received from the cluster(s)
 
-`output`=_< `summary` | `all` | `detail` >_
+`output`=< `summary` | `all` | `detail` >
 * default output value is: `all`
-* `summary`: will just show the top level EMCO resource state and status along with aggregated resource statuses but no resource detail information
-  any filters added will affect the aggregated resource status results, although resource details will not be displayed
-* `all`: will include a list of resources, organized by App and Cluster, showing basic resource identification (Group Version Kind) and resource statuses
-* `detail`: includes in the resource list the metadata, spec, and status of the resource as received in the ResourceBundleState CR
+* `summary`: will only show the top level EMCO resource state and status along with aggregated resource statuses but no resource detail information.
+Any filters added will affect the aggregated resource status results, although resource details will not be displayed.
+* `all`: will include a list of resources, organized by App and Cluster, showing basic resource identification (Group Version Kind) and resource statuses.
+* `detail`: includes in the resource list the metadata, spec, and status of the resource as received in the ResourceBundleState CR.
 
-`instance`=_< `App Context Identifier` >_
-* by default, the most recent `instance` associated with the lifecycle resource will be used
+`instance`=< `App Context Identifier` >
+* by default, the most recent `instance` associated with the lifecycle resource will be used.
 * to query results from previous instantiations, the `instance` of the older instantiation may be provided.
 
 The following query parameters filter the results returned.  Aggregated status results at the top level are relative to the filter parameters supplied.
 These parameters can be supplied multiple times in a given status query.
 
-`app`=_< `appname` >_
+`app`=< `appname` >
 * default is all apps
 * This will filter the results of the query to show results only for the resources of the specified App(s).
 * Multiple occurrences of this parameter may be supplied.
 
-`cluster`=_< `cluster` >_
-* default is all clusters
-* This will filter the results of the query to show results only for the specified cluster(s)
+`cluster`=< `cluster` >
+* default is all clusters.
+* This will filter the results of the query to show results only for the specified cluster(s).
 * Multiple occurrences of this parameter may be supplied.
 
-`resource`=_< `resource name` >_
-* default is all resources
-* This will filter the results of the query to show results only for the specified resource(s)
+`resource`=< `resource name` >
+* default is all resources.
+* This will filter the results of the query to show results only for the specified resource(s).
 * Multiple occurrences of this parameter may be supplied.
 
 The following query parameters may be included in status queries for `Deployment Intent Groups`.  If one of these parameters is present, then the status
@@ -259,7 +244,7 @@ query will make the corresponding query.  See the examples below.  Any other que
 `apps`
 * Return a list of all of the apps for the associated _App Context_.
 * This parameter takes precedence over `clusters` and `resources` query parameters.
-* The `instance` query parameter may be provided to.
+* The `instance` query parameter may be provided.
 
 `clusters`
 * Returns a list of clusters to which this `Deployment Intent Group` will be deployed
@@ -268,7 +253,7 @@ query will make the corresponding query.  See the examples below.  Any other que
 * The `instance` query parameter may be provided.
 
 `resources`
-* Returns a list of resources for this `Deployment Intent Group`,
+* Returns a list of resources for this `Deployment Intent Group`.
 * The `app` query filter may be included to filter the response to just the resources for the supplied app(s).
 * The `instance` query parameter may be provided.
 * The `type` parameter may be supplied to return results for either `rsync` or `cluster` resources.
@@ -277,7 +262,7 @@ query will make the corresponding query.  See the examples below.  Any other que
 
 #### Status Query Examples
 
-Basic status query.  By default, all apps, clusters and resources will be displayed.  The default query type is `rsync`, so the status returned indicates
+A basic status query.  By default, all apps, clusters and resources will be displayed.  The default query type is `rsync`, so the status returned indicates
 the status of whether or not EMCO has successfully applied or terminated the resources (not the actual resource status in the cluster).
 ```
 URL: GET /v2/projects/proj1/composite-apps/collection-composite-app/v1/deployment-intent-groups/collection-deployment-intent-group/status
@@ -1152,14 +1137,14 @@ Output:
 ##### Example of a cluster network intents status query
 
 This example illustrates querying the status of a network intents for a cluster.
-All the same query parameters, except for the `apps`, `clusters` and `resources` parameters, apply as illustrated above for querying `Deployment Intent Groups`.
+The same query parameters, except for the `apps`, `clusters` and `resources` parameters, apply as illustrated above for querying `Deployment Intent Groups`.
 
 Note: the `cluster` and `app` filter parameters are not particularly useful for the cluster network intents status query since cluster is inherent in the query URL and there is only
 a single internal app for any given cluster network intent and it is not dislayed.
 
 Note: if the `cluster` type parameter is supplied, the ResourceBundleState CR currently does not support the Network and ProviderNetwork resources, so no resources will be found
 
-Note: the format of the cluster intents status query changed in 21.03.  The `apps` and `clusters` levels have been removed since they are effectively 
+Note: the format of the cluster intents status query changed in 21.03.  The `apps` and `clusters` levels have been removed since they are effectively
 redundant for this query. They have been replaced with a single `cluster` object which contains the list of network resources.
 
 ```
@@ -1240,7 +1225,7 @@ Response: {"project":"testvfw","composite-app-name":"compositevfw","composite-ap
 
 ```
 
-TIP: To get just the JSON output to pass to a JSON utility like `jq`, do something like the following: 
+TIP: To get just the JSON output to pass to a JSON utility like `jq`, do something like the following:
 
 ```
 emcoctl --config emco-cfg.yaml get projects/testvfw/composite-apps/compositevfw/v1/deployment-intent-groups/vfw_deployment_intent_group/status | sed -z 's/.*Response://' | jq .
