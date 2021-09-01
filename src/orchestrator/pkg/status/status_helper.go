@@ -237,9 +237,63 @@ func keepResource(r string, rList []string) bool {
 	}
 	return false
 }
+// For status get the resource from reference appContext
+// In case of no update it'll refer back to the same appContext
+func getResourceFromReference(ac appcontext.AppContext, h interface{}, appName, cluster string) (unstructured.Unstructured, error) {
+	var val = ""
+	var err error
+	// Read refernce appContext value
+	sh, err := ac.GetLevelHandle(h, "reference")
+	if err == nil {
+		s, err := ac.GetValue(sh)
+		if err == nil {
+			js, err := json.Marshal(s)
+			if err == nil {
+				json.Unmarshal(js, &val)
+			}
+		}
+	}
+	if err != nil{
+		return unstructured.Unstructured{}, err
+	}
+	// Load the reference appContext
+	ref := appcontext.AppContext{}
+	_, err = ref.LoadAppContext(val)
+	if err != nil {
+		log.Error(":: Error loading the app context::", log.Fields{"appContextId": val, "error": err})
+		return unstructured.Unstructured{}, err
+	}
+	handle := fmt.Sprintf("%v", h)
+	// Assuming the handle is already verified as a resource handle
+	parts := strings.Split(handle, "/")
+	// resource name is the last element
+	if len(parts) < 2 {
+		log.Error(":: Error getting resource handle ::", log.Fields{"app": appName, "cluster": cluster, "handle": handle})
+		return unstructured.Unstructured{}, err
+	}
+	resource := parts[len(parts)-2]
+	// Get Resource from reference AppContext
+	rh, err := ref.GetResourceHandle(appName, cluster, resource)
+	if err != nil {
+		log.Error(":: Error getting resource handle ::", log.Fields{"app": appName, "cluster": cluster, "resource": resource})
+		return unstructured.Unstructured{}, err
+	}
+	res, err := ref.GetValue(rh)
+	if err != nil {
+		log.Error(":: Error getting resource value ::", log.Fields{"app": appName, "cluster": cluster, "resource": resource})
+		return unstructured.Unstructured{}, err
+	}
+	// Get the unstructured object
+	unstruct, err := getUnstruct([]byte(res.(string)))
+	if err != nil {
+		log.Error(":: Error getting GVK ::", log.Fields{"Resource": res, "error": err})
+		return unstructured.Unstructured{}, err
+	}
+	return unstruct, nil
+}
 
 // GetAppContextResources collects the resource status of all resources in an AppContext subject to the filter parameters
-func GetAppContextResources(ac appcontext.AppContext, ch interface{}, qOutput string, fResources []string, resourceList *[]ResourceStatus, statusCnts map[string]int) (int, error) {
+func GetAppContextResources(ac appcontext.AppContext, ch interface{}, qOutput string, fResources []string, resourceList *[]ResourceStatus, statusCnts map[string]int, app, cluster string) (int, error) {
 	count := 0
 
 	// Get all Resources for the Cluster
@@ -252,13 +306,6 @@ func GetAppContextResources(ac appcontext.AppContext, ch interface{}, qOutput st
 	for _, h := range hs {
 		// skip any handles that are not resource handles
 		if !isResourceHandle(ch, h) {
-			continue
-		}
-
-		// Get Resource from AppContext
-		res, err := ac.GetValue(h)
-		if err != nil {
-			log.Info(":: Error getting resource value ::", log.Fields{"Handle": h})
 			continue
 		}
 
@@ -275,17 +322,14 @@ func GetAppContextResources(ac appcontext.AppContext, ch interface{}, qOutput st
 				}
 			}
 		}
-
-		// Get the unstructured object
-		unstruct, err := getUnstruct([]byte(res.(string)))
+		unstruct, err := getResourceFromReference(ac, h, app, cluster)
 		if err != nil {
-			log.Info(":: Error getting GVK ::", log.Fields{"Resource": res, "error": err})
-			continue
+		    log.Error(":: Error getting GVK ::", log.Fields{"error": err})
+		    continue
 		}
 		if !keepResource(unstruct.GetName(), fResources) {
 			continue
 		}
-
 		// Make and fill out a ResourceStatus structure
 		r := ResourceStatus{}
 		r.Gvk = unstruct.GroupVersionKind()
@@ -535,7 +579,7 @@ func prepareStatusResult(statusType string, stateInfo state.StateInfo, qInstance
 
 				/* code to get status for resources from AppContext */
 				clusterStatus.Resources = make([]ResourceStatus, 0)
-				cnt, err := GetAppContextResources(ac, ch, qOutput, fResources, &clusterStatus.Resources, rsyncStatusCnts)
+				cnt, err := GetAppContextResources(ac, ch, qOutput, fResources, &clusterStatus.Resources, rsyncStatusCnts, app, cluster)
 				if err != nil {
 					log.Info(":: Error gathering appcontext resources for cluster, app ::",
 						log.Fields{"Cluster": cluster, "AppName": app, "Error": err})
@@ -790,7 +834,7 @@ func PrepareResourcesByAppStatusResult(stateInfo state.StateInfo, qInstance, qTy
 
 				/* code to get status for resources from AppContext */
 				resources := make([]ResourceStatus, 0)
-				_, err = GetAppContextResources(ac, ch, "all", make([]string, 0), &resources, rsyncStatusCnts)
+				_, err = GetAppContextResources(ac, ch, "all", make([]string, 0), &resources, rsyncStatusCnts,app, cluster)
 				if err != nil {
 					log.Info(":: Error gathering appcontext resources for cluster, app ::",
 						log.Fields{"Cluster": cluster, "AppName": app, "Error": err})
@@ -814,20 +858,51 @@ func PrepareResourcesByAppStatusResult(stateInfo state.StateInfo, qInstance, qTy
 
 	return statusResult, nil
 }
-
+// Read readystatus from reference
 func getClusterReadyStatus(ac appcontext.AppContext, app, cluster string) string {
+
 	ch, err := ac.GetClusterHandle(app, cluster)
 	if err != nil {
+		log.Error("Cluster handle not found", log.Fields{"cluster": cluster})
 		return string(appcontext.ClusterReadyStatusEnum.Unknown)
 	}
-	rsh, nil := ac.GetLevelHandle(ch, "readystatus")
+	var val = ""
+	// Read refernce appContext value
+	sh, err := ac.GetLevelHandle(ch, "reference")
+	if err == nil {
+		s, err := ac.GetValue(sh)
+		if err == nil {
+			js, err := json.Marshal(s)
+			if err == nil {
+				json.Unmarshal(js, &val)
+			}
+		}
+	}
+	if err != nil{
+		log.Error("Reference not found for cluster status", log.Fields{"cluster": cluster, "error": err})
+		return string(appcontext.ClusterReadyStatusEnum.Unknown)
+	}
+	// Load the reference appContext
+	ref := appcontext.AppContext{}
+	_, err = ref.LoadAppContext(val)
+	if err != nil {
+		log.Error(":: Error loading the app context::", log.Fields{"appContextId": val, "error": err})
+		return string(appcontext.ClusterReadyStatusEnum.Unknown)
+	}
+	rlh, err := ref.GetClusterHandle(app, cluster)
+	if err != nil {
+		log.Error("Error getting cluster handle for Reference", log.Fields{"cluster": cluster, "error": err})
+		return string(appcontext.ClusterReadyStatusEnum.Unknown)
+	}
+	rsh, err := ref.GetLevelHandle(rlh, "readystatus")
+
 	if rsh != nil {
-		status, err := ac.GetValue(rsh)
+		status, err := ref.GetValue(rsh)
 		if err != nil {
+			log.Error("Error getting readystatus from Reference", log.Fields{"cluster": cluster, "error": err})
 			return string(appcontext.ClusterReadyStatusEnum.Unknown)
 		}
 		return status.(string)
 	}
-
 	return string(appcontext.ClusterReadyStatusEnum.Unknown)
 }

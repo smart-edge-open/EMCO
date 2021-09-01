@@ -1,0 +1,74 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+#################################################################
+# Global configuration defaults.
+#################################################################
+global:
+  nodePortPrefixExt: 304
+  persistence: {}
+#################################################################
+# Application configuration defaults.
+#################################################################
+# application image
+repository:
+image: emco-hpa-ac
+imageTag:
+pullPolicy: Always
+command: "./hpa-ac"
+args: ""
+workingDir: /opt/emco/hpa-ac
+
+# flag to enable debugging - application support required
+debugEnabled: false
+
+# application configuration is via config files
+
+# default number of instances
+replicaCount: 1
+
+nodeSelector: {}
+
+affinity: {}
+
+
+# probe configuration parameters
+liveness:
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  # necessary to disable liveness probe when setting breakpoints
+  # in debugger so K8s doesn't restart unresponsive container
+  enabled: false
+
+# readiness not defined for action controller
+serviceName: hpaaction
+
+serviceInternal:
+  type: NodePort
+  name: internal
+  portName: internal
+  internalPort: 9042
+  externalPort: 9042
+  nodePort: 43
+
+ingress:
+  enabled: false
+
+# Configure resource requests and limits
+flavor: large
+resources:
+  small:
+    limits:
+      cpu: 200m
+      memory: 500Mi
+    requests:
+      cpu: 10m
+      memory: 10Mi
+  large:
+    limits:
+      cpu: 400m
+      memory: 1Gi
+    requests:
+      cpu: 10m
+      memory: 100Mi
+  unlimited: {}

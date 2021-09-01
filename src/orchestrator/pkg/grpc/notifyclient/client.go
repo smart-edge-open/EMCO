@@ -68,7 +68,7 @@ func CallRsyncInstall(contextid interface{}) error {
 
 // InvokeReadyNotify will make a gRPC call to the resource synchronizer and will
 // subscribe the clients to alerts from the rsync gRPC server ("ready-notify")
-func InvokeReadyNotify(appContextID string) (readynotifypb.ReadyNotify_AlertClient, readynotifypb.ReadyNotifyClient, error) {
+func InvokeReadyNotify(appContextID, clientName string) (readynotifypb.ReadyNotify_AlertClient, readynotifypb.ReadyNotifyClient, error) {
 
 	var stream readynotifypb.ReadyNotify_AlertClient
 	var client readynotifypb.ReadyNotifyClient
@@ -96,11 +96,11 @@ func InvokeReadyNotify(appContextID string) (readynotifypb.ReadyNotify_AlertClie
 	client = readynotifypb.NewReadyNotifyClient(conn)
 
 	if client != nil {
-		stream, err = client.Alert(context.Background(), &readynotifypb.Topic{ClientName: "dtc", AppContext: appContextID}, grpc.WaitForReady(true))
+		stream, err = client.Alert(context.Background(), &readynotifypb.Topic{ClientName: clientName, AppContext: appContextID}, grpc.WaitForReady(true))
 		if err != nil {
-			log.Error("[ReadyNotify gRPC] Failed to subscribe to alerts", log.Fields{"err": err, "appContextId": appContextID})
+			log.Error("[ReadyNotify gRPC] Failed to subscribe to alerts", log.Fields{"err": err, "clientName": clientName, "appContextId": appContextID})
 			time.Sleep(5 * time.Second)
-			InvokeReadyNotify(appContextID)
+			InvokeReadyNotify(appContextID, clientName)
 		}
 
 		log.Info("[ReadyNotify gRPC] Subscribing to alerts about appcontext ID", log.Fields{"appContextId": appContextID})

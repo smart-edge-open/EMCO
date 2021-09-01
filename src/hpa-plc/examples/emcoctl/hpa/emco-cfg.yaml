@@ -1,0 +1,21 @@
+  orchestrator:
+    host: localhost
+    port: 9015
+  clm:
+    host: localhost
+    port: 9061
+  ncm:
+    host: localhost
+    port: 9081
+  ovnaction:
+    host: localhost
+    port: 9051
+  dcm:
+    host: localhost
+    port: 9077
+  gac:
+    host: localhost
+    port: 9020
+  hpaplacement:
+    host: localhost
+    port: 9091

@@ -41,3 +41,9 @@ dependencies:
   - name: sfcclient
     version: ~0.x-0
     repository: 'file://../sfcclient'
+  - name: hpa-ac
+    version: ~0.x-0
+    repository: 'file://../hpa-ac'
+  - name: hpa-plc
+    version: ~0.x-0
+    repository: 'file://../hpa-plc'

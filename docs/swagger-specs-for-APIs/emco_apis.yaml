@@ -5152,6 +5152,545 @@ paths:
         '500':
           description: Internal Server Error
 
+  # HPA INTENTS API 
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+    post:
+      tags:
+        - HPA Intents
+      summary: Add HpaIntent
+      description: Add `hpa Intent`
+      operationId: addHpaIntent
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/DeploymentHpaIntent'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json: # Media type
+            schema:         # Request payload
+              $ref: '#/components/schemas/DeploymentHpaIntent'
+    get: # documentation for GET operation for this path
+      tags:
+        - HPA Intents
+      summary: Get all HPA intents
+
+      description: |
+        Get all `HPA intents`
+
+      operationId: getAllHpaIntents
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/DeploymentHpaIntentArray'
+        '404':
+          description: No Found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+  
+  # HPA INTENT RUD(retrieve, update, delete) API
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{hpa-intent-name}:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/hpaIntentName'
+
+    get: # documentation for GET operation for this path
+      tags:
+        - HPA Intents
+      summary: Get hpa intent for an application
+
+      description: |
+        Get `Deployment Intent`
+
+      operationId: getHpaIntent
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/DeploymentHpaIntent'
+        '404':
+          description: No Found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - HPA Intents
+      summary: Update hpa intent
+      description: Update `deployment hpa intent`
+      operationId: updateHpaIntent
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/DeploymentHpaIntent'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+         application/json: # Media type
+            schema:            # Request payload
+              $ref: '#/components/schemas/DeploymentHpaIntent'
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - HPA Intents
+      summary: Delete hpa intent
+
+      description: |
+        Delete `Deployment Hpa intent`
+
+      operationId: deleteHpaIntent
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+  #Query
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/hpa-intents:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - in: query
+        name: intent
+        schema:
+          type: string
+          maxLength: 128
+        required: true
+
+    get: # documentation for GET operation for this path
+      tags:
+        - HPA Intents
+      summary: Query hpa intent
+
+      description: |
+        Query `Deployment Hpa Intent`
+
+      operationId: queryHpaIntent
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/DeploymentHpaIntent'
+        '404':
+          description: No Found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+ # HPA INTENT CONSUMERS API
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{hpa-intent-name}/hpa-resource-consumers/:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/hpaIntentName'
+    post:
+      tags:
+        - HpaIntent Consumers
+      summary: Add Intent
+      description: Add `hpa Intent Consumer`
+      operationId: addHpaIntentConsumer
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/HpaResourceConsumer'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json: # Media type
+            schema:         # Request payload
+              $ref: '#/components/schemas/HpaResourceConsumer'
+    get: # documentation for GET operation for this path
+      tags:
+        - HpaIntent Consumers
+      summary: Get all hpaintent Consumers
+
+      description: |
+        Get all `hpa intents Consumers`
+
+      operationId: getAllHpaIntentConsumers
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/HpaResourceConsumerArray'
+        '404':
+          description: No Found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+ 
+ # HPA INTENT CONSUMER RUD(retrieve, update, delete) API
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{hpa-intent-name}/hpa-resource-consumers/{hpa-consumer-name}:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/hpaIntentName'
+      - $ref: '#/components/parameters/hpaConsumerName'
+
+    get: # documentation for GET operation for this path
+      tags:
+        - HpaIntent Consumers
+      summary: Get hpa intent Consumer for an application
+
+      description: |
+        Get `Deployment HpaIntent Consumer`
+
+      operationId: getHpaIntentConsumer
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/HpaResourceConsumer'
+        '404':
+          description: No Found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+    put:
+      tags:
+        - HpaIntent Consumers
+      summary: Update hpa intent consumer
+      description: Update `deployment hpa intent Consumer`
+      operationId: updateHpaIntentConsumer
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/HpaResourceConsumer'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      # request body documentation
+      requestBody:
+        content:
+         application/json: # Media type
+            schema:            # Request payload
+              $ref: '#/components/schemas/HpaResourceConsumer'
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - HpaIntent Consumers
+      summary: Delete Hpa intent Consumer
+
+      description: |
+        Delete `Deployment Hpa intent Consumer`
+
+      operationId: deleteHpaIntentConsumer
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+  #Query
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{hpa-intent-name}/hpa-resource-consumers:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/hpaIntentName'
+      - in: query
+        name: consumer
+        schema:
+          type: string
+          maxLength: 128
+        required: true
+
+    get: # documentation for GET operation for this path
+      tags:
+        - HpaIntent Consumers
+      summary: Query intent
+
+      description: |
+        Query `Deployment Hpa Intent Consumer`
+
+      operationId: queryHpaIntentConsumer
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/HpaResourceConsumer'
+        '404':
+          description: No Found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+  # HPA INTENT CONSUMER RESOURCES API
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{hpa-intent-name}/hpa-resource-consumers/{hpa-consumer-name}/resource-requirements/:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/hpaIntentName'
+      - $ref: '#/components/parameters/hpaConsumerName'
+    post:
+      tags:
+        - HpaIntent Consumer Resources
+      summary: Add Intent
+      description: Add `hpa Intent resource`
+      operationId: addHpaIntentConsumerResource
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/HpaResourceRequirements'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+      requestBody:
+        content:
+          application/json: # Media type
+            schema:         # Request payload
+              $ref: '#/components/schemas/HpaResourceRequirements'
+    get: # documentation for GET operation for this path
+      tags:
+        - HpaIntent Consumer Resources
+      summary: Get all hpa intent resources
+
+      description: |
+        Get all `hpa intent resources`
+
+      operationId: getAllHpaIntentConsumerResources
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/HpaResourceRequirementsArray'
+        '404':
+          description: No Found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+ 
+  # HPA INTENT CONSUMER RESOURCE RUD(retrieve, update, delete) API
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{hpa-intent-name}/hpa-resource-consumers/{hpa-consumer-name}/resource-requirements/{hpa-resource-name}:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/hpaIntentName'
+      - $ref: '#/components/parameters/hpaConsumerName'
+      - $ref: '#/components/parameters/hpaResourceName'
+
+    get: # documentation for GET operation for this path
+      tags:
+        - HpaIntent Consumer Resources
+      summary: Get hpa intent Consumer Resource for an application
+
+      description: |
+        Get `Deployment Intent`
+
+      operationId: getHpaIntentConsumerResource
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/HpaResourceRequirements'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+          
+    put:
+      tags:
+        - HpaIntent Consumer Resources
+      summary: Update hpa intent
+      description: Update `deployment hpa intent Consumer Resource`
+      operationId: updateHpaIntentConsumerResource
+      responses:
+        '200':
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/HpaResourceRequirements'
+          description: Success
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Unprocessable Entity
+        '500':
+          description: Internal Server Error
+  
+      # request body documentation
+      requestBody:
+        content:
+         application/json: # Media type
+            schema:            # Request payload
+              $ref: '#/components/schemas/HpaResourceRequirements'
+        required: true
+    delete: # documentation for DELETE operation for this path
+      tags:
+        - HpaIntent Consumer Resources
+      summary: Delete Hpa intent
+
+      description: |
+        Delete `Deployment Hpa Consumer Resource`
+
+      operationId: deleteHpaIntentConsumerResource
+      responses: # list of responses
+        '204':
+          description: Delete
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+  
+  #Query
+  /projects/{project-name}/composite-apps/{composite-app-name}/{composite-app-version}/deployment-intent-groups/{deployment-intent-group-name}/hpa-intents/{hpa-intent-name}/hpa-resource-consumers/{hpa-consumer-name}/resource-requirements:
+    parameters:
+      - $ref: '#/components/parameters/projectName'
+      - $ref: '#/components/parameters/compositeAppName'
+      - $ref: '#/components/parameters/compositeAppVersion'
+      - $ref: '#/components/parameters/deploymentIntentGroupName'
+      - $ref: '#/components/parameters/hpaIntentName'
+      - $ref: '#/components/parameters/hpaConsumerName'
+      - in: query
+        name: resource
+        schema:
+          type: string
+          maxLength: 128
+        required: true
+
+    get: # documentation for GET operation for this path
+      tags:
+        - HpaIntent Consumer Resources
+      summary: Query intent
+
+      description: |
+        Query `Deployment Hpa Intent Consumer Resource`
+
+      operationId: queryHpaIntentConsumerResource
+      responses: # list of responses
+        '200':
+          description: Success
+          content:
+            application/json: # operation response mime type
+              schema:
+                $ref: '#/components/schemas/HpaResourceRequirements'
+        '404':
+          description: No Found
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+
+
 #########################SCHEMAS####################################################
 # An object to hold reusable parts that can be used across the definition
 components:
@@ -6321,6 +6860,138 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/InboundClientIntent'
+    DeploymentHpaIntent:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          type: object
+          description: Hpa Intent Spec
+          properties:
+            app-name:
+              type: string
+              description: Target Application Name of the Hpa intent (e.g. Prometheus)
+              "minLength": 1
+              "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+          required:
+            - app-name
+    DeploymentHpaIntentArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/DeploymentHpaIntent'
+
+    # Deployment HPA Intent Consumer Schema
+    HpaResourceConsumer:
+      type: object
+      description: Intent mapping to K8s
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          type: object
+          description: HpaIntent ResourceConsumer spec
+          properties:
+            api-version:
+              type: string
+              description: K8s version (e.g apps/v1)
+              "minLength": 1
+            kind:
+              type: string
+              description: Type of object (e.g. Deployment)
+              "minLength": 1
+            replicas:
+              type: integer
+              format: int64
+              minimum: 1
+              description: Replicas of the consumer object(e.g. Deployment)
+            name:
+              type: string
+              description: From metadata/name field of the consumer object(e.g. Deployment)
+              "minLength": 1
+            container-name:
+              type: string
+              description: Container name of the consumer object(e.g. Deployment). This field is required for allocatable resources only
+              "minLength": 1
+          required:
+            - name
+    HpaResourceConsumerArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/HpaResourceConsumer'
+
+    # Deployment HPA Intent Consumer Resource Schema
+    HpaResourceRequirements:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/MetadataBase'
+        spec:
+          type: object
+          description: Hpa resource
+          properties:
+            allocatable:
+              type: boolean
+              description: Whether resource is allocatble
+            mandatory:
+              type: boolean
+              description: Whether requested resource type is mandatory or optional
+            weight:
+              type: integer
+              minimum: 1
+              default: 1
+              description: Whether requested resource type is mandatory or optional
+            resource:
+              $ref: '#/components/schemas/HpaResourceRequirementsDetails'
+          required:
+            - allocatable
+            - resource
+    HpaResourceRequirementsDetails:
+        oneOf:
+          - $ref: '#/components/schemas/allocatable-resources'
+          - $ref: '#/components/schemas/non-allocatable-resources'
+    allocatable-resources:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The requested resource type  (e.g. nvidia.com/gpu)
+          "minLength": 1
+        requests:
+          type: integer
+          format: int64
+          minimum: 1
+          description: The requested number of resource instances. (e.g memory is expressed as bytes by default)
+        limits:
+          type: integer
+          format: int64
+          minimum: 1
+          description: The limit of resource instances. (e.g memory is expressed as bytes by default)
+        units:
+          type: string
+          description: resource units.(e.g MB for memory resource represents Mega Bytes)
+          "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+      required:
+          - name
+          - requests
+    non-allocatable-resources:
+      type: object
+      properties:
+        key:
+          type: string
+          description: kubernetes label key
+        value:
+          type: string
+          description: kubernetes label value
+      required:
+        - key
+        - value
+    HpaResourceRequirementsArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/HpaResourceRequirements'
+
+
 
   parameters:
     projectName:
@@ -6582,6 +7253,31 @@ components:
       name: inbound-client-intent
       in: path
       description: Traffic Controller Client Inbound Intent
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    ############################ HPA PLACEMENT INTENT PARAMETERS #################################################
+    hpaIntentName:
+      name: hpa-intent-name
+      in: path
+      description: Name of Hpa Placement Intent for application
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    hpaConsumerName:
+      name: hpa-consumer-name
+      in: path
+      description: Name of Hpa Placement consumer
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    hpaResourceName:
+      name: hpa-resource-name
+      in: path
+      description: Name of Hpa Placement Consumer's resource 
       required: true
       schema:
         type: string

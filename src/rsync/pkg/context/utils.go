@@ -264,7 +264,7 @@ func (a *AppContextUtils) GetStatusAppContext(key string) (string, error) {
 
 // Add resource level for a status
 // Function adds any missing levels to AppContext
-func (a *AppContextUtils) AddResourceStatus(name string, app string, cluster string, status interface{}) error {
+func (a *AppContextUtils) AddResourceStatus(name string, app string, cluster string, status interface{}, acID string) error {
 	var rh, ch, ah interface{}
 
 	rh, err := a.ac.GetResourceHandle(app, cluster, name)
@@ -293,7 +293,7 @@ func (a *AppContextUtils) AddResourceStatus(name string, app string, cluster str
 				return err
 			}
 		}
-		rh, err = a.ac.AddResource(ch, name, nil)
+		rh, err = a.ac.AddResource(ch, name, "nil")
 		if err != nil {
 			log.Error("Unable to add resource to context for status", log.Fields{"err": err})
 			return err
@@ -308,6 +308,33 @@ func (a *AppContextUtils) AddResourceStatus(name string, app string, cluster str
 		}
 	} else {
 		a.ac.UpdateStatusValue(sh, status)
+	}
+	// Create link to the original resource
+	link := acID
+	lh, err := a.ac.GetLevelHandle(rh, "reference")
+	if err != nil {
+		lh, err = a.ac.AddLevelValue(rh, "reference", link)
+		if err != nil {
+			log.Error("Error add reference to resource for status", log.Fields{"err": err})
+			return err
+		}
+	} else {
+		a.ac.UpdateStatusValue(lh, link)
+	}
+	// Create a link to new appContext at the cluster level also for readystatus
+	ch, err = a.ac.GetClusterHandle(app, cluster)
+	if err != nil {
+		return err
+	}
+	lch, err := a.ac.GetLevelHandle(ch, "reference")
+	if err != nil {
+		lch, err = a.ac.AddLevelValue(ch, "reference", link)
+		if err != nil {
+			log.Error("Error add reference to resource for status", log.Fields{"err": err})
+			return err
+		}
+	} else {
+		a.ac.UpdateStatusValue(lch, link)
 	}
 	return nil
 }

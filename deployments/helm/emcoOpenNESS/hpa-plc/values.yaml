@@ -1,0 +1,83 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 Intel Corporation
+
+#################################################################
+# Global configuration defaults.
+#################################################################
+global:
+  nodePortPrefixExt: 304
+  persistence: {}
+#################################################################
+# Application configuration defaults.
+#################################################################
+# application image
+repository:
+image: emco-hpa-plc
+imageTag:
+pullPolicy: Always
+command: "./hpa-plc"
+args: ""
+workingDir: /opt/emco/hpa-plc
+
+# flag to enable debugging - application support required
+debugEnabled: false
+
+# application configuration is via config files
+
+# default number of instances
+replicaCount: 1
+
+nodeSelector: {}
+
+affinity: {}
+
+
+# probe configuration parameters
+liveness:
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  # necessary to disable liveness probe when setting breakpoints
+  # in debugger so K8s doesn't restart unresponsive container
+  enabled: true
+
+readiness:
+  initialDelaySeconds: 10
+  periodSeconds: 30
+
+service:
+  type: NodePort
+  name: hpaplacement
+  portName: http
+  internalPort: 9091
+  externalPort: 9091
+  nodePort: 51
+
+serviceInternal:
+  type: NodePort
+  name: internal
+  portName: internal
+  internalPort: 9099
+  externalPort: 9099
+  nodePort: 59
+
+ingress:
+  enabled: false
+
+# Configure resource requests and limits
+flavor: large
+resources:
+  small:
+    limits:
+      cpu: 200m
+      memory: 500Mi
+    requests:
+      cpu: 10m
+      memory: 10Mi
+  large:
+    limits:
+      cpu: 400m
+      memory: 1Gi
+    requests:
+      cpu: 10m
+      memory: 100Mi
+  unlimited: {}

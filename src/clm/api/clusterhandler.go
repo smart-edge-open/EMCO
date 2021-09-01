@@ -305,6 +305,33 @@ func (h clusterHandler) getClusterHandler(w http.ResponseWriter, r *http.Request
 	provider := vars["provider-name"]
 	name := vars["name"]
 
+	withLabels := r.URL.Query().Get("withLabels")
+	log.Warn("with Labels ", log.Fields{"val": withLabels})
+	if strings.ToLower(withLabels) == "true" && len(name) == 0 {
+		ret, err := h.client.GetAllClustersAndLabels(provider)
+		if err != nil {
+			log.Error(":: Error getting clusters and labels ::", log.Fields{"Error": err})
+			if strings.Contains(err.Error(), "db Find error") {
+				http.Error(w, err.Error(), http.StatusNotFound)
+			} else if strings.Contains(err.Error(), "not found") {
+				http.Error(w, err.Error(), http.StatusNotFound)
+			} else {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		err = json.NewEncoder(w).Encode(ret)
+		if err != nil {
+			log.Error(":: Error encoding get clusters by label response ::", log.Fields{"Error": err})
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		return
+	}
+
 	label := r.URL.Query().Get("label")
 	if len(label) != 0 && len(name) == 0 {
 		ret, err := h.client.GetClustersWithLabel(provider, label)

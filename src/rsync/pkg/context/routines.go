@@ -584,7 +584,7 @@ func (c *Context) handleResource(ctx context.Context, g *errgroup.Group, cl Clie
 
 func (c *Context) handleStatusTracking(ctx context.Context, g *errgroup.Group, cl ClientProvider, op RsyncOperation, app, cluster string) error {
 	log.Info(" handleStatusTracking::", log.Fields{"app": app, "cluster": cluster})
-	label := c.acID + "-" + app
+	label := c.statusAcID + "-" + app
 	switch op {
 	case OpApply:
 		err := c.addStatusTracker(cl, app, cluster, label)
@@ -807,6 +807,6 @@ func (c *Context) deleteStatusTracker(cl ClientProvider, app string, cluster str
 func (c *Context) updateResourceStatus(name, app, cluster string, status interface{}) {
 	// Use utils with status appContext
 	utils := &AppContextUtils{ac: c.sc}
-	_ = utils.AddResourceStatus(name, app, cluster, status)
+	_ = utils.AddResourceStatus(name, app, cluster, status, c.acID)
 	// Treating status errors as non fatal
 }

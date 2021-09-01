@@ -36,6 +36,11 @@ type Cluster struct {
 	Metadata mtypes.Metadata `json:"metadata"`
 }
 
+type ClusterWithLabels struct {
+	Metadata mtypes.Metadata `json:"metadata"`
+	Labels   []ClusterLabel  `json:"labels"`
+}
+
 type ClusterContent struct {
 	Kubeconfig string `json:"kubeconfig"`
 }
@@ -100,6 +105,7 @@ type ClusterManager interface {
 	GetClusterState(provider, name string) (state.StateInfo, error)
 	GetClusters(provider string) ([]Cluster, error)
 	GetClustersWithLabel(provider, label string) ([]string, error)
+	GetAllClustersAndLabels(provider string) ([]ClusterWithLabels, error)
 	DeleteCluster(provider, name string) error
 	CreateClusterLabel(provider, cluster string, pr ClusterLabel, exists bool) (ClusterLabel, error)
 	GetClusterLabel(provider, cluster, label string) (ClusterLabel, error)
@@ -398,6 +404,28 @@ func (v *ClusterClient) GetClusters(provider string) ([]Cluster, error) {
 	return resp, nil
 }
 
+// GetAllClustersAndLabels returns all the the clusters and their labels
+func (v *ClusterClient) GetAllClustersAndLabels(provider string) ([]ClusterWithLabels, error) {
+
+	// Get All clusters
+	cl, err := v.GetClusters(provider)
+	if err != nil {
+		return []ClusterWithLabels{}, err
+	}
+
+	resp := make([]ClusterWithLabels, len(cl))
+
+	// Get all cluster labels
+	for k, value := range cl {
+		resp[k].Metadata = value.Metadata
+		resp[k].Labels, err = v.GetClusterLabels(provider, value.Metadata.Name)
+		if err != nil {
+			return []ClusterWithLabels{}, err
+		}
+	}
+	return resp, nil
+}
+
 // GetClustersWithLabel returns all the Clusters with Labels for provider
 // Support Query like /cluster-providers/{Provider}/clusters?label={label}
 func (v *ClusterClient) GetClustersWithLabel(provider, label string) ([]string, error) {
@@ -568,14 +596,14 @@ func (v *ClusterClient) GetClusterLabel(provider, cluster, label string) (Cluste
 
 // GetClusterLabels returns the Cluster Labels for corresponding provider and cluster
 func (v *ClusterClient) GetClusterLabels(provider, cluster string) ([]ClusterLabel, error) {
-	//Construct key and tag to select the entry
+	// Construct key and tag to select the entry
 	key := ClusterLabelKey{
 		ClusterProviderName: provider,
 		ClusterName:         cluster,
 		ClusterLabelName:    "",
 	}
 
-	//Verify Cluster already exists
+	// Verify Cluster already exists
 	_, err := v.GetCluster(provider, cluster)
 	if err != nil {
 		return []ClusterLabel{}, err

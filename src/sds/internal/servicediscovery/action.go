@@ -94,7 +94,7 @@ func CreateAppContext(intentName, appContextID string) error {
 		}
 
 		// Register for an appcontext alert and receive the stream handle
-		stream, client, err := rsyncclient.InvokeReadyNotify(appContextID)
+		stream, client, err := rsyncclient.InvokeReadyNotify(appContextID, "sds")
 		if err != nil {
 			log.Error("Error in callRsyncReadyNotify", log.Fields{
 				"error": err, "appContextID": appContextID,
@@ -128,7 +128,7 @@ func processServiceDiscovery(appContextID string, clientSets map[string]string, 
 	}
 
 	// call unsubscribe
-	_, err = cl.Unsubscribe(context.Background(), &readynotifypb.Topic{ClientName: "dtc", AppContext: appContextID})
+	_, err = cl.Unsubscribe(context.Background(), &readynotifypb.Topic{ClientName: "sds", AppContext: appContextID})
 	if err != nil {
 		log.Error("[ReadyNotify gRPC] Failed to unsubscribe to alerts", log.Fields{"err": err, "appContextId": appContextID})
 		return err

@@ -102,7 +102,8 @@ func createSampleVfwAppContext() (appContext, error) {
 			if err != nil {
 				return appContext{}, pkgerrors.Wrap(err, "Error making resource order instruction")
 			}
-
+			// Add a reference
+			_, err = ac.AddLevelValue(clh, "reference", ctxVal)
 			// Add resources
 			var rh interface{}
 			switch app {
@@ -116,7 +117,8 @@ func createSampleVfwAppContext() (appContext, error) {
 			if err != nil {
 				return appContext{}, pkgerrors.Wrap(err, "Error making resource order instruction")
 			}
-
+			// Add a reference
+			_, err = ac.AddLevelValue(rh, "reference", ctxVal)
 			// Add resource status
 			_, err = ac.AddLevelValue(rh, "status", resourcestatus.ResourceStatus{Status: resourcestatus.RsyncStatusEnum.Applied})
 		}
