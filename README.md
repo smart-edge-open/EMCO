@@ -91,7 +91,7 @@ This is done in two stages:
    using `deployments/docker/docker-compose.yml`. This spawns a set of
    containers, each running one EMCO component.
 
-See [this tutorial](docs/user/Tutorial_Local_Install.md) for further details.
+See [this tutorial](docs/user/install/Tutorial_Local_Install.md) for further details.
 
 ### Deploy EMCO in a Kubernetes cluster
 Alternatively, you can build EMCO locally and deploy EMCO components in a
@@ -130,4 +130,4 @@ Do the following steps:
 ### Deploy sample test cases with EMCO
 See [this Readme](kud/emcoctl-tests/Readme.md) on how to setup environment and running few test cases with EMCO.
 
-See [this tutorial](docs/user/Tutorial_Helm.md) for further details.
+See [this tutorial](docs/user/install/Tutorial_Helm.md) for further details.
