@@ -2,6 +2,8 @@
 SPDX-License-Identifier: Apache-2.0
 Copyright (c) 2019-2020 Intel Corporation
 ```
+# EMCO is now maintained in Gitlab - https://gitlab.com/project-emco/core/emco-base 
+
 
 # EMCO
 
